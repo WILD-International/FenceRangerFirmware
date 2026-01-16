@@ -1,0 +1,3 @@
+[submodule "lib/RadioBoards"]
+	path = lib/RadioBoards
+	url = https://github.com/radiolib-org/RadioBoards.git
