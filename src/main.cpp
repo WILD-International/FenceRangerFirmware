@@ -1,18 +1,21 @@
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
-
+#define Boot_Key 0
+#define Led      35
 void setup() {
   // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  pinMode(Boot_Key, INPUT_PULLUP);
+  pinMode(Led, OUTPUT);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  if(digitalRead(Boot_Key)==0) {
+    digitalWrite(Led,HIGH);
+    Serial.print("hello world !!! \n");
+    delay(1000);
+    digitalWrite(Led,LOW);
+  }
+  delay(100);
 }
