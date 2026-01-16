@@ -1,3 +1,4 @@
 [submodule "lib/RadioBoards"]
-	path = lib/RadioBoards
-	url = https://github.com/radiolib-org/RadioBoards.git
+  path = lib/RadioBoards
+  url = https://github.com/WILD-International/RadioBoards.git
+  branch = heltec_v4
