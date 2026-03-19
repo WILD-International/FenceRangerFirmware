@@ -3,3 +3,9 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# nvim, clangd
+.clangd
+.cache
+compile_commands.json
+.nvim.lua
