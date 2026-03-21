@@ -1,9 +1,24 @@
 // #include "config.h"
 
 #define SOMETHING_TO_PREVENT_REORDERING_DEPENDENCIES_BY_FORMATTER
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <Preferences.h>
 #include <RadioLib.h>
+
+#define Boot_Key 0
+#define Led 35
+#define VFEM_CTRL 7
+#define PA_CSD 2  // PA_CSD
+#define PA_CPS 46
+
+#define OLED_SDA 17
+#define OLED_SCL 18
+#define OLED_RST 21
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
 
 // Based on selected board, automatically pick the correct radio config
 #define RADIO_BOARD_AUTO
@@ -26,7 +41,8 @@ const uint8_t subBand = 0;
 Preferences preferences;
 
 uint64_t joinEUI = 0x0000000000000000;
-uint64_t devEUI = 0x70B3D57ED0075374;  // random
+// uint64_t devEUI = 0x70B3D57ED0075374;  // random
+uint8_t devEUI[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 // uint64_t devEUI = 0x7B1C000064E83369; // the v3 module that i have
 uint8_t appKey[] = {0x90, 0xB8, 0x3E, 0x98, 0xA9, 0x37, 0x54, 0x53,
                     0xDC, 0xDC, 0xEB, 0x72, 0x96, 0xEF, 0x46, 0xB3};
@@ -39,17 +55,35 @@ LoRaWANEvent_t downlinkDetails;
 
 LoRaWANNode node(&radio, &Region, subBand);
 
-#define Boot_Key 0
-#define Led 35
-#define VFEM_CTRL 7
-#define PA_CSD 2  // PA_CSD
-#define PA_CPS 46
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 void printHex(uint8_t num) {
   char hexCar[3];
 
   sprintf(hexCar, "%02X", num);
   Serial.print(hexCar);
+}
+
+void generateDeveuiByChipID() {
+  uint32_t uniqueId[2];
+  // uint64_t id = getID();
+  uint64_t id = ESP.getEfuseMac();
+  uniqueId[0] = (uint32_t)(id >> 32);
+  uniqueId[1] = (uint32_t)id;
+  for (int i = 0; i < 8; i++) {
+    if (i < 4)
+      devEUI[i] = (uniqueId[1] >> (8 * (3 - i))) & 0xFF;
+    else
+      devEUI[i] = (uniqueId[0] >> (8 * (7 - i))) & 0xFF;
+  }
+}
+
+uint64_t arrayToUint64(uint8_t* arr) {
+  uint64_t result = 0;
+  for (int i = 0; i < 8; i++) {
+    result = (result << 8) | arr[i];
+  }
+  return result;
 }
 
 void setup() {
@@ -66,6 +100,8 @@ void setup() {
   // digitalWrite(PA_CSD, LOW);
   // pinMode(PA_CPS, OUTPUT);
   // digitalWrite(PA_CPS, LOW);
+
+  generateDeveuiByChipID();
 
   preferences.begin("fence");
 
@@ -102,8 +138,29 @@ void setup() {
   }
   // #endif
 
+  // Start I2C on the correct pins
+  Wire.begin(OLED_SDA, OLED_SCL);
+
+  // Initialize display (0x3C is the typical I2C address)
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("SSD1306 init failed");
+    while (true);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println(arrayToUint64(devEUI), HEX);
+  display.display();
+
+  while (true) {
+    delay(5000);
+    Serial.println("Sleeping");
+  }
+
   Serial.println(F("Beginning OTAA"));
-  node.beginOTAA(joinEUI, devEUI, NULL, appKey);
+  node.beginOTAA(joinEUI, arrayToUint64(devEUI), NULL, appKey);
 
   Serial.println(F("Activate OTAA"));
   node.activateOTAA();
