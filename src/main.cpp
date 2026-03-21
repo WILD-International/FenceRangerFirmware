@@ -4,6 +4,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
+#include <Console.h>
 #include <Preferences.h>
 #include <RadioLib.h>
 
@@ -57,6 +58,8 @@ LoRaWANNode node(&radio, &Region, subBand);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
+Console console(115200);
+
 void printHex(uint8_t num) {
   char hexCar[3];
 
@@ -86,20 +89,51 @@ uint64_t arrayToUint64(uint8_t* arr) {
   return result;
 }
 
+void commandGetAppKey(int argc, const String args[]) {
+  for (int i = 0; i < sizeof(appKey); i++) {
+    printHex(appKey[i]);
+  }
+  Serial.println();
+}
+
+void commandSetAppKey(int argc, const String args[]) {
+  if (args[2].length() != 32) {
+    Serial.println("Error: app_key must be 16 bytes (32 hex characters)");
+    return;
+  }
+  for (int i = 0; i < 16; i++) {
+    String byteStr = args[2].substring(i * 2, i * 2 + 2);
+    appKey[i] = (uint8_t)strtoul(byteStr.c_str(), NULL, 16);
+  }
+  preferences.putBytes("app_key", appKey, sizeof(appKey));
+  Serial.println("app_key updated");
+}
+
+void commandGetDevEUI(int argc, const String args[]) {
+  for (int i = 0; i < sizeof(devEUI); i++) {
+    printHex(devEUI[i]);
+  }
+  Serial.println();
+}
+
 void setup() {
   // Because platformio is stupid we delay booting to see all serial output
   delay(1000);
 
+  console.addCommand("get", "app_key", 2, commandGetAppKey);
+  console.addCommand("set", "app_key", 3, commandSetAppKey);
+  console.addCommand("get", "dev_eui", 2, commandGetDevEUI);
+  console.begin();
   // put your setup code here, to run once:
-  Serial.begin(115200);
+  // Serial.begin(115200);
   pinMode(Boot_Key, INPUT_PULLUP);
   pinMode(Led, OUTPUT);
   pinMode(VFEM_CTRL, OUTPUT);
   digitalWrite(VFEM_CTRL, LOW);
-  // pinMode(PA_CSD, OUTPUT);
-  // digitalWrite(PA_CSD, LOW);
-  // pinMode(PA_CPS, OUTPUT);
-  // digitalWrite(PA_CPS, LOW);
+  pinMode(PA_CSD, OUTPUT);
+  digitalWrite(PA_CSD, LOW);
+  pinMode(PA_CPS, OUTPUT);
+  digitalWrite(PA_CPS, LOW);
 
   generateDeveuiByChipID();
 
@@ -115,59 +149,63 @@ void setup() {
     preferences.putBytes("app_key", appKey, 16);
   }
 
-  Serial.println("[SX1262] Initializing ... ");
-
-  // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
-  int state = radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 10, 8, 1.8, false);
-  if (state == RADIOLIB_ERR_NONE) {
-    Serial.println(F("success!"));
-  } else {
-    Serial.print(F("failed, code "));
-    Serial.println(state);
-    while (true) {
-      delay(10);
-    }
-  }
-
-  // #if defined(ARDUINO_heltec_wifi_lora_32_V3)
-  if (radio.setDio2AsRfSwitch() != RADIOLIB_ERR_NONE) {
-    Serial.println(F("Failed to set DIO2 as RF switch!"));
-    while (true) {
-      delay(10);
-    }
-  }
-  // #endif
-
-  // Start I2C on the correct pins
-  Wire.begin(OLED_SDA, OLED_SCL);
-
-  // Initialize display (0x3C is the typical I2C address)
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("SSD1306 init failed");
-    while (true);
-  }
-
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println(arrayToUint64(devEUI), HEX);
-  display.display();
-
   while (true) {
-    delay(5000);
-    Serial.println("Sleeping");
+    console.update();
   }
 
-  Serial.println(F("Beginning OTAA"));
-  node.beginOTAA(joinEUI, arrayToUint64(devEUI), NULL, appKey);
-
-  Serial.println(F("Activate OTAA"));
-  node.activateOTAA();
-  Serial.println(F("Done"));
-
-  // Enable the ADR algorithm (on by default which is preferable)
-  node.setADR(true);
+  // Serial.println("[SX1262] Initializing ... ");
+  //
+  // // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
+  // int state = radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 10, 8, 1.8,
+  // false); if (state == RADIOLIB_ERR_NONE) {
+  //   Serial.println(F("success!"));
+  // } else {
+  //   Serial.print(F("failed, code "));
+  //   Serial.println(state);
+  //   while (true) {
+  //     delay(10);
+  //   }
+  // }
+  //
+  // // #if defined(ARDUINO_heltec_wifi_lora_32_V3)
+  // if (radio.setDio2AsRfSwitch() != RADIOLIB_ERR_NONE) {
+  //   Serial.println(F("Failed to set DIO2 as RF switch!"));
+  //   while (true) {
+  //     delay(10);
+  //   }
+  // }
+  // // #endif
+  //
+  // // Start I2C on the correct pins
+  // Wire.begin(OLED_SDA, OLED_SCL);
+  //
+  // // Initialize display (0x3C is the typical I2C address)
+  // if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  //   Serial.println("SSD1306 init failed");
+  //   while (true);
+  // }
+  //
+  // display.clearDisplay();
+  // display.setTextSize(1);
+  // display.setTextColor(SSD1306_WHITE);
+  // display.setCursor(0, 0);
+  // display.println(arrayToUint64(devEUI), HEX);
+  // display.display();
+  //
+  // while (true) {
+  //   delay(5000);
+  //   Serial.println("Sleeping");
+  // }
+  //
+  // Serial.println(F("Beginning OTAA"));
+  // node.beginOTAA(joinEUI, arrayToUint64(devEUI), NULL, appKey);
+  //
+  // Serial.println(F("Activate OTAA"));
+  // node.activateOTAA();
+  // Serial.println(F("Done"));
+  //
+  // // Enable the ADR algorithm (on by default which is preferable)
+  // node.setADR(true);
 }
 
 // helper function to display a byte array
