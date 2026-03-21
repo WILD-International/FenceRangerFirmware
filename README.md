@@ -2,6 +2,12 @@
 
 Install Platformio, the easiest method is probably using VSCode: https://platformio.org/platformio-ide
 
+Make sure to get the git submodules, because lib/RadioBoards is a submodule:
+
+```
+git submodule update --init --recursive
+```
+
 
 ## Without VSCode on MacOS with fish shell
 
