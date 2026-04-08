@@ -97,6 +97,33 @@ bool hexToBytes(const char* hex, uint8_t* out, size_t expectedLen) {
   return true;
 }
 
+void printWakeupReason() {
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0:
+      Serial.println("Wakeup caused by external signal using RTC_IO");
+      break;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      Serial.println("Wakeup caused by external signal using RTC_CNTL");
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      Serial.println("Wakeup caused by timer");
+      break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+      Serial.println("Wakeup caused by touchpad");
+      break;
+    case ESP_SLEEP_WAKEUP_ULP:
+      Serial.println("Wakeup caused by ULP program");
+      break;
+    default:
+      Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
+      break;
+  }
+}
+
 // --- DevEUI from chip ---
 
 void loadDevEUI() {
@@ -233,13 +260,34 @@ void configurationProgram() {
 }
 
 void measureProgram() {
+  printWakeupReason();
   // process for a bit
-  delay(10000);
+  delay(20000);
 
   // then enter deep sleep
+  esp_sleep_enable_timer_wakeup(5 * 1000000);  // 5 seconds
+                                               //
+
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == 0) {
+    Serial.println("Going to sleep now");
+    delay(1000);
+    Serial.flush();
+    esp_deep_sleep_start();
+  }
+
+  while (true) {
+    delay(1000);
+    Serial.println("Staying awake");
+  }
 }
 
 void setup() {
+  delay(1000);
+  Serial.begin(115200);
+  Serial.println("Hello?");
   loadConfig();
   loadDevEUI();
 }
