@@ -277,12 +277,38 @@ void configurationProgram() {
                              // We use 60khz because that is effectively 20khz per channel
 #define CONV_FRAME_SIZE 256  // tested with 16, add large margin
 #define POOL_SIZE 1024       // tested with 64, add large margin
-#define MEASURE_MS 1000
+#define MEASURE_MS 3000
 
 static const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
                                                      ADC_CHANNEL_FENCE_POS};
 static uint8_t dma_buf[CONV_FRAME_SIZE];
 
+static esp_adc_cal_characteristics_t adc_chars;
+
+void adc_cal_init() {
+  esp_adc_cal_value_t cal_type =
+      esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12,
+                               0,  // default_vref — ignored on S3 when eFuse data exists
+                               &adc_chars);
+
+  // Check what calibration source was used
+  switch (cal_type) {
+    case ESP_ADC_CAL_VAL_EFUSE_TP_FIT:
+      Serial.println("ADC cal: curve fitting (eFuse)");
+      break;
+    case ESP_ADC_CAL_VAL_EFUSE_TP:
+      Serial.println("ADC cal: two point (eFuse)");
+      break;
+    case ESP_ADC_CAL_VAL_EFUSE_VREF:
+      Serial.println("ADC cal: Vref (eFuse)");
+      break;
+    case ESP_ADC_CAL_VAL_DEFAULT_VREF:
+      Serial.println("ADC cal: default Vref (no eFuse data!)");
+      break;
+    default:
+      Serial.println("ADC cal: unknown");
+  }
+}
 void adc_continuous_init() {
   adc_digi_init_config_t dma_init = {};
   dma_init.max_store_buf_size = POOL_SIZE;
@@ -374,12 +400,15 @@ void measureMinMax() {
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
   for (int i = 0; i < NUM_CHANNELS; i++) {
+    uint32_t min_mv = esp_adc_cal_raw_to_voltage(min_val[i], &adc_chars);
+    uint32_t max_mv = esp_adc_cal_raw_to_voltage(max_val[i], &adc_chars);
+
     Serial.printf("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
-                  sample_count[i] * 1000 / MEASURE_MS, min_val[i], max_val[i]);
+                  sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);  // min_val[i], max_val[i]);
 
     display.setCursor(0, i * 20);
     // print min and max for each channel
-    display.printf("%d %d\n", min_val[i], max_val[i]);
+    display.printf("%d %d\n", min_mv, max_mv);  // min_val[i], max_val[i]);
   }
   display.display();
 }
@@ -390,12 +419,15 @@ void measureProgram() {
   digitalWrite(ADC_OPAMP, HIGH);  // power on the opamp
   delay(1);
 
+  adc_cal_init();
   adc_continuous_init();
   Serial.println("ADC DMA ready - 3 channels");
 
   while (true) {
+    digitalWrite(LED, LOW);
     measureMinMax();
-    // delay(1000);
+    digitalWrite(LED, HIGH);
+    delay(100);
   }
 
   // sleep testing code below
@@ -430,6 +462,8 @@ void setup() {
   loadConfig();
   loadDevEUI();
 
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
   pinMode(36, OUTPUT);
   digitalWrite(36, LOW);  // power on the display
   // Start I2C on the correct pins
