@@ -370,21 +370,28 @@ void measureMinMax() {
   ESP_ERROR_CHECK(adc_digi_stop());
 
   Serial.printf("Errors: %d\n", error_count);
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
   for (int i = 0; i < NUM_CHANNELS; i++) {
     Serial.printf("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
                   sample_count[i] * 1000 / MEASURE_MS, min_val[i], max_val[i]);
+
+    display.setCursor(0, i * 20);
+    // print min and max for each channel
+    display.printf("%d %d\n", min_val[i], max_val[i]);
   }
+  display.display();
 }
 
 void measureProgram() {
   // configure the ADC
-
   pinMode(ADC_OPAMP, OUTPUT);
   digitalWrite(ADC_OPAMP, HIGH);  // power on the opamp
   delay(1);
 
   adc_continuous_init();
-  Serial.println("ADC DMA ready - 2 channels");
+  Serial.println("ADC DMA ready - 3 channels");
 
   while (true) {
     measureMinMax();
@@ -422,6 +429,17 @@ void setup() {
   Serial.println("Hello?");
   loadConfig();
   loadDevEUI();
+
+  pinMode(36, OUTPUT);
+  digitalWrite(36, LOW);  // power on the display
+  // Start I2C on the correct pins
+  Wire.begin(OLED_SDA, OLED_SCL);
+
+  // Initialize display (0x3C is the typical I2C address)
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("SSD1306 init failed");
+    while (true);
+  }
 }
 
 void loop() {
