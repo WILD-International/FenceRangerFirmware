@@ -4,36 +4,15 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
-#include <Console.h>
 #include <Preferences.h>
 #include <RadioLib.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
-#define Boot_Key 0
-#define Led 35
-#define VFEM_CTRL 7
-#define PA_CSD 2  // PA_CSD
-#define PA_CPS 46
-
-#define OLED_SDA 17
-#define OLED_SCL 18
-#define OLED_RST 21
-
-#define ADC_BATT 1
-#define ADC_OPAMP 2
-#define ADC_FENCE_NEG 3
-#define ADC_FENCE_POS 4
-
-#define ADC_CHANNEL_VBAT ADC_CHANNEL_0
-#define ADC_CHANNEL_FENCE_NEG ADC_CHANNEL_2
-#define ADC_CHANNEL_FENCE_POS ADC_CHANNEL_3
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-
-// Based on selected board, automatically pick the correct radio config
-#define RADIO_BOARD_AUTO
+#include "board.h"
+#include "config.h"
+#include "helpers.h"
+#include "state.h"
 
 // now include RadioBoards
 // this must be included AFTER RadioLib!
@@ -52,24 +31,9 @@ const uint8_t subBand = 0;
 
 String serialBuffer;
 
-// Max lengths
-#define DEVEUI_LEN 8
-#define APPKEY_LEN 16
-#define DEVNAME_MAX 32
-
+Config config;
+State state;
 Preferences prefs;
-
-uint8_t devEUI[DEVEUI_LEN];  // Read-only, from chip
-uint8_t appKey[APPKEY_LEN];
-char devName[DEVNAME_MAX];
-
-enum ProgramState {
-  PROGRAM_CONFIGURATION,
-  PROGRAM_JOIN,
-  PROGRAM_MEASURE,
-};
-
-RTC_DATA_ATTR ProgramState programState = PROGRAM_MEASURE;
 
 uint64_t joinEUI = 0x0000000000000000;
 
@@ -82,94 +46,6 @@ LoRaWANEvent_t downlinkDetails;
 LoRaWANNode node(&radio, &Region, subBand);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
-
-Console console(115200);
-
-// --- Helpers ---
-
-void bytesToHex(const uint8_t* data, size_t len, char* out) {
-  for (size_t i = 0; i < len; i++) {
-    sprintf(out + i * 2, "%02X", data[i]);
-  }
-}
-
-bool hexToBytes(const char* hex, uint8_t* out, size_t expectedLen) {
-  size_t hexLen = strlen(hex);
-  if (hexLen != expectedLen * 2)
-    return false;
-  for (size_t i = 0; i < expectedLen; i++) {
-    char byte[3] = {hex[i * 2], hex[i * 2 + 1], '\0'};
-    char* end;
-    unsigned long val = strtoul(byte, &end, 16);
-    if (*end != '\0')
-      return false;
-    out[i] = (uint8_t)val;
-  }
-  return true;
-}
-
-void printWakeupReason() {
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch (wakeup_reason) {
-    case ESP_SLEEP_WAKEUP_EXT0:
-      Serial.println("Wakeup caused by external signal using RTC_IO");
-      break;
-    case ESP_SLEEP_WAKEUP_EXT1:
-      Serial.println("Wakeup caused by external signal using RTC_CNTL");
-      break;
-    case ESP_SLEEP_WAKEUP_TIMER:
-      Serial.println("Wakeup caused by timer");
-      break;
-    case ESP_SLEEP_WAKEUP_TOUCHPAD:
-      Serial.println("Wakeup caused by touchpad");
-      break;
-    case ESP_SLEEP_WAKEUP_ULP:
-      Serial.println("Wakeup caused by ULP program");
-      break;
-    default:
-      Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
-      break;
-  }
-}
-
-// --- DevEUI from chip ---
-
-void loadDevEUI() {
-  uint32_t uniqueId[2];
-  uint64_t id = ESP.getEfuseMac();
-  uniqueId[0] = (uint32_t)(id >> 32);
-  uniqueId[1] = (uint32_t)id;
-  for (int i = 0; i < 8; i++) {
-    if (i < 4)
-      devEUI[i] = (uniqueId[1] >> (8 * (3 - i))) & 0xFF;
-    else
-      devEUI[i] = (uniqueId[0] >> (8 * (7 - i))) & 0xFF;
-  }
-}
-
-// --- NVS load/save ---
-
-void loadConfig() {
-  prefs.begin("fence", true);  // read-only
-  prefs.getBytes("appKey", appKey, APPKEY_LEN);
-  strlcpy(devName, prefs.getString("devName", "device").c_str(), DEVNAME_MAX);
-  prefs.end();
-}
-
-void saveAppKey() {
-  prefs.begin("fence", false);
-  prefs.putBytes("appKey", appKey, APPKEY_LEN);
-  prefs.end();
-}
-
-void saveDevName() {
-  prefs.begin("fence", false);
-  prefs.putString("devName", devName);
-  prefs.end();
-}
 
 // --- AT Command Handler ---
 
@@ -184,13 +60,13 @@ void handleATCommand(String cmd) {
   // AT+DEVEUI?
   else if (cmd == "AT+DEVEUI?") {
     char hex[DEVEUI_LEN * 2 + 1] = {};
-    bytesToHex(devEUI, DEVEUI_LEN, hex);
+    bytesToHex(config.getDevEUI(), DEVEUI_LEN, hex);
     Serial.printf("+DEVEUI:%s\r\nOK\r\n", hex);
   }
   // AT+APPKEY?
   else if (cmd == "AT+APPKEY?") {
     char hex[APPKEY_LEN * 2 + 1] = {};
-    bytesToHex(appKey, APPKEY_LEN, hex);
+    bytesToHex(config.getAppKey(), APPKEY_LEN, hex);
     Serial.printf("+APPKEY:%s\r\nOK\r\n", hex);
   }
   // AT+APPKEY=<32 hex chars>
@@ -198,8 +74,7 @@ void handleATCommand(String cmd) {
     String val = cmd.substring(10);
     uint8_t tmp[APPKEY_LEN];
     if (hexToBytes(val.c_str(), tmp, APPKEY_LEN)) {
-      memcpy(appKey, tmp, APPKEY_LEN);
-      saveAppKey();
+      config.setAppKey(tmp);
       Serial.println("OK");
     } else {
       Serial.println("ERROR: Invalid AppKey (expected 32 hex chars)");
@@ -207,7 +82,7 @@ void handleATCommand(String cmd) {
   }
   // AT+DEVNAME?
   else if (cmd == "AT+DEVNAME?") {
-    Serial.printf("+DEVNAME:%s\r\nOK\r\n", devName);
+    Serial.printf("+DEVNAME:%s\r\nOK\r\n", config.getDevName());
   }
   // AT+DEVNAME=<name>
   else if (cmd.startsWith("AT+DEVNAME=")) {
@@ -216,15 +91,14 @@ void handleATCommand(String cmd) {
     if (val.length() == 0 || val.length() >= DEVNAME_MAX) {
       Serial.printf("ERROR: Name must be 1-%d chars\r\n", DEVNAME_MAX - 1);
     } else {
-      strlcpy(devName, val.c_str(), DEVNAME_MAX);
-      saveDevName();
+      config.setDevName(val.c_str());
       Serial.println("OK");
     }
   }
   // AT+EXIT
   else if (cmd == "AT+EXIT") {
     Serial.println("Exiting configuration mode");
-    programState = PROGRAM_MEASURE;
+    state.setProgramState(PROGRAM_MEASURE);
   }
   // AT+HELP
   else if (cmd == "AT+HELP") {
@@ -254,7 +128,7 @@ void configurationProgram() {
       if (c == '\n' || c == '\r') {
         if (serialBuffer.length() > 0) {
           handleATCommand(serialBuffer);
-          if (programState != PROGRAM_CONFIGURATION) {
+          if (state.getProgramState() != PROGRAM_CONFIGURATION) {
             break;  // exit loop if we changed state
           }
           serialBuffer = "";
@@ -270,7 +144,7 @@ void configurationProgram() {
   }
 }
 
-// ── Configuration ──────────────────────────────────────────────
+// ── ADC Configuration ──────────────────────────────────────────────
 #define NUM_CHANNELS 3
 #define SAMPLE_FREQ_HZ \
   60000                      // lofence used 250khz adc clock, which is approx 19khz per channel.
@@ -458,9 +332,8 @@ void measureProgram() {
 void setup() {
   delay(1000);
   Serial.begin(115200);
-  Serial.println("Hello?");
-  loadConfig();
-  loadDevEUI();
+  config.load();
+  pinMode(Boot_Key, INPUT_PULLUP);
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
@@ -477,7 +350,7 @@ void setup() {
 }
 
 void loop() {
-  switch (programState) {
+  switch (state.getProgramState()) {
     case PROGRAM_CONFIGURATION:
       Serial.println("Entering configuration mode");
       configurationProgram();
