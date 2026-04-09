@@ -6,6 +6,7 @@
 
 #define Boot_Key 0
 #define Led 35
+#define DISPLAY_POWER 36
 #define VFEM_CTRL 7
 #define PA_CSD 2  // PA_CSD
 #define PA_CPS 46

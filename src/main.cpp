@@ -1,8 +1,6 @@
 // #include "config.h"
 
 #define SOMETHING_TO_PREVENT_REORDERING_DEPENDENCIES_BY_FORMATTER
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <Preferences.h>
 #include <RadioLib.h>
@@ -10,7 +8,9 @@
 #include <esp_adc_cal.h>
 
 #include "board.h"
+#include "button.h"
 #include "config.h"
+#include "display_menu.h"
 #include "helpers.h"
 #include "state.h"
 
@@ -33,6 +33,8 @@ String serialBuffer;
 
 Config config;
 State state;
+Button button;
+DisplayMenu displayMenu(&config);
 Preferences prefs;
 
 uint64_t joinEUI = 0x0000000000000000;
@@ -44,8 +46,6 @@ LoRaWANEvent_t uplinkDetails;
 LoRaWANEvent_t downlinkDetails;
 
 LoRaWANNode node(&radio, &Region, subBand);
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 // --- AT Command Handler ---
 
@@ -270,9 +270,9 @@ void measureMinMax() {
   ESP_ERROR_CHECK(adc_digi_stop());
 
   Serial.printf("Errors: %d\n", error_count);
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
+  // display.clearDisplay();
+  // display.setTextSize(2);
+  // display.setTextColor(SSD1306_WHITE);
   for (int i = 0; i < NUM_CHANNELS; i++) {
     uint32_t min_mv = esp_adc_cal_raw_to_voltage(min_val[i], &adc_chars);
     uint32_t max_mv = esp_adc_cal_raw_to_voltage(max_val[i], &adc_chars);
@@ -280,11 +280,11 @@ void measureMinMax() {
     Serial.printf("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
                   sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);  // min_val[i], max_val[i]);
 
-    display.setCursor(0, i * 20);
+    // display.setCursor(0, i * 20);
     // print min and max for each channel
-    display.printf("%d %d\n", min_mv, max_mv);  // min_val[i], max_val[i]);
+    // display.printf("%d %d\n", min_mv, max_mv);  // min_val[i], max_val[i]);
   }
-  display.display();
+  // display.display();
 }
 
 void measureProgram() {
@@ -333,39 +333,38 @@ void setup() {
   delay(1000);
   Serial.begin(115200);
   config.load();
-  pinMode(Boot_Key, INPUT_PULLUP);
+  button.begin(Boot_Key);
+  displayMenu.begin();
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
-  pinMode(36, OUTPUT);
-  digitalWrite(36, LOW);  // power on the display
-  // Start I2C on the correct pins
-  Wire.begin(OLED_SDA, OLED_SCL);
-
-  // Initialize display (0x3C is the typical I2C address)
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("SSD1306 init failed");
-    while (true);
-  }
 }
 
 void loop() {
-  switch (state.getProgramState()) {
-    case PROGRAM_CONFIGURATION:
-      Serial.println("Entering configuration mode");
-      configurationProgram();
-      break;
-    case PROGRAM_JOIN:
-      Serial.println("Entering join mode");
-      while (true) {
-        delay(1000);
-      }
-      break;
-    case PROGRAM_MEASURE:
-      Serial.println("Entering measure mode");
-      measureProgram();
-      break;
+  ButtonEvent event = button.update();
+  if (event != ButtonEvent::None) {
+    Serial.printf("Button event: %d\n", (int)event);
+    displayMenu.buttonEvent(event);
   }
+
+  displayMenu.update(state);
+  delay(10);
+  // switch (state.getProgramState()) {
+  //   case PROGRAM_CONFIGURATION:
+  //     Serial.println("Entering configuration mode");
+  //     configurationProgram();
+  //     break;
+  //   case PROGRAM_JOIN:
+  //     Serial.println("Entering join mode");
+  //     while (true) {
+  //       delay(1000);
+  //     }
+  //     break;
+  //   case PROGRAM_MEASURE:
+  //     Serial.println("Entering measure mode");
+  //     measureProgram();
+  //     break;
+  // }
 }
 
 // Serial.println("Program finished, going to sleep");
