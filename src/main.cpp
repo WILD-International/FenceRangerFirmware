@@ -155,6 +155,8 @@ void setup() {
   config.load();
   button.begin(Boot_Key);
   displayMenu.begin();
+  Serial.print("Firmware version: ");
+  Serial.println(GIT_TAG);
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);

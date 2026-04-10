@@ -124,6 +124,9 @@ void DisplayMenu::changeState(DisplayMenuState newState) {
       display.println("Device EUI:");
       bytesToHex(config->getDevEUI(), DEVEUI_LEN, hex);
       display.println(hex);
+      display.setCursor(0, 54);
+      display.print("ver: ");
+      display.print(GIT_TAG);
       display.display();
       break;
     case DISPLAY_MENU_LIVE_INFO:
