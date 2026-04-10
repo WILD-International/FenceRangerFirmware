@@ -10,6 +10,7 @@
 #include "board.h"
 #include "button.h"
 #include "config.h"
+#include "debug.h"
 #include "display_menu.h"
 #include "helpers.h"
 #include "measure_program.h"
@@ -159,8 +160,7 @@ void setup() {
   config.load();
   button.begin(Boot_Key);
   displayMenu.begin();
-  Serial.print("Firmware version: ");
-  Serial.println(GIT_TAG);
+  LOG("Firmware version: %s\n", GIT_TAG);
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
@@ -171,18 +171,18 @@ void loop() {
   if (measureProgram.isFinished() && state.isMeasurementRunning()) {
     last_measurement_finish_time = millis();
     state.setMeasurementRunning(false);
-    Serial.println("done");
+    LOGLN("done");
   }
   if (millis() - last_measurement_finish_time > 1000 && !state.isMeasurementRunning()) {
     state.setMeasurementRunning(true);
-    Serial.println("starting (again)");
+    LOGLN("starting (again)");
     measureProgram.begin();
   }
 
   measureProgram.update(state);
   ButtonEvent event = button.update();
   if (event != ButtonEvent::None) {
-    Serial.printf("Button event: %d\n", (int)event);
+    LOG("Button event: %d\n", (int)event);
     displayMenu.buttonEvent(event);
   }
 

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "board.h"
+#include "debug.h"
 
 MeasureProgram::MeasureProgram() {
   adc_cal_init();
@@ -11,7 +12,7 @@ MeasureProgram::MeasureProgram() {
 MeasureProgram::~MeasureProgram() {}
 
 void MeasureProgram::begin() {
-  Serial.println("MeasureProgram::begin()");
+  LOGLN("MeasureProgram::begin()");
   finished = false;
 
   for (int i = 0; i < NUM_CHANNELS; i++) {
@@ -78,14 +79,14 @@ void MeasureProgram::update(State& state) {
 
     state.setAdcErrorCount(error_count);
     if (error_count > 0) {
-      Serial.printf("Errors: %d\n", error_count);
+      LOG("Errors: %d\n", error_count);
     }
     for (int i = 0; i < NUM_CHANNELS; i++) {
       uint32_t min_mv = esp_adc_cal_raw_to_voltage(min_val[i], &adc_chars);
       uint32_t max_mv = esp_adc_cal_raw_to_voltage(max_val[i], &adc_chars);
 
-      Serial.printf("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
-                    sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
+      LOG("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
+          sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
         state.setBatteryMv(min_mv, max_mv);
@@ -113,19 +114,19 @@ void MeasureProgram::adc_cal_init() {
   // Check what calibration source was used
   switch (cal_type) {
     case ESP_ADC_CAL_VAL_EFUSE_TP_FIT:
-      Serial.println("ADC cal: curve fitting (eFuse)");
+      LOGLN("ADC cal: curve fitting (eFuse)");
       break;
     case ESP_ADC_CAL_VAL_EFUSE_TP:
-      Serial.println("ADC cal: two point (eFuse)");
+      LOGLN("ADC cal: two point (eFuse)");
       break;
     case ESP_ADC_CAL_VAL_EFUSE_VREF:
-      Serial.println("ADC cal: Vref (eFuse)");
+      LOGLN("ADC cal: Vref (eFuse)");
       break;
     case ESP_ADC_CAL_VAL_DEFAULT_VREF:
-      Serial.println("ADC cal: default Vref (no eFuse data!)");
+      LOGLN("ADC cal: default Vref (no eFuse data!)");
       break;
     default:
-      Serial.println("ADC cal: unknown");
+      LOGLN("ADC cal: unknown");
   }
 }
 

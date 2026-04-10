@@ -1,6 +1,7 @@
 #include "display_menu.h"
 
 #include "board.h"
+#include "debug.h"
 #include "esp32-hal-gpio.h"
 #include "helpers.h"
 
@@ -112,12 +113,12 @@ void DisplayMenu::changeState(DisplayMenuState newState) {
   char hex[DEVEUI_LEN * 2 + 1] = {};
   switch (newState) {
     case DISPLAY_MENU_OFF:
-      Serial.println("Turning off display");
+      LOGLN("Turning off display");
       Wire.end();
       digitalWrite(DISPLAY_POWER, HIGH);
       break;
     case DISPLAY_MENU_DEVICE_INFO:
-      Serial.println("Turning on display");
+      LOGLN("Turning on display");
       // Turn on the display and initialize
       digitalWrite(DISPLAY_POWER, LOW);  // power on the display
       // Start I2C on the correct pins
@@ -125,7 +126,7 @@ void DisplayMenu::changeState(DisplayMenuState newState) {
 
       // Initialize display (0x3C is the typical I2C address)
       if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        Serial.println("SSD1306 init failed");
+        LOGLN("SSD1306 init failed");
         Wire.end();
         digitalWrite(DISPLAY_POWER, HIGH);
         return;  // don't change state if init failed
