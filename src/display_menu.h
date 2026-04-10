@@ -11,6 +11,7 @@
 enum DisplayMenuState {
   DISPLAY_MENU_OFF,
   DISPLAY_MENU_LIVE_INFO,
+  DISPLAY_MENU_DEVICE_INFO,
 };
 
 class DisplayMenu {
