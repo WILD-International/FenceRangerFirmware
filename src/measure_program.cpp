@@ -31,7 +31,7 @@ void MeasureProgram::begin() {
   start = millis();
 }
 
-void MeasureProgram::update() {
+void MeasureProgram::update(State& state) {
   if (finished) {
     return;
   }
@@ -76,6 +76,7 @@ void MeasureProgram::update() {
     ESP_ERROR_CHECK(adc_digi_stop());
     ESP_ERROR_CHECK(adc_digi_deinitialize());
 
+    state.setAdcErrorCount(error_count);
     if (error_count > 0) {
       Serial.printf("Errors: %d\n", error_count);
     }
@@ -85,6 +86,14 @@ void MeasureProgram::update() {
 
       Serial.printf("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
                     sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
+
+      if (channels[i] == ADC_CHANNEL_VBAT) {
+        state.setBatteryMv(min_mv, max_mv);
+      } else if (channels[i] == ADC_CHANNEL_FENCE_NEG) {
+        state.setFenceNegMv(min_mv, max_mv);
+      } else if (channels[i] == ADC_CHANNEL_FENCE_POS) {
+        state.setFencePosMv(min_mv, max_mv);
+      }
     }
   }
 }

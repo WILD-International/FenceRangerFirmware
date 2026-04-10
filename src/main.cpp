@@ -158,15 +158,22 @@ void setup() {
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
-
-  measureProgram.begin();
 }
 
 void loop() {
-  if (measureProgram.isFinished()) {
+  static uint32_t last_measurement_finish_time = 0;
+  if (measureProgram.isFinished() && state.isMeasurementRunning()) {
+    last_measurement_finish_time = millis();
+    state.setMeasurementRunning(false);
+    Serial.println("done");
+  }
+  if (millis() - last_measurement_finish_time > 1000 && !state.isMeasurementRunning()) {
+    state.setMeasurementRunning(true);
+    Serial.println("starting (again)");
     measureProgram.begin();
   }
-  measureProgram.update();
+
+  measureProgram.update(state);
   ButtonEvent event = button.update();
   if (event != ButtonEvent::None) {
     Serial.printf("Button event: %d\n", (int)event);

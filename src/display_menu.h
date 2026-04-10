@@ -29,6 +29,7 @@ class DisplayMenu {
   void changeState(DisplayMenuState newState);
 
   // Private data
+  uint32_t last_display_update = 0;
   Config* config;
   uint32_t last_button_event;
   Adafruit_SSD1306 display;

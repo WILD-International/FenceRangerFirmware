@@ -5,6 +5,7 @@
 #include <esp_adc_cal.h>
 
 #include "board.h"
+#include "state.h"
 
 // ── ADC Configuration ──────────────────────────────────────────────
 #define NUM_CHANNELS 3
@@ -20,7 +21,7 @@ class MeasureProgram {
   MeasureProgram();
   ~MeasureProgram();
   void begin();
-  void update();
+  void update(State& state);
   bool isFinished() const;
 
  private:

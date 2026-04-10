@@ -17,6 +17,12 @@ void DisplayMenu::begin() {
 }
 
 void DisplayMenu::update(State& state) {
+  uint32_t now = millis();
+  if (now - last_display_update < 200) {
+    return;
+  }
+  last_display_update = now;
+
   switch (currentMenu) {
     case DISPLAY_MENU_OFF:
       // do nothing
@@ -29,7 +35,26 @@ void DisplayMenu::update(State& state) {
     case DISPLAY_MENU_LIVE_INFO:
       if (millis() - last_button_event > 5 * 60 * 1000) {
         changeState(DISPLAY_MENU_OFF);
+        break;
       }
+      if (state.isMeasurementRunning()) {
+        break;  // don't update display if we're measuring
+      }
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(16, 2);
+      display.println("WILD FenceRanger");
+      display.setCursor(0, 16);
+      display.printf("batt: %d %d", state.getBattMinMv(), state.getBattMaxMv());
+      display.setCursor(0, 28);
+      display.printf(" neg: %d %d", state.getFenceNegMinMv(), state.getFenceNegMaxMv());
+      display.setCursor(0, 40);
+      display.printf(" pos: %d %d", state.getFencePosMinMv(), state.getFencePosMaxMv());
+      display.setCursor(0, 52);
+      display.printf(" err: %d", state.getAdcErrorCount());
+      //
+      display.display();
       break;
   }
 }
@@ -90,12 +115,12 @@ void DisplayMenu::changeState(DisplayMenuState newState) {
       display.clearDisplay();
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0, 0);
+      display.setCursor(16, 2);
       display.println("WILD FenceRanger");
-      display.setCursor(0, 10);
+      display.setCursor(0, 14);
       display.println("Name:");
       display.println(config->getDevName());
-      display.setCursor(0, 30);
+      display.setCursor(0, 34);
       display.println("Device EUI:");
       bytesToHex(config->getDevEUI(), DEVEUI_LEN, hex);
       display.println(hex);
@@ -105,10 +130,10 @@ void DisplayMenu::changeState(DisplayMenuState newState) {
       display.clearDisplay();
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0, 0);
+      display.setCursor(16, 2);
       display.println("WILD FenceRanger");
-      display.setCursor(0, 10);
-      display.println("Live info");
+      display.setCursor(0, 16);
+      display.println("Measuring...");
       display.display();
       break;
   }
