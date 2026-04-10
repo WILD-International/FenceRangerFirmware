@@ -34,7 +34,7 @@ void Config::setDevName(const char* name) {
 void Config::load() {
   prefs.begin(PREFS_NAMESPACE, true);  // read-only
   prefs.getBytes("appKey", appKey, APPKEY_LEN);
-  strlcpy(devName, prefs.getString("devName", "???").c_str(), DEVNAME_MAX);
+  strlcpy(devName, prefs.getString("devName", "no name").c_str(), DEVNAME_MAX);
   prefs.end();
 }
 
