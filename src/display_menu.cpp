@@ -23,6 +23,8 @@ void DisplayMenu::update(State& state) {
   }
   last_display_update = now;
 
+  char hex[DEVEUI_LEN * 2 + 1] = {};
+
   switch (currentMenu) {
     case DISPLAY_MENU_OFF:
       // do nothing
@@ -31,6 +33,22 @@ void DisplayMenu::update(State& state) {
       if (millis() - last_button_event > 5 * 60 * 1000) {
         changeState(DISPLAY_MENU_OFF);
       }
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(16, 2);
+      display.println("WILD FenceRanger");
+      display.setCursor(0, 14);
+      display.println("Name:");
+      display.println(config->getDevName());
+      display.setCursor(0, 34);
+      display.println("Device EUI:");
+      bytesToHex(config->getDevEUI(), DEVEUI_LEN, hex);
+      display.println(hex);
+      display.setCursor(0, 54);
+      display.print("ver: ");
+      display.print(GIT_TAG);
+      display.display();
       break;
     case DISPLAY_MENU_LIVE_INFO:
       if (millis() - last_button_event > 5 * 60 * 1000) {

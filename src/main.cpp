@@ -55,6 +55,10 @@ LoRaWANNode node(&radio, &Region, subBand);
 // --- AT Command Handler ---
 
 void handleATCommand(String cmd) {
+  String originalCmd = cmd;
+  originalCmd.trim();
+
+  // use uppercase version for matching
   cmd.trim();
   cmd.toUpperCase();
 
@@ -91,7 +95,7 @@ void handleATCommand(String cmd) {
   }
   // AT+DEVNAME=<name>
   else if (cmd.startsWith("AT+DEVNAME=")) {
-    String val = cmd.substring(11);
+    String val = originalCmd.substring(11);
     val.trim();
     if (val.length() == 0 || val.length() >= DEVNAME_MAX) {
       Serial.printf("ERROR: Name must be 1-%d chars\r\n", DEVNAME_MAX - 1);
@@ -180,6 +184,21 @@ void loop() {
   if (event != ButtonEvent::None) {
     Serial.printf("Button event: %d\n", (int)event);
     displayMenu.buttonEvent(event);
+  }
+
+  if (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n' || c == '\r') {
+      if (serialBuffer.length() > 0) {
+        handleATCommand(serialBuffer);
+        serialBuffer = "";
+      }
+    } else {
+      serialBuffer += c;
+    }
+    if (serialBuffer.length() > 128) {
+      serialBuffer = "";  // prevent overflow
+    }
   }
 
   displayMenu.update(state);
