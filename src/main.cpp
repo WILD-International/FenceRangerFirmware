@@ -32,6 +32,8 @@ const LoRaWANBand_t Region = EU868;
 const uint8_t subBand = 0;
 
 String serialBuffer;
+bool at_mode = false;
+uint8_t serial_enable_at_mode_count = 0;
 
 // Global objects
 
@@ -107,7 +109,9 @@ void handleATCommand(String cmd) {
   }
   // AT+EXIT
   else if (cmd == "AT+EXIT") {
-    Serial.println("Exiting configuration mode");
+    Serial.println("OK");
+    at_mode = false;
+    Debug::enable();
     state.setProgramState(PROGRAM_MEASURE);
   }
   // AT+HELP
@@ -188,16 +192,30 @@ void loop() {
 
   if (Serial.available()) {
     char c = Serial.read();
-    if (c == '\n' || c == '\r') {
-      if (serialBuffer.length() > 0) {
-        handleATCommand(serialBuffer);
-        serialBuffer = "";
-      }
+    // Enable AT mode if we see "+++" (like old modems)
+    if (c == '+') {
+      serial_enable_at_mode_count++;
     } else {
-      serialBuffer += c;
+      serial_enable_at_mode_count = 0;
     }
-    if (serialBuffer.length() > 128) {
-      serialBuffer = "";  // prevent overflow
+    if (!at_mode && serial_enable_at_mode_count >= 3) {
+      at_mode = true;
+      Debug::disable();
+      Serial.println("");
+      serialBuffer = "";
+      handleATCommand("AT+HELP");
+    } else if (at_mode) {
+      if (c == '\n' || c == '\r') {
+        if (serialBuffer.length() > 0) {
+          handleATCommand(serialBuffer);
+          serialBuffer = "";
+        }
+      } else {
+        serialBuffer += c;
+      }
+      if (serialBuffer.length() > 128) {
+        serialBuffer = "";  // prevent overflow
+      }
     }
   }
 
