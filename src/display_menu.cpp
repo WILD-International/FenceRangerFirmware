@@ -31,8 +31,9 @@ void DisplayMenu::update(State& state) {
       // do nothing
       break;
     case DISPLAY_MENU_DEVICE_INFO:
-      if (millis() - last_button_event > 5 * 60 * 1000) {
+      if (millis() - last_button_event > 30 * 1000) {
         changeState(DISPLAY_MENU_OFF);
+        break;
       }
       display.clearDisplay();
       display.setTextSize(1);
