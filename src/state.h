@@ -20,6 +20,7 @@ class State {
   void setProgramState(ProgramState newState);
 
   // Public data
+  bool at_command_mode = false;
   bool measurement_running = false;
   uint32_t batt_min_mv = 0;
   uint32_t batt_max_mv = 0;

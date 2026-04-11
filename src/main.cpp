@@ -7,12 +7,12 @@
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
+#include "at_commands.h"
 #include "board.h"
 #include "button.h"
 #include "config.h"
 #include "debug.h"
 #include "display_menu.h"
-#include "helpers.h"
 #include "measure_program.h"
 #include "state.h"
 
@@ -30,10 +30,6 @@ const LoRaWANBand_t Region = EU868;
 
 // subband choice: for US915/AU915 set to 2, for CN470 set to 1, otherwise leave on 0
 const uint8_t subBand = 0;
-
-String serialBuffer;
-bool at_mode = false;
-uint8_t serial_enable_at_mode_count = 0;
 
 // Global objects
 
@@ -54,109 +50,6 @@ LoRaWANEvent_t uplinkDetails;
 LoRaWANEvent_t downlinkDetails;
 
 LoRaWANNode node(&radio, &Region, subBand);
-
-// --- AT Command Handler ---
-
-void handleATCommand(String cmd) {
-  String originalCmd = cmd;
-  originalCmd.trim();
-
-  // use uppercase version for matching
-  cmd.trim();
-  cmd.toUpperCase();
-
-  // AT (ping)
-  if (cmd == "AT") {
-    Serial.println("OK");
-  }
-  // AT+DEVEUI?
-  else if (cmd == "AT+DEVEUI?") {
-    char hex[DEVEUI_LEN * 2 + 1] = {};
-    bytesToHex(config.getDevEUI(), DEVEUI_LEN, hex);
-    Serial.printf("+DEVEUI:%s\r\nOK\r\n", hex);
-  }
-  // AT+APPKEY?
-  else if (cmd == "AT+APPKEY?") {
-    char hex[APPKEY_LEN * 2 + 1] = {};
-    bytesToHex(config.getAppKey(), APPKEY_LEN, hex);
-    Serial.printf("+APPKEY:%s\r\nOK\r\n", hex);
-  }
-  // AT+APPKEY=<32 hex chars>
-  else if (cmd.startsWith("AT+APPKEY=")) {
-    String val = cmd.substring(10);
-    uint8_t tmp[APPKEY_LEN];
-    if (hexToBytes(val.c_str(), tmp, APPKEY_LEN)) {
-      config.setAppKey(tmp);
-      Serial.println("OK");
-    } else {
-      Serial.println("ERROR: Invalid AppKey (expected 32 hex chars)");
-    }
-  }
-  // AT+DEVNAME?
-  else if (cmd == "AT+DEVNAME?") {
-    Serial.printf("+DEVNAME:%s\r\nOK\r\n", config.getDevName());
-  }
-  // AT+DEVNAME=<name>
-  else if (cmd.startsWith("AT+DEVNAME=")) {
-    String val = originalCmd.substring(11);
-    val.trim();
-    if (val.length() == 0 || val.length() >= DEVNAME_MAX) {
-      Serial.printf("ERROR: Name must be 1-%d chars\r\n", DEVNAME_MAX - 1);
-    } else {
-      config.setDevName(val.c_str());
-      Serial.println("OK");
-    }
-  }
-  // AT+EXIT
-  else if (cmd == "AT+EXIT") {
-    Serial.println("OK");
-    at_mode = false;
-    Debug::enable();
-    state.setProgramState(PROGRAM_MEASURE);
-  }
-  // AT+HELP
-  else if (cmd == "AT+HELP") {
-    Serial.println("AT          - Ping");
-    Serial.println("AT+DEVEUI?  - Get DevEUI (read-only)");
-    Serial.println("AT+APPKEY?  - Get AppKey");
-    Serial.println("AT+APPKEY=  - Set AppKey (32 hex chars)");
-    Serial.println("AT+DEVNAME? - Get device name");
-    Serial.println("AT+DEVNAME= - Set device name");
-    Serial.println("AT+EXIT     - Exit configuration mode");
-    Serial.println("OK");
-  } else {
-    Serial.println("ERROR: Unknown command");
-  }
-}
-
-void configurationProgram() {
-#if defined(DEBUG)
-  // Because platformio is stupid we delay booting to see all serial output
-  delay(1000);
-#endif
-  Serial.begin(115200);
-  handleATCommand("AT+HELP");  // print help on boot
-  while (true) {
-    if (Serial.available()) {
-      char c = Serial.read();
-      if (c == '\n' || c == '\r') {
-        if (serialBuffer.length() > 0) {
-          handleATCommand(serialBuffer);
-          if (state.getProgramState() != PROGRAM_CONFIGURATION) {
-            break;  // exit loop if we changed state
-          }
-          serialBuffer = "";
-        }
-      } else {
-        serialBuffer += c;
-      }
-      if (serialBuffer.length() > 128) {
-        serialBuffer = "";  // prevent overflow
-      }
-    }
-    delay(10);
-  }
-}
 
 void setup() {
   delay(1000);
@@ -192,31 +85,7 @@ void loop() {
 
   while (Serial.available()) {
     char c = Serial.read();
-    // Enable AT mode if we see "+++" (like old modems)
-    if (c == '+') {
-      serial_enable_at_mode_count++;
-    } else {
-      serial_enable_at_mode_count = 0;
-    }
-    if (!at_mode && serial_enable_at_mode_count >= 3) {
-      at_mode = true;
-      Debug::disable();
-      Serial.println("");
-      serialBuffer = "";
-      handleATCommand("AT+HELP");
-    } else if (at_mode) {
-      if (c == '\n' || c == '\r') {
-        if (serialBuffer.length() > 0) {
-          handleATCommand(serialBuffer);
-          serialBuffer = "";
-        }
-      } else {
-        serialBuffer += c;
-      }
-      if (serialBuffer.length() > 128) {
-        serialBuffer = "";  // prevent overflow
-      }
-    }
+    handleATSerial(c, config, state);
   }
 
   displayMenu.update(state);
