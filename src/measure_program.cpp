@@ -77,7 +77,7 @@ void MeasureProgram::update(State& state) {
     ESP_ERROR_CHECK(adc_digi_stop());
     ESP_ERROR_CHECK(adc_digi_deinitialize());
 
-    state.setAdcErrorCount(error_count);
+    state.adc_error_count = error_count;
     if (error_count > 0) {
       LOG("Errors: %d\n", error_count);
     }
@@ -89,11 +89,14 @@ void MeasureProgram::update(State& state) {
           sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
-        state.setBatteryMv(min_mv, max_mv);
+        state.batt_min_mv = min_mv;
+        state.batt_max_mv = max_mv;
       } else if (channels[i] == ADC_CHANNEL_FENCE_NEG) {
-        state.setFenceNegMv(min_mv, max_mv);
+        state.fence_neg_min_mv = min_mv;
+        state.fence_neg_max_mv = max_mv;
       } else if (channels[i] == ADC_CHANNEL_FENCE_POS) {
-        state.setFencePosMv(min_mv, max_mv);
+        state.fence_pos_min_mv = min_mv;
+        state.fence_pos_max_mv = max_mv;
       }
     }
   }

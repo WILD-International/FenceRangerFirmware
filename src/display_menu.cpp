@@ -57,7 +57,7 @@ void DisplayMenu::update(State& state) {
         changeState(DISPLAY_MENU_OFF);
         break;
       }
-      if (state.isMeasurementRunning()) {
+      if (state.measurement_running) {
         break;  // don't update display if we're measuring
       }
       display.clearDisplay();
@@ -66,13 +66,13 @@ void DisplayMenu::update(State& state) {
       display.setCursor(16, 2);
       display.println("WILD FenceRanger");
       display.setCursor(0, 16);
-      display.printf("batt: %d %d", state.getBattMinMv(), state.getBattMaxMv());
+      display.printf("batt: %d %d", state.batt_min_mv, state.batt_max_mv);
       display.setCursor(0, 28);
-      display.printf(" neg: %d %d", state.getFenceNegMinMv(), state.getFenceNegMaxMv());
+      display.printf(" neg: %d %d", state.fence_neg_min_mv, state.fence_neg_max_mv);
       display.setCursor(0, 40);
-      display.printf(" pos: %d %d", state.getFencePosMinMv(), state.getFencePosMaxMv());
+      display.printf(" pos: %d %d", state.fence_pos_min_mv, state.fence_pos_max_mv);
       display.setCursor(0, 52);
-      display.printf(" err: %d", state.getAdcErrorCount());
+      display.printf(" err: %d", state.adc_error_count);
       //
       display.display();
       break;

@@ -172,13 +172,13 @@ void setup() {
 
 void loop() {
   static uint32_t last_measurement_finish_time = 0;
-  if (measureProgram.isFinished() && state.isMeasurementRunning()) {
+  if (measureProgram.isFinished() && state.measurement_running) {
     last_measurement_finish_time = millis();
-    state.setMeasurementRunning(false);
+    state.measurement_running = false;
     LOGLN("done");
   }
-  if (millis() - last_measurement_finish_time > 1000 && !state.isMeasurementRunning()) {
-    state.setMeasurementRunning(true);
+  if (millis() - last_measurement_finish_time > 1000 && !state.measurement_running) {
+    state.measurement_running = true;
     LOGLN("starting (again)");
     measureProgram.begin();
   }
@@ -190,7 +190,7 @@ void loop() {
     displayMenu.buttonEvent(event);
   }
 
-  if (Serial.available()) {
+  while (Serial.available()) {
     char c = Serial.read();
     // Enable AT mode if we see "+++" (like old modems)
     if (c == '+') {
