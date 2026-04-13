@@ -7,9 +7,10 @@
 #define Boot_Key 0
 #define Led 35
 #define DISPLAY_POWER 36
-#define VFEM_CTRL 7
-#define PA_CSD 2  // PA_CSD
-#define PA_CPS 46
+
+#define LORA_PA_POWER 7   // VFEM_CTRL
+#define LORA_PA_EN 2      // PA_CSD
+#define LORA_PA_TX_EN 46  // PA_CPS
 
 #define OLED_SDA 17
 #define OLED_SCL 18

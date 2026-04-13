@@ -19,15 +19,30 @@ class Config {
   const uint8_t* getDevEUI() const {
     return devEUI;
   }
+
+  const uint64_t getDevEUIAsUint64() const {
+    uint64_t id = 0;
+    for (int i = 0; i < DEVEUI_LEN; i++) {
+      id <<= 8;
+      id |= devEUI[i];
+    }
+    return id;
+  }
+
   const uint8_t* getAppKey() const {
     return appKey;
   }
+  bool hasAppKey() const {
+    return appKeySet;
+  }
+
   const char* getDevName() const {
     return devName;
   }
 
   // setters
   void setAppKey(const uint8_t* key);
+  void clearAppKey();
   void setDevName(const char* name);
 
  private:
@@ -38,7 +53,9 @@ class Config {
   Preferences prefs;
 
   uint8_t devEUI[DEVEUI_LEN];  // Read-only, from chip
+  bool appKeySet = false;
   uint8_t appKey[APPKEY_LEN];
+  bool devNameSet = false;
   char devName[DEVNAME_MAX];
 };
 

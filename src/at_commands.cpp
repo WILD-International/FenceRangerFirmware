@@ -70,7 +70,11 @@ void handleATCommand(String cmd, Config& config, State& state) {
   else if (cmd.startsWith("AT+APPKEY=")) {
     String val = cmd.substring(10);
     uint8_t tmp[APPKEY_LEN];
-    if (hexToBytes(val.c_str(), tmp, APPKEY_LEN)) {
+    // If no value is set, clear the AppKey
+    if (val.length() == 0) {
+      config.clearAppKey();
+      Serial.println("OK");
+    } else if (hexToBytes(val.c_str(), tmp, APPKEY_LEN)) {
       config.setAppKey(tmp);
       Serial.println("OK");
     } else {

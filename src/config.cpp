@@ -24,6 +24,16 @@ void Config::setAppKey(const uint8_t* key) {
   saveAppKey();
 }
 
+void Config::clearAppKey() {
+  prefs.begin(PREFS_NAMESPACE, false);
+  if (prefs.isKey("appKey")) {
+    prefs.remove("appKey");
+  }
+  memset(appKey, 0, APPKEY_LEN);
+  appKeySet = false;
+  prefs.end();
+}
+
 void Config::setDevName(const char* name) {
   strlcpy(devName, name, DEVNAME_MAX);
   saveDevName();
@@ -33,19 +43,38 @@ void Config::setDevName(const char* name) {
 
 void Config::load() {
   prefs.begin(PREFS_NAMESPACE, true);  // read-only
-  prefs.getBytes("appKey", appKey, APPKEY_LEN);
-  strlcpy(devName, prefs.getString("devName", "no name").c_str(), DEVNAME_MAX);
+  if (prefs.isKey("appKey")) {
+    prefs.getBytes("appKey", appKey, APPKEY_LEN);
+    appKeySet = true;
+  } else {
+    memset(appKey, 0, APPKEY_LEN);
+    appKeySet = false;
+  }
+  if (prefs.isKey("devName")) {
+    strlcpy(devName, prefs.getString("devName", "no name").c_str(), DEVNAME_MAX);
+    devNameSet = true;
+  } else {
+    memset(devName, 0, DEVNAME_MAX);
+    devNameSet = false;
+  }
   prefs.end();
 }
 
 void Config::saveAppKey() {
   prefs.begin(PREFS_NAMESPACE, false);
-  prefs.putBytes("appKey", appKey, APPKEY_LEN);
+  size_t len = prefs.putBytes("appKey", appKey, APPKEY_LEN);
+  if (len == APPKEY_LEN) {
+    appKeySet = true;
+  }
+
   prefs.end();
 }
 
 void Config::saveDevName() {
   prefs.begin(PREFS_NAMESPACE, false);
-  prefs.putString("devName", devName);
+  size_t len = prefs.putString("devName", devName);
+  if (len == strlen(devName)) {
+    devNameSet = true;
+  }
   prefs.end();
 }

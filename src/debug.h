@@ -19,5 +19,10 @@ void disable();
     if (Debug::enabled()) \
       Serial.println(x);  \
   } while (0)
+#define LOGPRINT(x)       \
+  do {                    \
+    if (Debug::enabled()) \
+      Serial.print(x);    \
+  } while (0)
 
 #endif  // DEBUG_H
