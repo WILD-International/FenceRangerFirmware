@@ -2,6 +2,21 @@
 
 #include "debug.h"
 
+// put device in to lowest power deep-sleep mode
+void gotoSleep(uint32_t seconds) {
+  esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL);  // function uses uS
+  LOGLN(F("Sleeping\n"));
+  Serial.flush();
+
+  esp_deep_sleep_start();
+
+  // if this appears in the serial debug, we didn't go to sleep!
+  // so take defensive action so we don't continually uplink
+  Serial.println(F("\n\n### Sleep failed, delay of 5 minutes & then restart ###\n"));
+  delay(5UL * 60UL * 1000UL);
+  ESP.restart();
+}
+
 void bytesToHex(const uint8_t* data, size_t len, char* out) {
   for (size_t i = 0; i < len; i++) {
     sprintf(out + i * 2, "%02X", data[i]);

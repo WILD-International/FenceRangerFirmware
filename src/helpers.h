@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+void gotoSleep(uint32_t seconds);
 void bytesToHex(const uint8_t* data, size_t len, char* out);
 bool hexToBytes(const char* hex, uint8_t* out, size_t expectedLen);
 void printWakeupReason();
