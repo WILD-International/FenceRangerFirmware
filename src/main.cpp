@@ -4,70 +4,139 @@
 #include <esp_adc_cal.h>
 
 #include "at_commands.h"
-#include "board.h"
-#include "button.h"
 #include "comms.h"
 #include "config.h"
 #include "debug.h"
-#include "display_menu.h"
+#include "display.h"
+#include "esp32-hal-gpio.h"
+#include "hal/gpio_types.h"
+#include "helpers.h"
+#include "isr_button.h"
 #include "measure_program.h"
 #include "state.h"
 
 // Global objects
 Config config;
 State state;
-Button button;
 Comms comms(&config);
-DisplayMenu displayMenu(&config);
+Display display(&config);
 
 // Programs
 MeasureProgram measureProgram;
 
 void setup() {
-  Serial.begin(115200);
-  delay(10000);
+  int64_t millis_slept = getTimeSleptMs();
+  int64_t now_us = rtcTimeNowUs();
+
+  gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, HIGH);
+
   config.load();
-  button.begin(Boot_Key);
-  displayMenu.begin();
+  display.begin();
+
+  esp_sleep_wakeup_cause_t wakeup_reason;
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+    handleWakePress();
+    if (shortPressed) {
+      shortPressed = false;
+      display.trigger();
+    }
+
+    // calculate remaining sleep time
+    uint32_t remaining_sleep_time = getRemainingSleepTimeMs();
+    if (remaining_sleep_time > 1000) {
+      display.message("SLEEPING", 800);
+      gotoSleep(remaining_sleep_time, false);
+    }
+  }
+
+  display.message("MEASURE");
+  measureProgram.begin();
+  while (!measureProgram.isFinished()) {
+    measureProgram.update(state);
+    delay(1);
+  }
+  display.showMeasurement(state);
+
+  Serial.begin(115200);
+  delay(2000);
+  digitalWrite(LED, LOW);
+  LOG("Awake after sleeping for %lld ms\n", millis_slept);
+  LOG("RTC time now: %lld ms\n", now_us / 1000);
+
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0:
+      LOG("Wakeup caused by external signal using RTC_IO\n");
+      if (shortPressed) {
+        LOG("Short press detected on wakeup\n");
+      }
+      if (longPressed) {
+        LOG("Long press detected on wakeup\n");
+      }
+      break;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      LOG("Wakeup caused by external signal using RTC_CNTL\n");
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      LOG("Wakeup caused by timer\n");
+      break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+      LOG("Wakeup caused by touchpad\n");
+      break;
+    case ESP_SLEEP_WAKEUP_ULP:
+      LOG("Wakeup caused by ULP program\n");
+      break;
+    default:
+      LOG("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
+      break;
+  }
+
+  // buttonSetup(Boot_Key);
+  // displayMenu.begin();
   LOG("Firmware version: %s\n", GIT_TAG);
 
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
-
-  comms.begin();
+  // This will restore the LoRaWAN session from RTC memory, or join the network on first boot
+  // comms.begin();
 
   // now save session to RTC memory
-  comms.saveSession();
+  // comms.saveSession();
 
-  // gotoSleep(30);
+  delay(2000);
+
+  display.message("SLEEP", 500);
+
+  gotoSleep(30 * 1000);
 }
 
 void loop() {
-  static uint32_t last_measurement_finish_time = 0;
-  if (measureProgram.isFinished() && state.measurement_running) {
-    last_measurement_finish_time = millis();
-    state.measurement_running = false;
-    LOGLN("done");
-  }
-  if (millis() - last_measurement_finish_time > 1000 && !state.measurement_running) {
-    state.measurement_running = true;
-    LOGLN("starting (again)");
-    measureProgram.begin();
-  }
-
-  measureProgram.update(state);
-  ButtonEvent event = button.update();
-  if (event != ButtonEvent::None) {
-    LOG("Button event: %d\n", (int)event);
-    displayMenu.buttonEvent(event);
-  }
+  // static uint32_t last_measurement_finish_time = 0;
+  // if (measureProgram.isFinished() && state.measurement_running) {
+  //   last_measurement_finish_time = millis();
+  //   state.measurement_running = false;
+  //   LOGLN("done");
+  // }
+  // if (millis() - last_measurement_finish_time > 1000 && !state.measurement_running) {
+  //   state.measurement_running = true;
+  //   LOGLN("starting (again)");
+  //   measureProgram.begin();
+  // }
+  //
+  // measureProgram.update(state);
+  // ButtonEvent event = button.update();
+  // if (event != ButtonEvent::None) {
+  //   LOG("Button event: %d\n", (int)event);
+  //   displayMenu.buttonEvent(event);
+  // }
 
   while (Serial.available()) {
     char c = Serial.read();
     handleATSerial(c, config, state);
   }
 
-  displayMenu.update(state);
+  // displayMenu.update(state);
   delay(1);
 }
 

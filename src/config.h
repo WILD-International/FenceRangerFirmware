@@ -40,6 +40,10 @@ class Config {
     return devName;
   }
 
+  const int32_t getDisplayTimeoutMs() const {
+    return display_timeout_ms;
+  }
+
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -57,6 +61,7 @@ class Config {
   uint8_t appKey[APPKEY_LEN];
   bool devNameSet = false;
   char devName[DEVNAME_MAX];
+  int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 
 #endif  // CONFIG_H
