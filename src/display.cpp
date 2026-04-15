@@ -6,6 +6,8 @@
 
 RTC_DATA_ATTR int64_t display_on_us = 0;
 
+const char* title = "WILD FenceRanger";
+
 Display::Display(Config* config)
     : enabled(false), config(config), display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST) {}
 
@@ -28,12 +30,9 @@ void Display::message(const char* msg, uint32_t delayMs) {
     return;
   }
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(16, 2);
-  display.println("WILD FenceRanger");
+  displayTitle();
   display.setTextSize(2);
-  display.setCursor(0, 16);
+  display.setCursor((SCREEN_WIDTH - strlen(msg) * 12) / 2, 16);
   display.println(msg);
   display.display();
   if (delayMs > 0) {
@@ -46,10 +45,7 @@ void Display::showMeasurement(State& state) {
     return;
   }
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(16, 2);
-  display.println("WILD FenceRanger");
+  displayTitle();
   display.setCursor(0, 16);
   display.printf("batt: %d %d", state.batt_min_mv, state.batt_max_mv);
   display.setCursor(0, 28);
@@ -59,6 +55,29 @@ void Display::showMeasurement(State& state) {
   display.setCursor(0, 52);
   display.printf(" err: %d", state.adc_error_count);
   //
+  display.display();
+}
+
+void Display::showConfig(State& state) {
+  if (!enabled) {
+    return;
+  }
+  char hex[DEVEUI_LEN * 2 + 1] = {};
+
+  display.clearDisplay();
+  displayTitle();
+  display.setCursor(2, display.getCursorY());
+  display.println("Name:");
+  display.setCursor(2, display.getCursorY());
+  display.println(config->getDevName());
+  display.setCursor(2, 34);
+  display.println("Device EUI:");
+  display.setCursor(2, display.getCursorY());
+  bytesToHex(config->getDevEUI(), DEVEUI_LEN, hex);
+  display.println(hex);
+  display.setCursor(2, 54);
+  display.print("ver: ");
+  display.print(GIT_TAG);
   display.display();
 }
 
@@ -78,10 +97,7 @@ void Display::turnOn() {
   enabled = true;
 
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(16, 2);
-  display.println("WILD FenceRanger");
+  displayTitle();
   display.display();
 }
 
@@ -94,4 +110,11 @@ void Display::turnOff() {
   Wire.end();
   digitalWrite(DISPLAY_POWER, HIGH);
   enabled = false;
+}
+
+void Display::displayTitle() {
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor((SCREEN_WIDTH - strlen(title) * 6) / 2, 2);
+  display.println(title);
 }

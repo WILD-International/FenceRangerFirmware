@@ -22,6 +22,9 @@ static void IRAM_ATTR buttonISR() {
   lastEdgeTime = now;
 
   bool pressed = !digitalRead(buttonPin);
+  if (pressed) {
+    digitalWrite(LED, HIGH);
+  }
 
   if (pressed && !wasPressed) {
     pressTime = now;

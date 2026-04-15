@@ -24,34 +24,61 @@ Display display(&config);
 // Programs
 MeasureProgram measureProgram;
 
+enum Mode { Normal, Config };
+RTC_DATA_ATTR Mode currentMode = Config;
+
+void nextMode() {
+  if (currentMode == Normal) {
+    currentMode = Config;
+  } else {
+    currentMode = Normal;
+  }
+}
+
+void runConfigMode();
+
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
-  gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state
+  gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state after sleep
   pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH);
-
-  config.load();
-  display.begin();
+  digitalWrite(LED, LOW);
 
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+    digitalWrite(LED, HIGH);
     handleWakePress();
-    if (shortPressed) {
+    if (shortPressed || longPressed) {
       shortPressed = false;
-      display.trigger();
+      longPressed = false;
+      currentMode = Config;
     }
-
-    // calculate remaining sleep time
-    uint32_t remaining_sleep_time = getRemainingSleepTimeMs();
-    if (remaining_sleep_time > 1000) {
-      display.message("SLEEPING", 800);
-      gotoSleep(remaining_sleep_time, false);
-    }
+    // // calculate remaining sleep time
+    // uint32_t remaining_sleep_time = getRemainingSleepTimeMs();
+    // if (remaining_sleep_time > 1000) {
+    //   display.message("SLEEPING", 800);
+    //   gotoSleep(remaining_sleep_time, false);
+    // }
   }
+
+  buttonSetup(Boot_Key);
+  config.load();
+  display.begin();
+
+  if (!config.hasAppKey()) {
+    currentMode = Config;
+  }
+
+  Serial.begin(115200);
+
+  if (currentMode == Config) {
+    digitalWrite(LED, LOW);
+    runConfigMode();
+  }
+  digitalWrite(LED, LOW);
 
   display.message("MEASURE");
   measureProgram.begin();
@@ -61,7 +88,6 @@ void setup() {
   }
   display.showMeasurement(state);
 
-  Serial.begin(115200);
   delay(2000);
   digitalWrite(LED, LOW);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
@@ -94,7 +120,6 @@ void setup() {
       break;
   }
 
-  // buttonSetup(Boot_Key);
   // displayMenu.begin();
   LOG("Firmware version: %s\n", GIT_TAG);
 
@@ -109,6 +134,33 @@ void setup() {
   display.message("SLEEP", 500);
 
   gotoSleep(30 * 1000);
+}
+
+void runConfigMode() {
+  // run config mode for max 1 hour
+  uint64_t start_time = millis();
+
+  state.at_command_mode = true;
+  display.trigger();
+  display.message("CONFIG", 1000);
+  display.showConfig(state);
+
+  while (state.at_command_mode && millis() - start_time < 60 * 60 * 1000) {
+    while (Serial.available()) {
+      char c = Serial.read();
+      handleATSerial(c, config, state);
+    }
+
+    if (digitalRead(Boot_Key) == 0) {
+      display.message("EXIT", 500);
+      break;
+    }
+    display.showConfig(state);
+    delay(1);
+  }
+  currentMode = Normal;
+  state.at_command_mode = false;
+  Serial.println("EXIT");
 }
 
 void loop() {
