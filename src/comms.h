@@ -22,7 +22,7 @@ class Comms {
  public:
   Comms(Config* config);
 
-  void begin(Display* display);
+  int16_t begin(Display* display);
   void saveSession();
   bool hasJoined();
   void sleep();

@@ -4,6 +4,7 @@
 #include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
 
+#include "TypeDef.h"
 #include "at_commands.h"
 #include "board.h"
 #include "comms.h"
@@ -32,6 +33,7 @@ void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
+  gpio_deep_sleep_hold_dis();
   rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
   gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state after sleep
   pinMode(LED, OUTPUT);
@@ -75,8 +77,16 @@ void setup() {
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
   LOG("RTC time now: %lld ms\n", now_us / 1000);
 
+  // Allow interrupting before trying to join
+  if (wasButtonPressed()) {
+    gotoSleep(100);
+  }
+
   if (!comms.hasJoined()) {
-    comms.begin(&display);
+    if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
+      display.message("RADIO ERR", 2000);
+      gotoSleep(30 * 1000);
+    }
   }
 
   if (comms.hasJoined()) {
@@ -98,7 +108,10 @@ void setup() {
     bool shouldSend = state.processMeasurement();
     // }
 
-    comms.begin(&display);
+    if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
+      display.message("RADIO ERR", 2000);
+      gotoSleep(30 * 1000);
+    }
 
     if (shouldSend) {
       // This will restore the LoRaWAN session from RTC memory, or join the network on first boot

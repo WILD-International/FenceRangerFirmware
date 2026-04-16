@@ -1,5 +1,6 @@
 #include "comms.h"
 
+#include "TypeDef.h"
 #include "debug.h"
 #include "helpers.h"
 
@@ -23,7 +24,7 @@ void radioDebug(bool isFail, const __FlashStringHelper* message, int state, bool
     LOGPRINT("(");
     LOGPRINT(state);
     LOGLN(")");
-    while (Freeze);
+    // while (Freeze);
   }
 }
 
@@ -74,7 +75,7 @@ bool Comms::lwActivate(Display* display) {
 
       // ##### close the store before returning
       store.end();
-      return true;  //(radiolib_state);
+      return radiolib_state == RADIOLIB_LORAWAN_SESSION_RESTORED;
     }
 
   } else {  // store has no key "nonces"
@@ -153,9 +154,9 @@ bool Comms::lwActivate(Display* display) {
   return true;  //(radiolib_state);
 }
 
-void Comms::begin(Display* display) {
+int16_t Comms::begin(Display* display) {
   if (beginCalled) {
-    return;
+    return RADIOLIB_ERR_NONE;
   }
   beginCalled = true;
   LOGLN("[SX1262] Initializing ... ");
@@ -170,9 +171,7 @@ void Comms::begin(Display* display) {
     LOGLN(F("radiolib begin success!"));
   } else {
     LOG("Failed to initialize radio, code: %d\n", radiolib_state);
-    while (true) {
-      delay(10);
-    }
+    return radiolib_state;
   }
 
   pinMode(LORA_PA_POWER, OUTPUT);
@@ -191,6 +190,7 @@ void Comms::begin(Display* display) {
     digitalWrite(LORA_PA_EN, LOW);
     digitalWrite(LORA_PA_POWER, LOW);
   }
+  return radiolib_state;
 }
 
 void Comms::saveSession() {
