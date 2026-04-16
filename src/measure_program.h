@@ -20,6 +20,7 @@ class MeasureProgram {
  public:
   MeasureProgram();
   ~MeasureProgram();
+  void run(State& state);
   void begin();
   void update(State& state);
   bool isFinished() const;

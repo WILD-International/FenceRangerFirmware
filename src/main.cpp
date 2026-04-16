@@ -60,19 +60,14 @@ void setup() {
     digitalWrite(LED, LOW);
     runConfigMode();
   }
-  digitalWrite(LED, LOW);
 
+  digitalWrite(LED, LOW);
   buttonSetup(Boot_Key);
+
   display.message("MEASURE");
-  measureProgram.begin();
-  while (!measureProgram.isFinished()) {
-    measureProgram.update(state);
-    delay(1);
-  }
+  measureProgram.run(state);
   display.showMeasurement(state);
 
-  delay(2000);
-  digitalWrite(LED, LOW);
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
   LOG("RTC time now: %lld ms\n", now_us / 1000);

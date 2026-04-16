@@ -11,6 +11,14 @@ MeasureProgram::MeasureProgram() {
 
 MeasureProgram::~MeasureProgram() {}
 
+void MeasureProgram::run(State& state) {
+  begin();
+  while (!isFinished()) {
+    update(state);
+    delay(1);
+  }
+}
+
 void MeasureProgram::begin() {
   LOGLN("MeasureProgram::begin()");
   finished = false;
