@@ -11,15 +11,14 @@ class Display {
  public:
   Display(Config* config);
   ~Display();
-  void begin();
-  void trigger();
+  void turnOn();
+  void turnOff();
   void message(const char* msg, uint32_t delayMs = 0);
+  void debugModeProgressBar(uint32_t progress, bool enable);
   void showConfig(State& state);
   void showMeasurement(State& state);
 
  private:
-  void turnOn();
-  void turnOff();
   void displayTitle();
   bool enabled;
   Config* config;

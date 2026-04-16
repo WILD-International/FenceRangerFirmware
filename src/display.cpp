@@ -4,26 +4,12 @@
 #include "esp32-hal-gpio.h"
 #include "helpers.h"
 
-RTC_DATA_ATTR int64_t display_on_us = 0;
-
 const char* title = "WILD FenceRanger";
 
 Display::Display(Config* config)
     : enabled(false), config(config), display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST) {}
 
 Display::~Display() {}
-
-void Display::begin() {
-  int64_t now_us = rtcTimeNowUs();
-  if (now_us - display_on_us < config->getDisplayTimeoutMs() * 1000) {
-    turnOn();
-  }
-}
-
-void Display::trigger() {
-  display_on_us = rtcTimeNowUs();
-  turnOn();
-}
 
 void Display::message(const char* msg, uint32_t delayMs) {
   if (!enabled) {
@@ -38,6 +24,24 @@ void Display::message(const char* msg, uint32_t delayMs) {
   if (delayMs > 0) {
     delay(delayMs);
   }
+}
+
+void Display::debugModeProgressBar(uint32_t progress, bool enable) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayTitle();
+  if (progress > 100) {
+    progress = 100;
+  }
+  const char* enable_msg = "Enable debug mode";
+  const char* disable_msg = "Disable debug mode";
+  const char* msg = enable ? enable_msg : disable_msg;
+  display.setCursor((SCREEN_WIDTH - strlen(msg) * 6) / 2, (SCREEN_HEIGHT - 8) / 2);
+  display.println(msg);
+  display.fillRect(0, 56, SCREEN_WIDTH * progress / 100, 8, SSD1306_WHITE);
+  display.display();
 }
 
 void Display::showMeasurement(State& state) {

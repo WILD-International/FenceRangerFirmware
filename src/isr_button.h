@@ -3,10 +3,9 @@
 
 #include <Arduino.h>
 
-extern volatile bool shortPressed;
-extern volatile bool longPressed;
-
 void buttonSetup(uint8_t pin);
-void handleWakePress();
+
+bool wasButtonPressed();
+void buttonResetState();
 
 #endif  // ISR_BUTTON_H
