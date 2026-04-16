@@ -27,9 +27,13 @@ class Comms {
 
   void begin();
   void saveSession();
+  const bool hasJoined() {
+    return joined;
+  }
 
  private:
-  int16_t lwActivate();
+  bool lwActivate();
+  bool joined = false;
 
   Config* config;
   Preferences store;  // for radiolib persistent data

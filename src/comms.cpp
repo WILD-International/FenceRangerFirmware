@@ -35,7 +35,7 @@ Comms::Comms(Config* config)
 
 // "Inspired" from
 // https://github.com/radiolib-org/radiolib-persistence/blob/main/examples/LoRaWAN_ESP32/LoRaWAN_ESP32.ino
-int16_t Comms::lwActivate() {
+bool Comms::lwActivate() {
   int16_t radiolib_state = RADIOLIB_ERR_UNKNOWN;
 
   // setup the OTAA session information
@@ -71,7 +71,7 @@ int16_t Comms::lwActivate() {
 
       // ##### close the store before returning
       store.end();
-      return (radiolib_state);
+      return true;  //(radiolib_state);
     }
 
   } else {  // store has no key "nonces"
@@ -115,7 +115,7 @@ int16_t Comms::lwActivate() {
       LOGPRINT(sleepForSeconds);
       LOGLN(F(" seconds"));
 
-      gotoSleep(sleepForSeconds);
+      return false;  // gotoSleep(sleepForSeconds);
 
     }  // if activateOTAA state
   }  // while join
@@ -129,7 +129,7 @@ int16_t Comms::lwActivate() {
 
   // ##### close the store
   store.end();
-  return (radiolib_state);
+  return true;  //(radiolib_state);
 }
 
 void Comms::begin() {
@@ -161,7 +161,7 @@ void Comms::begin() {
     digitalWrite(LORA_PA_POWER, HIGH);
     digitalWrite(LORA_PA_EN, HIGH);
     digitalWrite(LORA_PA_TX_EN, HIGH);
-    lwActivate();
+    joined = lwActivate();
     digitalWrite(LORA_PA_TX_EN, LOW);
     digitalWrite(LORA_PA_EN, LOW);
     digitalWrite(LORA_PA_POWER, LOW);
