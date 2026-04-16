@@ -1,10 +1,11 @@
 #include "state.h"
 
+#include "debug.h"
 #include "helpers.h"
 
 // Persistent data that lives in RTC memory
 RTC_DATA_ATTR Mode currentMode = ModeNormal;
-RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 0;
+RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 1;  // set to 0 to disable by default
 
 State::State() {}
 
@@ -44,4 +45,66 @@ void State::startDisplayInNormalMode() {
 
 void State::stopDisplayInNormalMode() {
   useDisplayInNormalModeStartTime = 0;
+}
+
+bool State::processMeasurement() {
+  static uint32_t backoffCount = 0;
+  static uint32_t recoverCount = 0;
+
+  uint32_t fenceVoltage = max(fence_pos_max_mv, fence_neg_max_mv);
+  // TODO: calculate fence kV based on voltage divider values
+
+  uint32_t alertThreshold = 3000;    // kV
+  uint32_t recoverThreshold = 3500;  // kV
+
+  bool shouldSend = false;
+
+  switch (notifyState) {
+    case NotifyStateIdle:
+      if (fenceVoltage < alertThreshold) {
+        notifyState = NotifyStateAlerting;
+        backoffCount = 1;
+        shouldSend = true;
+      }
+      break;
+    case NotifyStateAlerting:
+      if (fenceVoltage > recoverThreshold) {
+        recoverCount = 0;
+        notifyState = NotifyStateRecovering;
+      } else {
+        backoffCount++;
+        // Only send with some backoff, so like
+        // call 1, 2, 4, 8, 16... so that we alert more frequently at the beginning of a fence down
+        // event, but less frequently if it has been down for a while But also send every 64 calls
+        // regardless of backoff, so that we don't have super long gaps between notifications for
+        // long fence down events
+        if ((backoffCount & (backoffCount - 1)) == 0 || backoffCount % 64 == 0) {
+          shouldSend = true;
+        }
+      }
+      break;
+    case NotifyStateRecovering:
+      if (fenceVoltage < alertThreshold) {
+        // same logic as above
+        backoffCount++;
+        if ((backoffCount & (backoffCount - 1)) == 0 || backoffCount % 64 == 0) {
+          shouldSend = true;
+        }
+        notifyState = NotifyStateAlerting;
+      } else if (fenceVoltage > recoverThreshold) {
+        recoverCount++;
+        if (recoverCount >= 30) {
+          recoverCount = 0;
+          notifyState = NotifyStateIdle;
+        }
+      }
+      break;
+  }
+
+  if (shouldSend) {
+    LOG("fenceVoltage: %d, notifyState: %d, backoffCount: %d, recoverCount: %d, shouldSend: %d\n",
+        fenceVoltage, notifyState, backoffCount, recoverCount, shouldSend);
+  }
+
+  return shouldSend;
 }

@@ -4,6 +4,7 @@
 #include <esp_private/esp_clk.h>  // for esp_clk_slowclk_cal_get()
 #include <soc/rtc.h>
 
+#include "board.h"
 #include "debug.h"
 #include "esp32-hal-gpio.h"
 #include "hal/gpio_types.h"
@@ -26,9 +27,9 @@ void gotoSleep(uint32_t ms, bool setSleepTime) {
   LOGLN(F("Sleeping\n"));
   Serial.flush();
 
-  pinMode(8, OUTPUT);
-  digitalWrite(8, HIGH);
-  rtc_gpio_hold_en(gpio_num_t(8));
+  pinMode(RADIO_NSS, OUTPUT);
+  digitalWrite(RADIO_NSS, HIGH);
+  rtc_gpio_hold_en(gpio_num_t(RADIO_NSS));
 
   // Keep the LED off in deep sleep
   pinMode(LED, OUTPUT);

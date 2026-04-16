@@ -4,14 +4,11 @@
 #include <Preferences.h>
 #include <RadioLib.h>
 
+#include <cstdint>
+
 #include "board.h"
 #include "config.h"
-
-// now include RadioBoards
-// this must be included AFTER RadioLib!
-#include <RadioBoards.h>
-
-#include <cstdint>
+#include "display.h"
 
 // regional choices: EU868, US915, AU915, AS923, AS923_2, AS923_3, AS923_4, IN865, KR920, CN470
 const LoRaWANBand_t Region = EU868;
@@ -25,16 +22,16 @@ class Comms {
  public:
   Comms(Config* config);
 
-  void begin();
+  void begin(Display* display);
   void saveSession();
-  const bool hasJoined() {
-    return joined;
-  }
+  bool hasJoined();
+  void sleep();
+  void resetBootCountForJoining();
 
  private:
-  bool lwActivate();
-  bool joined = false;
+  bool lwActivate(Display* display);
 
+  bool beginCalled = false;
   Config* config;
   Preferences store;  // for radiolib persistent data
   Radio radio;

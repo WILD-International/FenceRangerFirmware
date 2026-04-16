@@ -1,8 +1,14 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <RadioLib.h>
+
 // Based on selected board, automatically pick the correct radio config
 #define RADIO_BOARD_AUTO
+
+// now include RadioBoards
+// this must be included AFTER RadioLib!
+#include "RadioBoards.h"
 
 #define Boot_Key 0
 #define Led 35

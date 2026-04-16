@@ -5,6 +5,11 @@
 #include <Preferences.h>
 
 enum Mode { ModeNormal, ModeConfig };
+enum NotifyState {
+  NotifyStateIdle,
+  NotifyStateAlerting,
+  NotifyStateRecovering,
+};
 
 class State {
  public:
@@ -19,6 +24,8 @@ class State {
   bool useDisplay();
   void startDisplayInNormalMode();
   void stopDisplayInNormalMode();
+
+  bool processMeasurement();
 
   // Public data
   bool at_command_mode = false;
@@ -35,6 +42,9 @@ class State {
   // Private methods
 
   // Private data
+  NotifyState notifyState = NotifyStateIdle;
+  uint32_t alertingIntervalSeconds = 0;  // track backoff
+
   Preferences prefs;
 };
 

@@ -6,7 +6,8 @@
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
 RTC_DATA_ATTR uint16_t bootCount = 0;
-RTC_DATA_ATTR uint16_t bootCountSinceUnsuccessfulJoin = 0;
+RTC_DATA_ATTR uint16_t bootCountForJoining = 0;
+RTC_DATA_ATTR bool joined = false;
 RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
 
 uint8_t dataUp[] = {0x42};
@@ -35,7 +36,9 @@ Comms::Comms(Config* config)
 
 // "Inspired" from
 // https://github.com/radiolib-org/radiolib-persistence/blob/main/examples/LoRaWAN_ESP32/LoRaWAN_ESP32.ino
-bool Comms::lwActivate() {
+bool Comms::lwActivate(Display* display) {
+  bootCountForJoining++;
+
   int16_t radiolib_state = RADIOLIB_ERR_UNKNOWN;
 
   // setup the OTAA session information
@@ -78,10 +81,25 @@ bool Comms::lwActivate() {
     LOGLN(F("No Nonces saved - starting fresh."));
   }
 
+  if ((bootCountForJoining - 1) > 30) {
+    // From now on, only try joining every 10th time
+    if ((bootCountForJoining - 1) % 10 != 0) {
+      LOG("Next join attempt in %d boots\n", 10 - ((bootCountForJoining - 1) % 10));
+      return false;
+    }
+  } else {
+    // From now on, only try joining every 5th time
+    if ((bootCountForJoining - 1) % 5 != 0) {
+      LOG("Next join attempt in %d boots\n", 5 - ((bootCountForJoining - 1) % 5));
+      return false;
+    }
+  }
+
   // if we got here, there was no session to restore, so start trying to join
   radiolib_state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
   while (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
     LOGLN(F("Join ('login') to the LoRaWAN Network"));
+    display->message("JOINING");
     radiolib_state = node.activateOTAA();
 
     // ##### save the join counters (nonces) to permanent store
@@ -102,28 +120,31 @@ bool Comms::lwActivate() {
 
     if (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
       LOGPRINT(F("Join failed: "));
+      display->message("JOIN ERR");
       LOGLN(radiolib_state);
 
       // how long to wait before join attempts. This is an interim solution pending
       // implementation of TS001 LoRaWAN Specification section #7 - this doc applies to v1.0.4 &
       // v1.1 it sleeps for longer & longer durations to give time for any gateway issues to resolve
       // or whatever is interfering with the device <-> gateway airwaves.
-      uint32_t sleepForSeconds = min((bootCountSinceUnsuccessfulJoin++ + 1UL) * 60UL, 3UL * 60UL);
-      LOGPRINT(F("Boots since unsuccessful join: "));
-      LOGLN(bootCountSinceUnsuccessfulJoin);
-      LOGPRINT(F("Retrying join in "));
-      LOGPRINT(sleepForSeconds);
-      LOGLN(F(" seconds"));
+      // uint32_t sleepForSeconds = min((bootCountSinceUnsuccessfulJoin++ + 1UL) * 60UL, 3UL *
+      // 60UL);
+      // LOGPRINT(F("Boots since unsuccessful join: "));
+      // LOGLN(bootCountSinceUnsuccessfulJoin);
+      // LOGPRINT(F("Retrying join in "));
+      // LOGPRINT(sleepForSeconds);
+      // LOGLN(F(" seconds"));
 
       return false;  // gotoSleep(sleepForSeconds);
 
     }  // if activateOTAA state
   }  // while join
 
+  display->message("JOINED", 1000);
   LOGLN(F("Joined"));
 
   // reset the failed join count
-  bootCountSinceUnsuccessfulJoin = 0;
+  // bootCountSinceUnsuccessfulJoin = 0;
 
   delay(1000);  // hold off off hitting the airwaves again too soon - an issue in the US
 
@@ -132,7 +153,11 @@ bool Comms::lwActivate() {
   return true;  //(radiolib_state);
 }
 
-void Comms::begin() {
+void Comms::begin(Display* display) {
+  if (beginCalled) {
+    return;
+  }
+  beginCalled = true;
   LOGLN("[SX1262] Initializing ... ");
   // TODO make 20dBm instead of 10
   // TODO
@@ -161,7 +186,7 @@ void Comms::begin() {
     digitalWrite(LORA_PA_POWER, HIGH);
     digitalWrite(LORA_PA_EN, HIGH);
     digitalWrite(LORA_PA_TX_EN, HIGH);
-    joined = lwActivate();
+    joined = lwActivate(display);
     digitalWrite(LORA_PA_TX_EN, LOW);
     digitalWrite(LORA_PA_EN, LOW);
     digitalWrite(LORA_PA_POWER, LOW);
@@ -172,4 +197,17 @@ void Comms::saveSession() {
   // now save session to RTC memory
   uint8_t* persist = node.getBufferSession();
   memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
+}
+
+bool Comms::hasJoined() {
+  return joined;
+}
+
+void Comms::sleep() {
+  LOGLN("Put radio to sleep");
+  radio.sleep();
+}
+
+void Comms::resetBootCountForJoining() {
+  bootCountForJoining = 0;
 }

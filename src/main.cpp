@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <driver/adc.h>
+#include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
 
 #include "at_commands.h"
@@ -31,6 +32,7 @@ void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
+  rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
   gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state after sleep
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
@@ -59,6 +61,7 @@ void setup() {
   if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
     runConfigMode();
+    comms.resetBootCountForJoining();
   }
 
   digitalWrite(LED, LOW);
@@ -72,11 +75,41 @@ void setup() {
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
   LOG("RTC time now: %lld ms\n", now_us / 1000);
 
-  // This will restore the LoRaWAN session from RTC memory, or join the network on first boot
-  // comms.begin();
+  if (!comms.hasJoined()) {
+    comms.begin(&display);
+  }
+
+  if (comms.hasJoined()) {
+    // test the logic for first 1000 calls
+    // state.fence_neg_max_mv = 1000;
+    // state.fence_pos_max_mv = 2000;
+    // for (int i = 0; i < 1000; i++) {
+    //   if (i > 200) {
+    //     state.fence_neg_max_mv = 4000;
+    //     state.fence_pos_max_mv = 4000;
+    //   }
+    //   if (i > 231) {
+    //     state.fence_neg_max_mv = 2000;
+    //     state.fence_pos_max_mv = 2000;
+    //   }
+
+    state.fence_neg_max_mv = 1000;
+    state.fence_pos_max_mv = 2000;
+    bool shouldSend = state.processMeasurement();
+    // }
+
+    comms.begin(&display);
+
+    if (shouldSend) {
+      // This will restore the LoRaWAN session from RTC memory, or join the network on first boot
+      display.message("SEND", 1000);
+    }
+  }
 
   // now save session to RTC memory
-  // comms.saveSession();
+  comms.saveSession();
+  // Put radio to sleep
+  comms.sleep();
 
   delay(2000);
 
