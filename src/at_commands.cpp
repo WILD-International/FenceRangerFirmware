@@ -101,7 +101,7 @@ void handleATCommand(String cmd, Config& config, State& state) {
     Serial.println("OK");
     state.at_command_mode = false;
     Debug::enable();
-    state.setProgramState(PROGRAM_MEASURE);
+    state.setMode(ModeNormal);
   }
   // AT+HELP
   else if (cmd == "AT+HELP") {

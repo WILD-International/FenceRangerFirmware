@@ -25,33 +25,6 @@ Display display(&config);
 // Programs
 MeasureProgram measureProgram;
 
-enum Mode { Normal, Config };
-RTC_DATA_ATTR Mode currentMode = Normal;
-
-RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 0;
-
-bool useDisplayInNormalMode();
-bool useDisplayInNormalMode() {
-  int64_t now = rtcTimeNowUs();
-  if (useDisplayInNormalModeStartTime == 0) {
-    return false;
-  }
-
-  // use display for debugging for max of 60 minutes
-  if (now - useDisplayInNormalModeStartTime < 60LL * 60 * 1000 * 1000) {
-    return true;
-  }
-  return false;
-}
-
-bool useDisplay();
-bool useDisplay() {
-  if (currentMode == Config) {
-    return true;
-  }
-  return useDisplayInNormalMode();
-}
-
 void runConfigMode();
 
 void setup() {
@@ -68,22 +41,22 @@ void setup() {
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0 || wasButtonPressed()) {
     digitalWrite(LED, HIGH);
-    currentMode = Config;
+    state.setMode(ModeConfig);
   }
 
   config.load();
 
   if (!config.hasAppKey()) {
-    currentMode = Config;
+    state.setMode(ModeConfig);
   }
 
-  if (useDisplay()) {
+  if (state.useDisplay()) {
     display.turnOn();
   }
 
   Serial.begin(115200);
 
-  if (currentMode == Config) {
+  if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
     runConfigMode();
   }
@@ -145,16 +118,16 @@ void runConfigMode() {
       } else {
         uint64_t pressedTime = millis() - buttonPressStartTime;
         if (pressedTime > 2500) {
-          if (useDisplayInNormalMode()) {
-            useDisplayInNormalModeStartTime = 0;
+          if (state.useDisplayInNormalMode()) {
+            state.stopDisplayInNormalMode();
             display.message("DISABLED", 1000);
           } else {
-            useDisplayInNormalModeStartTime = rtcTimeNowUs();
+            state.startDisplayInNormalMode();
             display.message("ENABLED", 1000);
           }
         } else if (pressedTime > 1000) {
           display.debugModeProgressBar((pressedTime - 1000) * 100 / 1500.0,
-                                       !useDisplayInNormalMode());
+                                       !state.useDisplayInNormalMode());
           continue;
         }
       }
@@ -168,7 +141,7 @@ void runConfigMode() {
     display.showConfig(state);
     delay(1);
   }
-  currentMode = Normal;
+  state.setMode(ModeNormal);
   state.at_command_mode = false;
   Serial.println("EXIT");
 }

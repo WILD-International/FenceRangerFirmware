@@ -4,11 +4,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
-enum ProgramState {
-  PROGRAM_CONFIGURATION,
-  PROGRAM_JOIN,
-  PROGRAM_MEASURE,
-};
+enum Mode { ModeNormal, ModeConfig };
 
 class State {
  public:
@@ -16,8 +12,13 @@ class State {
   ~State();
 
   // Public methods
-  ProgramState getProgramState();
-  void setProgramState(ProgramState newState);
+  void setMode(Mode mode);
+  Mode getMode();
+
+  bool useDisplayInNormalMode();
+  bool useDisplay();
+  void startDisplayInNormalMode();
+  void stopDisplayInNormalMode();
 
   // Public data
   bool at_command_mode = false;
