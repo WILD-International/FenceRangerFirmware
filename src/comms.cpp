@@ -86,12 +86,14 @@ bool Comms::lwActivate(Display* display) {
     // From now on, only try joining every 10th time
     if ((bootCountForJoining - 1) % 10 != 0) {
       LOG("Next join attempt in %d boots\n", 10 - ((bootCountForJoining - 1) % 10));
+      store.end();
       return false;
     }
   } else {
     // From now on, only try joining every 5th time
     if ((bootCountForJoining - 1) % 5 != 0) {
       LOG("Next join attempt in %d boots\n", 5 - ((bootCountForJoining - 1) % 5));
+      store.end();
       return false;
     }
   }
@@ -136,6 +138,7 @@ bool Comms::lwActivate(Display* display) {
       // LOGPRINT(sleepForSeconds);
       // LOGLN(F(" seconds"));
 
+      store.end();
       return false;  // gotoSleep(sleepForSeconds);
 
     }  // if activateOTAA state
@@ -205,7 +208,7 @@ bool Comms::hasJoined() {
 
 void Comms::sleep() {
   LOGLN("Put radio to sleep");
-  radio.sleep();
+  radio.sleep(false);  // don't retain config
 }
 
 void Comms::resetBootCountForJoining() {
