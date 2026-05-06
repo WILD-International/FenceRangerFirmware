@@ -5,6 +5,7 @@
 #include <esp_adc_cal.h>
 
 #include "board.h"
+#include "config.h"
 #include "state.h"
 
 // ── ADC Configuration ──────────────────────────────────────────────
@@ -20,9 +21,9 @@ class MeasureProgram {
  public:
   MeasureProgram();
   ~MeasureProgram();
-  void run(State& state);
+  void run(Config& config, State& state);
   void begin();
-  void update(State& state);
+  void update(Config& config, State& state);
   bool isFinished() const;
 
  private:

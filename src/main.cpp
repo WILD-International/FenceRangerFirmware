@@ -70,7 +70,7 @@ void setup() {
   buttonSetup(Boot_Key);
 
   display.message("MEASURE");
-  measureProgram.run(state);
+  measureProgram.run(config, state);
   display.showMeasurement(state);
 
   LOG("Firmware version: %s\n", GIT_TAG);
@@ -103,8 +103,8 @@ void setup() {
     //     state.fence_pos_max_mv = 2000;
     //   }
 
-    state.fence_neg_max_mv = 1000;
-    state.fence_pos_max_mv = 2000;
+    state.fence_neg_max_v = 1000;
+    state.fence_pos_max_v = 2000;
     bool shouldSend = state.processMeasurement();
     // }
 

@@ -51,11 +51,10 @@ bool State::processMeasurement() {
   static uint32_t backoffCount = 0;
   static uint32_t recoverCount = 0;
 
-  uint32_t fenceVoltage = max(fence_pos_max_mv, fence_neg_max_mv);
-  // TODO: calculate fence kV based on voltage divider values
+  uint16_t fenceVoltage = max(fence_pos_max_v, fence_neg_max_v);
 
-  uint32_t alertThreshold = 3000;    // kV
-  uint32_t recoverThreshold = 3500;  // kV
+  uint16_t alertThreshold = 3000;    // V
+  uint16_t recoverThreshold = 3500;  // V
 
   bool shouldSend = false;
 

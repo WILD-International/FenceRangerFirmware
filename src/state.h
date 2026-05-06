@@ -30,12 +30,12 @@ class State {
   // Public data
   bool at_command_mode = false;
   bool measurement_running = false;
-  uint32_t batt_min_mv = 0;
-  uint32_t batt_max_mv = 0;
-  uint32_t fence_neg_min_mv = 0;
-  uint32_t fence_neg_max_mv = 0;
-  uint32_t fence_pos_min_mv = 0;
-  uint32_t fence_pos_max_mv = 0;
+  uint16_t batt_min_mv = 0;
+  uint16_t batt_max_mv = 0;
+  uint16_t fence_neg_min_v = 0;
+  uint16_t fence_neg_max_v = 0;
+  uint16_t fence_pos_min_v = 0;
+  uint16_t fence_pos_max_v = 0;
   uint32_t adc_error_count = 0;
 
  private:

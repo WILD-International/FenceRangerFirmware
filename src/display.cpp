@@ -53,9 +53,9 @@ void Display::showMeasurement(State& state) {
   display.setCursor(0, 16);
   display.printf("batt: %d %d", state.batt_min_mv, state.batt_max_mv);
   display.setCursor(0, 28);
-  display.printf(" neg: %d %d", state.fence_neg_min_mv, state.fence_neg_max_mv);
+  display.printf(" neg: %d %d", state.fence_neg_min_v, state.fence_neg_max_v);
   display.setCursor(0, 40);
-  display.printf(" pos: %d %d", state.fence_pos_min_mv, state.fence_pos_max_mv);
+  display.printf(" pos: %d %d", state.fence_pos_min_v, state.fence_pos_max_v);
   display.setCursor(0, 52);
   display.printf(" err: %d", state.adc_error_count);
   //

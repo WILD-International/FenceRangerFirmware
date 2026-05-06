@@ -11,10 +11,10 @@ MeasureProgram::MeasureProgram() {
 
 MeasureProgram::~MeasureProgram() {}
 
-void MeasureProgram::run(State& state) {
+void MeasureProgram::run(Config& config, State& state) {
   begin();
   while (!isFinished()) {
-    update(state);
+    update(config, state);
     delay(1);
   }
 }
@@ -40,7 +40,7 @@ void MeasureProgram::begin() {
   start = millis();
 }
 
-void MeasureProgram::update(State& state) {
+void MeasureProgram::update(Config& config, State& state) {
   if (finished) {
     return;
   }
@@ -100,11 +100,11 @@ void MeasureProgram::update(State& state) {
         state.batt_min_mv = min_mv;
         state.batt_max_mv = max_mv;
       } else if (channels[i] == ADC_CHANNEL_FENCE_NEG) {
-        state.fence_neg_min_mv = min_mv;
-        state.fence_neg_max_mv = max_mv;
+        state.fence_neg_min_v = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        state.fence_neg_max_v = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
       } else if (channels[i] == ADC_CHANNEL_FENCE_POS) {
-        state.fence_pos_min_mv = min_mv;
-        state.fence_pos_max_mv = max_mv;
+        state.fence_pos_min_v = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        state.fence_pos_max_v = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
       }
     }
   }

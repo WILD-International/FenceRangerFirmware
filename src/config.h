@@ -44,6 +44,14 @@ class Config {
     return display_timeout_ms;
   }
 
+  const float getFenceVoltageMultiplier() const {
+    static constexpr float kR1_ohms = 20000000.0f;  // 2x 10MΩ in series
+    static constexpr float kR2_ohms = 5100.0f;      // 5.1kΩ
+    static constexpr float kFenceVoltageMultiplier = (kR1_ohms + kR2_ohms) / kR2_ohms;
+
+    return kFenceVoltageMultiplier;
+  }
+
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();
