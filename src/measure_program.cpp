@@ -31,6 +31,8 @@ void MeasureProgram::begin() {
   error_count = 0;
 
   // configure the ADC
+  pinMode(ADC_CTRL_VBAT, OUTPUT);
+  digitalWrite(ADC_CTRL_VBAT, HIGH);  // Enable mosfet for battery voltage measurement
   pinMode(ADC_OPAMP, OUTPUT);
   digitalWrite(ADC_OPAMP, HIGH);  // power on the opamp
   delay(1);
@@ -81,7 +83,8 @@ void MeasureProgram::update(Config& config, State& state) {
   } else {
     // stop the ADC and print results
     finished = true;
-    digitalWrite(ADC_OPAMP, LOW);  // power on the opamp
+    digitalWrite(ADC_OPAMP, LOW);      // power off the opamp
+    digitalWrite(ADC_CTRL_VBAT, LOW);  // power off the battery adc
     ESP_ERROR_CHECK(adc_digi_stop());
     ESP_ERROR_CHECK(adc_digi_deinitialize());
 
@@ -97,8 +100,8 @@ void MeasureProgram::update(Config& config, State& state) {
           sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
-        state.batt_min_mv = min_mv;
-        state.batt_max_mv = max_mv;
+        state.batt_min_mv = (min_mv * 490 / 100);
+        state.batt_max_mv = (max_mv * 490 / 100);
       } else if (channels[i] == ADC_CHANNEL_FENCE_NEG) {
         state.fence_neg_min_v = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
         state.fence_neg_max_v = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);

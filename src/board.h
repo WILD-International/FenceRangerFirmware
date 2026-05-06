@@ -22,6 +22,8 @@
 #define OLED_SCL 18
 #define OLED_RST 21
 
+#define ADC_CTRL_VBAT 37  // Enable ADC for battery voltage measurement
+
 #define ADC_BATT 1
 #define ADC_OPAMP 2
 #define ADC_FENCE_NEG 3
