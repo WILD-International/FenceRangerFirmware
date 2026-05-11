@@ -52,6 +52,10 @@ class Config {
     return kFenceVoltageMultiplier;
   }
 
+  const uint32_t getSleepIntervalMs() const {
+    return 60 * 1000;
+  }
+
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();

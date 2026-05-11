@@ -88,7 +88,7 @@ void setup() {
   if (!comms.hasJoined()) {
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
-      gotoSleep(30 * 1000);
+      gotoSleep(config.getSleepIntervalMs());
     }
   }
 
@@ -113,7 +113,7 @@ void setup() {
 
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
-      gotoSleep(30 * 1000);
+      gotoSleep(config.getSleepIntervalMs());
     }
 
     if (shouldSend) {
@@ -135,7 +135,7 @@ void setup() {
     display.message("SLEEP", 500);
   }
 
-  gotoSleep(30 * 1000);
+  gotoSleep(config.getSleepIntervalMs());
 }
 
 const char* uploadPage = R"(
