@@ -44,7 +44,7 @@ void Display::debugModeProgressBar(uint32_t progress, bool enable) {
   display.display();
 }
 
-void Display::showMeasurement(State& state) {
+void Display::showMeasurement(State& state, uint32_t delayMs) {
   if (!enabled) {
     return;
   }
@@ -60,6 +60,9 @@ void Display::showMeasurement(State& state) {
   display.printf(" err: %d", state.adc_error_count);
   //
   display.display();
+  if (delayMs > 0) {
+    delay(delayMs);
+  }
 }
 
 void Display::showConfig(State& state) {

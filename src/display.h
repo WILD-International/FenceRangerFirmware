@@ -16,7 +16,7 @@ class Display {
   void message(const char* msg, uint32_t delayMs = 0);
   void debugModeProgressBar(uint32_t progress, bool enable);
   void showConfig(State& state);
-  void showMeasurement(State& state);
+  void showMeasurement(State& state, uint32_t delayMs = 0);
 
  private:
   void displayTitle();

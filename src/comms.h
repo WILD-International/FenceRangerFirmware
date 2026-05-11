@@ -23,6 +23,7 @@ class Comms {
   Comms(Config* config);
 
   int16_t begin(Display* display);
+  int16_t send(uint8_t* data, size_t len, Display* display);
   void saveSession();
   bool hasJoined();
   void sleep();

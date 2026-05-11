@@ -74,7 +74,7 @@ void setup() {
 
   display.message("MEASURE");
   measureProgram.run(config, state);
-  display.showMeasurement(state);
+  display.showMeasurement(state, 2000);
 
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
@@ -106,19 +106,38 @@ void setup() {
     //     state.fence_pos_max_mv = 2000;
     //   }
 
-    state.fence_neg_max_v = 1000;
-    state.fence_pos_max_v = 2000;
+    // state.fence_neg_max_v = 1000;
+    // state.fence_pos_max_v = 2000;
     bool shouldSend = state.processMeasurement();
-    // }
-
-    if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
-      display.message("RADIO ERR", 2000);
-      gotoSleep(config.getSleepIntervalMs());
-    }
 
     if (shouldSend) {
-      // This will restore the LoRaWAN session from RTC memory, or join the network on first boot
-      display.message("SEND", 1000);
+      // No need to initialize the radio if there's nothing to send
+      // This will restore the LoRaWAN session from RTC memory
+      if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
+        display.message("RADIO ERR", 2000);
+        gotoSleep(config.getSleepIntervalMs());
+      } else {
+        uint16_t batt_voltage = max(state.batt_min_mv, state.batt_max_mv);
+        uint16_t fence_neg_voltage = max(state.fence_neg_min_v, state.fence_neg_max_v);
+        uint16_t fence_pos_voltage = max(state.fence_pos_min_v, state.fence_pos_max_v);
+        uint16_t fence_voltage = max(fence_neg_voltage, fence_pos_voltage);
+
+        if (batt_voltage < 2300) {
+          batt_voltage = 2300;
+        }
+        if (batt_voltage > 4340) {
+          batt_voltage = 4340;
+        }
+        uint8_t batt_voltage_compressed = ((batt_voltage - 2300) >> 3);
+
+        uint8_t uplinkPayload[3];
+        uplinkPayload[0] = batt_voltage_compressed;
+        uplinkPayload[1] = (fence_voltage >> 8) & 0xFF;
+        uplinkPayload[2] = fence_voltage & 0xFF;
+        display.message("SENDING");
+        comms.send(uplinkPayload, sizeof(uplinkPayload), &display);
+        display.message("SENT", 1000);
+      }
     }
   }
 

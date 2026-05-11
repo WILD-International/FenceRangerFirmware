@@ -196,6 +196,15 @@ int16_t Comms::begin(Display* display) {
   return radiolib_state;
 }
 
+int16_t Comms::send(uint8_t* data, size_t len, Display* display) {
+  int16_t radiolib_state = node.sendReceive(data, len);
+  if (radiolib_state != RADIOLIB_ERR_NONE) {
+    LOGLN(radiolib_state);
+    display->message("SEND ERR");
+  }
+  return radiolib_state;
+}
+
 void Comms::saveSession() {
   // now save session to RTC memory
   uint8_t* persist = node.getBufferSession();
