@@ -1,7 +1,5 @@
 #include <Arduino.h>
 #include <Preferences.h>
-#include <Update.h>
-#include <WebServer.h>
 #include <driver/adc.h>
 #include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
@@ -18,14 +16,14 @@
 #include "isr_button.h"
 #include "measure_program.h"
 #include "state.h"
+#include "web_ui.h"
 
 // Global objects
 Config config;
 State state;
 Comms comms(&config);
 Display display(&config);
-
-WebServer* server = nullptr;
+WebUi webUi(&config);
 
 // Programs
 MeasureProgram measureProgram;
@@ -157,52 +155,6 @@ void setup() {
   gotoSleep(config.getSleepIntervalMs());
 }
 
-const char* uploadPage = R"(
-<!DOCTYPE html><html><body>
-<form method='POST' action='/update' enctype='multipart/form-data'>
-  <input type='file' name='firmware'>
-  <input type='submit' value='Update'>
-</form></body></html>
-)";
-
-void startOTA() {
-  char ssid[32] = "FenceRanger-";
-  bytesToHex(config.getDevEUI(), DEVEUI_LEN, ssid + 12);
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, "wildinternational");
-
-  server = new WebServer(80);
-
-  server->on("/", HTTP_GET, []() { server->send(200, "text/html", uploadPage); });
-  server->on(
-      "/update", HTTP_POST,
-      []() {
-        server->send(200, "text/plain", Update.hasError() ? "FAIL" : "OK");
-        delay(500);
-        ESP.restart();
-      },
-      []() {
-        HTTPUpload& upload = server->upload();
-        if (upload.status == UPLOAD_FILE_START) {
-          Update.begin(UPDATE_SIZE_UNKNOWN);
-        } else if (upload.status == UPLOAD_FILE_WRITE) {
-          Update.write(upload.buf, upload.currentSize);
-        } else if (upload.status == UPLOAD_FILE_END) {
-          Update.end(true);
-        }
-      });
-
-  server->begin();
-}
-
-void stopOTA() {
-  server->stop();
-  delete server;
-  server = nullptr;
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_OFF);
-}
-
 void runConfigMode() {
   // run config mode for max 1 hour
   uint64_t configModeStartTime = millis();
@@ -214,10 +166,10 @@ void runConfigMode() {
   uint64_t buttonPressStartTime = 0;
   bool buttonPressedState = false;
 
-  startOTA();
+  webUi.start();
 
   while (state.at_command_mode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    server->handleClient();  // For OTA
+    webUi.update();
     while (Serial.available()) {
       char c = Serial.read();
       handleATSerial(c, config, state);
@@ -254,7 +206,7 @@ void runConfigMode() {
     delay(1);
   }
 
-  stopOTA();
+  webUi.stop();
   state.setMode(ModeNormal);
   state.at_command_mode = false;
   Serial.println("EXIT");
