@@ -17,6 +17,7 @@ class WebUi {
  private:
   Config* config;
   WebServer* server;
+  bool running;
 };
 
 #endif  // WEB_UI_H

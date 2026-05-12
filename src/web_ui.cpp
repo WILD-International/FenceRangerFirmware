@@ -1,6 +1,7 @@
 
 #include "web_ui.h"
 
+#include "debug.h"
 #include "helpers.h"
 
 const char* uploadPage = R"(
@@ -11,9 +12,14 @@ const char* uploadPage = R"(
 </form></body></html>
 )";
 
-WebUi::WebUi(Config* config) : config(config) {}
+WebUi::WebUi(Config* config) : config(config), running(false) {}
 
 void WebUi::start() {
+  if (running) {
+    LOGLN("WebUi already active");
+    return;
+  }
+  running = true;
   char ssid[32] = "FenceRanger-";
   bytesToHex(config->getDevEUI(), DEVEUI_LEN, ssid + 12);
   WiFi.mode(WIFI_AP);
@@ -44,6 +50,11 @@ void WebUi::start() {
 }
 
 void WebUi::stop() {
+  if (!running) {
+    LOGLN("WebUi not running");
+    return;
+  }
+  running = false;
   server->stop();
   delete server;
   server = nullptr;
@@ -52,5 +63,9 @@ void WebUi::stop() {
 }
 
 void WebUi::update() {
-  server->handleClient();  // For OTA
+  if (!running) {
+    LOGLN("WebUi not running");
+    return;
+  }
+  server->handleClient();
 }
