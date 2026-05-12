@@ -181,15 +181,19 @@ int16_t Comms::begin(Display* display) {
   digitalWrite(LORA_PA_POWER, LOW);
   pinMode(LORA_PA_EN, OUTPUT);
   digitalWrite(LORA_PA_EN, LOW);
-  pinMode(LORA_PA_TX_EN, OUTPUT);
-  digitalWrite(LORA_PA_TX_EN, LOW);
+  pinMode(LORA_PA_TX_EN_V4_3, OUTPUT);
+  digitalWrite(LORA_PA_TX_EN_V4_3, LOW);
+  pinMode(LORA_PA_TX_EN_V4_2, OUTPUT);
+  digitalWrite(LORA_PA_TX_EN_V4_2, LOW);
 
   if (config->hasAppKey()) {
     digitalWrite(LORA_PA_POWER, HIGH);
     digitalWrite(LORA_PA_EN, HIGH);
-    digitalWrite(LORA_PA_TX_EN, HIGH);
+    digitalWrite(LORA_PA_TX_EN_V4_3, HIGH);
+    digitalWrite(LORA_PA_TX_EN_V4_2, HIGH);
     joined = lwActivate(display);
-    digitalWrite(LORA_PA_TX_EN, LOW);
+    digitalWrite(LORA_PA_TX_EN_V4_3, LOW);
+    digitalWrite(LORA_PA_TX_EN_V4_2, LOW);
     digitalWrite(LORA_PA_EN, LOW);
     digitalWrite(LORA_PA_POWER, LOW);
   }

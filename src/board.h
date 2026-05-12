@@ -14,9 +14,10 @@
 #define Led 35
 #define DISPLAY_POWER 36
 
-#define LORA_PA_POWER 7   // VFEM_CTRL
-#define LORA_PA_EN 2      // PA_CSD
-#define LORA_PA_TX_EN 46  // PA_CPS
+#define LORA_PA_POWER 7        // VFEM_CTRL
+#define LORA_PA_EN 2           // PA_CSD
+#define LORA_PA_TX_EN_V4_2 46  // PA_CPS on v4.2
+#define LORA_PA_TX_EN_V4_3 5   // PA_CPS on V4.3
 
 #define OLED_SDA 17
 #define OLED_SCL 18
