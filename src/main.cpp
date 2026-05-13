@@ -128,7 +128,7 @@ void setup() {
     // state.fence_pos_max_v = 2000;
     bool shouldSend = state.processMeasurement();
 
-    if (shouldSend) {
+    if (shouldSend || state.getBootCount() == 1) {
       // No need to initialize the radio if there's nothing to send
       // This will restore the LoRaWAN session from RTC memory
       if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
