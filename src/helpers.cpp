@@ -27,6 +27,22 @@ void gotoSleep(uint32_t ms, bool setSleepTime) {
   LOGLN(F("Sleeping\n"));
   Serial.flush();
 
+#if defined(USE_GC1109_PA)
+  pinMode(LORA_PA_EN, OUTPUT);
+  digitalWrite(LORA_PA_EN, LOW);
+  rtc_gpio_hold_en((gpio_num_t)LORA_PA_EN);
+#endif
+#if defined(USE_KCT8103L_PA)
+  pinMode(LORA_PA_CSD, OUTPUT);
+  digitalWrite(LORA_PA_CSD, LOW);
+  rtc_gpio_hold_en((gpio_num_t)LORA_PA_CSD);
+  delay(1);
+#endif
+
+  pinMode(LORA_PA_POWER, OUTPUT);
+  digitalWrite(LORA_PA_POWER, LOW);
+  rtc_gpio_hold_en((gpio_num_t)LORA_PA_POWER);
+
   pinMode(RADIO_NSS, OUTPUT);
   digitalWrite(RADIO_NSS, HIGH);
   rtc_gpio_hold_en(gpio_num_t(RADIO_NSS));

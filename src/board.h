@@ -14,10 +14,26 @@
 #define Led 35
 #define DISPLAY_POWER 36
 
-#define LORA_PA_POWER 7        // VFEM_CTRL
-#define LORA_PA_EN 2           // PA_CSD
-#define LORA_PA_TX_EN_V4_2 46  // PA_CPS on v4.2
-#define LORA_PA_TX_EN_V4_3 5   // PA_CPS on V4.3
+// V4.2 uses GC1109 PA
+#if defined(USE_GC1109_PA)
+#define LORA_PA_POWER 7
+#define LORA_PA_EN 2
+#define LORA_PA_TX_EN 46
+#else
+// V4.3 uses KCT8103L PA
+// set as default
+#define USE_KCT8103L_PA
+#endif
+
+#if defined(USE_KCT8103L_PA)
+#define LORA_PA_POWER 7  // power en
+#define LORA_PA_CSD 2
+#define LORA_PA_CTX 5  // enable tx
+
+#endif
+
+// https://github.com/Heltec-Aaron-Lee/WiFi_Kit_series/blob/fec2992227bdf1e9d1d7935c702d598a7e835824/boards.txt#L918
+#define LORA_RX_LNA 1  // 1 = Disabled (default)
 
 #define OLED_SDA 17
 #define OLED_SCL 18

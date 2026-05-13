@@ -2,7 +2,6 @@
 
 #include "TypeDef.h"
 #include "debug.h"
-#include "helpers.h"
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
@@ -16,6 +15,30 @@ uint8_t dataDown[RADIOLIB_LORAWAN_MAX_DOWNLINK_SIZE + 1];
 size_t downlinkLen = sizeof(dataDown);
 LoRaWANEvent_t uplinkDetails;
 LoRaWANEvent_t downlinkDetails;
+
+#if defined(USE_GC1109_PA)
+static const uint32_t rfswitch_pins[] = {LORA_PA_EN, LORA_PA_TX_EN, RADIOLIB_NC, RADIOLIB_NC,
+                                         RADIOLIB_NC};
+
+static const Module::RfSwitchMode_t rfswitch_table[] = {
+    {Module::MODE_IDLE, {LOW, LOW}},
+    {Module::MODE_RX, {HIGH, LOW}},
+    {Module::MODE_TX, {HIGH, HIGH}},
+    END_OF_MODE_TABLE,
+};
+#endif
+
+#if defined(USE_KCT8103L_PA)
+static const uint32_t rfswitch_pins[] = {LORA_PA_CSD, LORA_PA_CTX, RADIOLIB_NC, RADIOLIB_NC,
+                                         RADIOLIB_NC};
+
+static const Module::RfSwitchMode_t rfswitch_table[] = {
+    {Module::MODE_IDLE, {LOW, LOW}},
+    {Module::MODE_RX, {HIGH, LORA_RX_LNA}},
+    {Module::MODE_TX, {HIGH, HIGH}},
+    END_OF_MODE_TABLE,
+};
+#endif
 
 // Helper function to display any issues
 void radioDebug(bool isFail, const __FlashStringHelper* message, int state, bool Freeze) {
@@ -176,32 +199,24 @@ int16_t Comms::begin(Display* display) {
     LOG("Failed to initialize radio, code: %d\n", radiolib_state);
     return radiolib_state;
   }
+  radio.setRfSwitchTable(rfswitch_pins, rfswitch_table);
 
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
-  pinMode(LORA_PA_EN, OUTPUT);
-  digitalWrite(LORA_PA_EN, LOW);
-  pinMode(LORA_PA_TX_EN_V4_3, OUTPUT);
-  digitalWrite(LORA_PA_TX_EN_V4_3, LOW);
-  pinMode(LORA_PA_TX_EN_V4_2, OUTPUT);
-  digitalWrite(LORA_PA_TX_EN_V4_2, LOW);
-
   if (config->hasAppKey()) {
     digitalWrite(LORA_PA_POWER, HIGH);
-    digitalWrite(LORA_PA_EN, HIGH);
-    digitalWrite(LORA_PA_TX_EN_V4_3, HIGH);
-    digitalWrite(LORA_PA_TX_EN_V4_2, HIGH);
+    delay(1);
     joined = lwActivate(display);
-    digitalWrite(LORA_PA_TX_EN_V4_3, LOW);
-    digitalWrite(LORA_PA_TX_EN_V4_2, LOW);
-    digitalWrite(LORA_PA_EN, LOW);
     digitalWrite(LORA_PA_POWER, LOW);
   }
   return radiolib_state;
 }
 
 int16_t Comms::send(uint8_t* data, size_t len, Display* display) {
+  digitalWrite(LORA_PA_POWER, HIGH);
+  delay(1);
   int16_t radiolib_state = node.sendReceive(data, len);
+  digitalWrite(LORA_PA_POWER, LOW);
   if (radiolib_state != RADIOLIB_ERR_NONE) {
     LOGLN(radiolib_state);
     display->message("SEND ERR");
