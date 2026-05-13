@@ -33,7 +33,8 @@
 #endif
 
 // https://github.com/Heltec-Aaron-Lee/WiFi_Kit_series/blob/fec2992227bdf1e9d1d7935c702d598a7e835824/boards.txt#L918
-#define LORA_RX_LNA 1  // 1 = Disabled (default)
+// #define LORA_RX_LNA 1  // 1 = Disabled (default)
+#define LORA_RX_LNA 0  // 0 = Enabled
 
 #define OLED_SDA 17
 #define OLED_SCL 18
