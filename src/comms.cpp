@@ -5,7 +5,6 @@
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
-RTC_DATA_ATTR uint16_t bootCount = 0;
 RTC_DATA_ATTR uint16_t bootCountForJoining = 0;
 RTC_DATA_ATTR bool joined = false;
 RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
@@ -51,11 +50,11 @@ void radioDebug(bool isFail, const __FlashStringHelper* message, int state, bool
   }
 }
 
-Comms::Comms(Config* config)
-    : config(config), radio(new RadioModule()), node(&radio, &Region, subBand) {
-  bootCount++;
+Comms::Comms(Config* config, State* state)
+    : config(config), state(state), radio(new RadioModule()), node(&radio, &Region, subBand) {
+  state->incrementBootCount();
   LOGPRINT(F("Boot number: "));
-  LOGLN(bootCount);
+  LOGLN(state->getBootCount());
 }
 
 // "Inspired" from
@@ -85,7 +84,7 @@ bool Comms::lwActivate(Display* display) {
     // if we have booted more than once we should have a session to restore, so report any failure
     // otherwise no point saying there's been a failure when it was bound to fail with an empty
     // LWsession var.
-    radioDebug((radiolib_state != RADIOLIB_ERR_NONE) && (bootCount > 1),
+    radioDebug((radiolib_state != RADIOLIB_ERR_NONE) && (state->getBootCount() > 1),
                F("Restoring session buffer failed"), radiolib_state, false);
 
     // if Nonces and Session restored successfully, activation is just a formality

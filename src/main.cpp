@@ -21,7 +21,7 @@
 // Global objects
 Config config;
 State state;
-Comms comms(&config);
+Comms comms(&config, &state);
 Display display(&config);
 WebUi webUi(&config);
 

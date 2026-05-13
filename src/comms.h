@@ -20,7 +20,7 @@ const uint64_t joinEUI = 0x0000000000000000;
 
 class Comms {
  public:
-  Comms(Config* config);
+  Comms(Config* config, State* state);
 
   int16_t begin(Display* display);
   int16_t send(uint8_t* data, size_t len, Display* display);
@@ -34,6 +34,7 @@ class Comms {
 
   bool beginCalled = false;
   Config* config;
+  State* state;
   Preferences store;  // for radiolib persistent data
   Radio radio;
   LoRaWANNode node;

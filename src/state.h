@@ -25,6 +25,9 @@ class State {
   void startDisplayInNormalMode();
   void stopDisplayInNormalMode();
 
+  void incrementBootCount();
+  uint16_t getBootCount();
+
   bool processMeasurement();
 
   // Public data

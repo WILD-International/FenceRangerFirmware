@@ -6,6 +6,7 @@
 // Persistent data that lives in RTC memory
 RTC_DATA_ATTR Mode currentMode = ModeNormal;
 RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 1;  // set to 0 to disable by default
+RTC_DATA_ATTR uint16_t bootCount = 0;
 
 State::State() {}
 
@@ -45,6 +46,14 @@ void State::startDisplayInNormalMode() {
 
 void State::stopDisplayInNormalMode() {
   useDisplayInNormalModeStartTime = 0;
+}
+
+void State::incrementBootCount() {
+  bootCount++;
+}
+
+uint16_t State::getBootCount() {
+  return bootCount;
 }
 
 bool State::processMeasurement() {
