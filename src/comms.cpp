@@ -186,13 +186,9 @@ int16_t Comms::begin(Display* display) {
   }
   beginCalled = true;
   LOGLN("[SX1262] Initializing ... ");
-  // TODO make 20dBm instead of 10
-  // TODO
-  // TODO
-  // TODO
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   int radiolib_state =
-      radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 10, 8, 1.8, false);
+      radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 22, 8, 1.8, false);
   if (radiolib_state == RADIOLIB_ERR_NONE) {
     LOGLN(F("radiolib begin success!"));
   } else {
