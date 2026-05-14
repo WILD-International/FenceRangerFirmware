@@ -34,7 +34,7 @@ void MeasureProgram::begin() {
   pinMode(ADC_CTRL_VBAT, OUTPUT);
   digitalWrite(ADC_CTRL_VBAT, HIGH);  // Enable mosfet for battery voltage measurement
   pinMode(ADC_OPAMP, OUTPUT);
-  digitalWrite(ADC_OPAMP, HIGH);  // power on the opamp
+  digitalWrite(ADC_OPAMP, LOW);  // power on the opamp
   delay(1);
 
   adc_continuous_init();
@@ -83,7 +83,7 @@ void MeasureProgram::update(Config& config, State& state) {
   } else {
     // stop the ADC and print results
     finished = true;
-    digitalWrite(ADC_OPAMP, LOW);      // power off the opamp
+    digitalWrite(ADC_OPAMP, HIGH);     // power off the opamp
     digitalWrite(ADC_CTRL_VBAT, LOW);  // power off the battery adc
     ESP_ERROR_CHECK(adc_digi_stop());
     ESP_ERROR_CHECK(adc_digi_deinitialize());
