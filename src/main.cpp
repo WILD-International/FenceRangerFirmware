@@ -86,8 +86,13 @@ void setup() {
   buttonSetup(Boot_Key);
 
   display.message("MEASURE");
-  measureProgram.run(config, state);
-  display.showMeasurement(state, 2000);
+  while (true) {
+    measureProgram.run(config, state);
+    display.showMeasurement(state);
+    if (wasButtonPressed()) {
+      gotoSleep(100);
+    }
+  }
 
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
