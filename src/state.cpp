@@ -57,6 +57,7 @@ uint16_t State::getBootCount() {
 }
 
 bool State::processMeasurement() {
+  static uint32_t idleCount = 0;
   static uint32_t backoffCount = 0;
   static uint32_t recoverCount = 0;
 
@@ -73,6 +74,12 @@ bool State::processMeasurement() {
         notifyState = NotifyStateAlerting;
         backoffCount = 1;
         shouldSend = true;
+      } else if (idleCount == 0) {
+        shouldSend = true;
+      }
+      idleCount++;
+      if (idleCount >= 60) {
+        idleCount = 0;
       }
       break;
     case NotifyStateAlerting:
@@ -103,6 +110,7 @@ bool State::processMeasurement() {
         recoverCount++;
         if (recoverCount >= 30) {
           recoverCount = 0;
+          idleCount = 0;
           notifyState = NotifyStateIdle;
         }
       }
