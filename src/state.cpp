@@ -78,7 +78,7 @@ bool State::processMeasurement() {
         shouldSend = true;
       }
       idleCount++;
-      if (idleCount >= 60) {
+      if (idleCount >= 10) {
         idleCount = 0;
       }
       break;
