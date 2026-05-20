@@ -52,19 +52,25 @@ class Config {
     return kFenceVoltageMultiplier;
   }
 
+  const uint32_t getSleepIntervalS() const {
+    return sleepIntervalS;
+  }
+
   const uint32_t getSleepIntervalMs() const {
-    return 60 * 1000;
+    return sleepIntervalS * 1000;
   }
 
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();
   void setDevName(const char* name);
+  void setSleepIntervalS(uint32_t s);
 
  private:
   void loadDevEUI();
   void saveAppKey();
   void saveDevName();
+  void saveSleepIntervalS();
 
   Preferences prefs;
 
@@ -73,6 +79,7 @@ class Config {
   uint8_t appKey[APPKEY_LEN];
   bool devNameSet = false;
   char devName[DEVNAME_MAX];
+  uint32_t sleepIntervalS = 60;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

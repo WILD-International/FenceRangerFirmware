@@ -16,6 +16,7 @@ state = {
     "eui": "AABBCCDDEEFF0011",
     "name": "test-fence",
     "appkey": "00112233445566778899aabbccddeeff",
+    "sleepInterval": 60,
 }
 
 
@@ -45,12 +46,22 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
 
-        if self.path == "/config":
+        if self.path == "/device":
             time.sleep(DELAY)
             data = parse_qs(body.decode())
             state["name"] = data.get("name", [state["name"]])[0]
             state["appkey"] = data.get("appkey", [state["appkey"]])[0]
-            print(f"Config updated: {state}")
+            print(f"Device updated: {state}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Saved")
+
+        elif self.path == "/settings":
+            time.sleep(DELAY)
+            data = parse_qs(body.decode())
+            state["sleepInterval"] = int(data.get("sleepInterval", [state["sleepInterval"]])[0])
+            print(f"Settings updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()

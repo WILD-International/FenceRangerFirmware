@@ -57,6 +57,7 @@ void Config::load() {
     memset(devName, 0, DEVNAME_MAX);
     devNameSet = false;
   }
+  sleepIntervalS = prefs.getUInt("sleepInterval", 60);
   prefs.end();
 }
 
@@ -76,5 +77,16 @@ void Config::saveDevName() {
   if (len == strlen(devName)) {
     devNameSet = true;
   }
+  prefs.end();
+}
+
+void Config::setSleepIntervalS(uint32_t s) {
+  sleepIntervalS = s;
+  saveSleepIntervalS();
+}
+
+void Config::saveSleepIntervalS() {
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUInt("sleepInterval", sleepIntervalS);
   prefs.end();
 }

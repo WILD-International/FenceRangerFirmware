@@ -122,6 +122,14 @@
   <h2>FenceRanger</h2>
 
   <div class="card">
+    <h3>Settings</h3>
+    <label>Sleep Interval (seconds)</label>
+    <input type="text" id="si" maxlength="6" placeholder="60">
+    <button onclick="saveSettings()">Save</button>
+    <div class="status" id="st-settings"></div>
+  </div>
+
+  <div class="card">
     <h3>Device Info</h3>
     <label>Device EUI</label>
     <span class="mono" id="eui">-</span>
@@ -129,8 +137,8 @@
     <input type="text" id="dn" maxlength="31" placeholder="my-fence">
     <label>App Key (32 hex chars)</label>
     <input type="text" id="ak" class="mono" maxlength="32" placeholder="00112233445566778899aabbccddeeff">
-    <button onclick="save()">Save</button>
-    <div class="status" id="st"></div>
+    <button onclick="saveDevice()">Save</button>
+    <div class="status" id="st-device"></div>
   </div>
 
   <div class="card">
@@ -155,26 +163,36 @@
         document.getElementById('eui').textContent = d.eui;
         document.getElementById('dn').value = d.name;
         document.getElementById('ak').value = d.appkey;
+        document.getElementById('si').value = d.sleepInterval;
       })
       .finally(hideSpinner);
 
-    function save() {
-      var payload = {
-        name: document.getElementById('dn').value,
-        appkey: document.getElementById('ak').value
-      };
+    function postConfig(url, payload, statusId) {
       showSpinner();
-      fetch('/config', {
+      fetch(url, {
         method: 'POST',
         body: new URLSearchParams(payload)
       })
       .then(function(r) { return r.text(); })
       .then(function(t) {
-        var s = document.getElementById('st');
+        var s = document.getElementById(statusId);
         s.textContent = t;
         setTimeout(function() { s.textContent = ''; }, 3000);
       })
       .finally(hideSpinner);
+    }
+
+    function saveDevice() {
+      postConfig('/device', {
+        name: document.getElementById('dn').value,
+        appkey: document.getElementById('ak').value
+      }, 'st-device');
+    }
+
+    function saveSettings() {
+      postConfig('/settings', {
+        sleepInterval: document.getElementById('si').value
+      }, 'st-settings');
     }
   </script>
 </body>

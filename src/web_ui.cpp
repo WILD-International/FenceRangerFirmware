@@ -37,11 +37,13 @@ void WebUi::start() {
     json += config->getDevName();
     json += "\",\"appkey\":\"";
     json += appkey;
-    json += "\"}";
+    json += "\",\"sleepInterval\":";
+    json += config->getSleepIntervalS();
+    json += "}";
     server->send(200, "application/json", json);
   });
 
-  server->on("/config", HTTP_POST, [this]() {
+  server->on("/device", HTTP_POST, [this]() {
     config->setDevName(server->arg("name").c_str());
 
     String hexKey = server->arg("appkey");
@@ -57,6 +59,15 @@ void WebUi::start() {
     } else {
       server->send(400, "text/plain", "App key must be 32 hex chars");
       return;
+    }
+
+    server->send(200, "text/plain", "Saved");
+  });
+
+  server->on("/settings", HTTP_POST, [this]() {
+    String sleepArg = server->arg("sleepInterval");
+    if (sleepArg.length() > 0) {
+      config->setSleepIntervalS(sleepArg.toInt());
     }
 
     server->send(200, "text/plain", "Saved");
