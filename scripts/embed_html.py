@@ -10,6 +10,6 @@ with open(html_path, "r") as f:
 
 with open(header_path, "w") as f:
     f.write("#pragma once\n\n")
-    f.write('const char OTA_HTML[] = R"(\n')
+    f.write('const char OTA_HTML[] = R"HTML(\n')
     f.write(html)
-    f.write(')";\n')
+    f.write(')HTML";\n')

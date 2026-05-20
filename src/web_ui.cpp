@@ -21,6 +21,47 @@ void WebUi::start() {
   server = new WebServer(80);
 
   server->on("/", HTTP_GET, [this]() { server->send(200, "text/html", OTA_HTML); });
+
+  server->on("/api/config", HTTP_GET, [this]() {
+    char eui[DEVEUI_LEN * 2 + 1];
+    bytesToHex(config->getDevEUI(), DEVEUI_LEN, eui);
+
+    char appkey[APPKEY_LEN * 2 + 1] = "";
+    if (config->hasAppKey()) {
+      bytesToHex(config->getAppKey(), APPKEY_LEN, appkey);
+    }
+
+    String json = "{\"eui\":\"";
+    json += eui;
+    json += "\",\"name\":\"";
+    json += config->getDevName();
+    json += "\",\"appkey\":\"";
+    json += appkey;
+    json += "\"}";
+    server->send(200, "application/json", json);
+  });
+
+  server->on("/config", HTTP_POST, [this]() {
+    config->setDevName(server->arg("name").c_str());
+
+    String hexKey = server->arg("appkey");
+    if (hexKey.length() == APPKEY_LEN * 2) {
+      uint8_t key[APPKEY_LEN];
+      if (!hexToBytes(hexKey.c_str(), key, APPKEY_LEN)) {
+        server->send(400, "text/plain", "Invalid app key");
+        return;
+      }
+      config->setAppKey(key);
+    } else if (hexKey.length() == 0) {
+      config->clearAppKey();
+    } else {
+      server->send(400, "text/plain", "App key must be 32 hex chars");
+      return;
+    }
+
+    server->send(200, "text/plain", "Saved");
+  });
+
   server->on(
       "/update", HTTP_POST,
       [this]() {

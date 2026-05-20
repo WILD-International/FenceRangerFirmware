@@ -1,5 +1,181 @@
-<!DOCTYPE html><html><body>
-<form method='POST' action='/update' enctype='multipart/form-data'>
-  <input type='file' name='firmware'>
-  <input type='submit' value='Update'>
-</form></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      margin: 0 auto;
+      padding: 16px;
+      max-width: 420px;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 1.2em;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      font-size: 1em;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8em;
+      color: #666;
+      margin: 8px 0 3px;
+    }
+
+    input[type=text],
+    input[type=file] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    input[type=text]:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+
+    .mono {
+      font-family: monospace;
+      font-size: 0.85em;
+    }
+
+    button,
+    input[type=submit] {
+      display: block;
+      width: 100%;
+      padding: 11px;
+      margin-top: 12px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.95em;
+      cursor: pointer;
+    }
+
+    button:active,
+    input[type=submit]:active {
+      background: #0056b3;
+    }
+
+    .status {
+      font-size: 0.8em;
+      color: #28a745;
+      margin-top: 6px;
+      min-height: 1em;
+    }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <h2>FenceRanger</h2>
+
+  <div class="card">
+    <h3>Device Info</h3>
+    <label>Device EUI</label>
+    <span class="mono" id="eui">-</span>
+    <label>Device Name</label>
+    <input type="text" id="dn" maxlength="31" placeholder="my-fence">
+    <label>App Key (32 hex chars)</label>
+    <input type="text" id="ak" class="mono" maxlength="32" placeholder="00112233445566778899aabbccddeeff">
+    <button onclick="save()">Save</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="card">
+    <h3>Firmware Update</h3>
+    <form method="POST" action="/update" enctype="multipart/form-data">
+      <label>Firmware file (.bin)</label>
+      <input type="file" name="firmware" accept=".bin">
+      <input type="submit" value="Flash firmware">
+    </form>
+  </div>
+
+  <script>
+    var overlay = document.getElementById('overlay');
+
+    function showSpinner() { overlay.classList.add('active'); }
+    function hideSpinner() { overlay.classList.remove('active'); }
+
+    showSpinner();
+    fetch('/api/config')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        document.getElementById('eui').textContent = d.eui;
+        document.getElementById('dn').value = d.name;
+        document.getElementById('ak').value = d.appkey;
+      })
+      .finally(hideSpinner);
+
+    function save() {
+      var payload = {
+        name: document.getElementById('dn').value,
+        appkey: document.getElementById('ak').value
+      };
+      showSpinner();
+      fetch('/config', {
+        method: 'POST',
+        body: new URLSearchParams(payload)
+      })
+      .then(function(r) { return r.text(); })
+      .then(function(t) {
+        var s = document.getElementById('st');
+        s.textContent = t;
+        setTimeout(function() { s.textContent = ''; }, 3000);
+      })
+      .finally(hideSpinner);
+    }
+  </script>
+</body>
+</html>
