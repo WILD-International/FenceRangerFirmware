@@ -5,6 +5,10 @@
 #include "helpers.h"
 #include "ota_html.h"
 
+#ifndef GIT_TAG
+#define GIT_TAG "unknown"
+#endif
+
 WebUi::WebUi(Config* config) : config(config), running(false) {}
 
 void WebUi::start() {
@@ -39,7 +43,9 @@ void WebUi::start() {
     json += appkey;
     json += "\",\"sleepInterval\":";
     json += config->getSleepIntervalS();
-    json += "}";
+    json += ",\"version\":\"";
+    json += GIT_TAG;
+    json += "\"}";
     server->send(200, "application/json", json);
   });
 

@@ -17,6 +17,7 @@ state = {
     "name": "test-fence",
     "appkey": "00112233445566778899aabbccddeeff",
     "sleepInterval": 60,
+    "version": "v1.2.3-dev",
 }
 
 

@@ -143,6 +143,8 @@
 
   <div class="card">
     <h3>Firmware Update</h3>
+    <label>Current version</label>
+    <span class="mono" id="ver">-</span>
     <form method="POST" action="/update" enctype="multipart/form-data">
       <label>Firmware file (.bin)</label>
       <input type="file" name="firmware" accept=".bin">
@@ -161,6 +163,7 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         document.getElementById('eui').textContent = d.eui;
+        document.getElementById('ver').textContent = d.version;
         document.getElementById('dn').value = d.name;
         document.getElementById('ak').value = d.appkey;
         document.getElementById('si').value = d.sleepInterval;
