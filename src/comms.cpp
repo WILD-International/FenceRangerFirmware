@@ -2,6 +2,7 @@
 
 #include "TypeDef.h"
 #include "debug.h"
+#include "helpers.h"
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
@@ -212,9 +213,28 @@ int16_t Comms::begin(Display* display) {
 int16_t Comms::send(uint8_t* data, size_t len, Display* display) {
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
-  int16_t radiolib_state = node.sendReceive(data, len);
+
+  uint8_t downlinkPayload[10];  // Make sure this fits your plans!
+  size_t downlinkSize;          // To hold the actual payload size received
+
+  // downlink by passing a reference to LoRaWANEvent_t structure
+  LoRaWANEvent_t uplinkDetails;
+  LoRaWANEvent_t downlinkDetails;
+
+  uint8_t fPort = 1;
+
+  uint32_t fCntUp = node.getFCntUp();
+
+  int16_t radiolib_state = node.sendReceive(data, len, fPort, downlinkPayload, &downlinkSize, false,
+                                            &uplinkDetails, &downlinkDetails);
   digitalWrite(LORA_PA_POWER, LOW);
-  if (radiolib_state != RADIOLIB_ERR_NONE) {
+  if (radiolib_state > 0) {
+    LOGLN("Received a message from server");
+    char hex[10 * 2 + 1] = {};
+    bytesToHex(downlinkPayload, 10, hex);
+    Serial.printf("PAYLOAD: %s\n", hex);
+    // Downlink received
+  } else if (radiolib_state != RADIOLIB_ERR_NONE) {
     LOGLN(radiolib_state);
     display->message("SEND ERR");
   }
