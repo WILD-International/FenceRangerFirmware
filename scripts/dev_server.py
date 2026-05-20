@@ -17,6 +17,8 @@ state = {
     "name": "test-fence",
     "appkey": "00112233445566778899aabbccddeeff",
     "sleepInterval": 60,
+    "alertV": 3000,
+    "recoverV": 3500,
     "version": "v1.2.3-dev",
 }
 
@@ -62,6 +64,8 @@ class Handler(BaseHTTPRequestHandler):
             time.sleep(DELAY)
             data = parse_qs(body.decode())
             state["sleepInterval"] = int(data.get("sleepInterval", [state["sleepInterval"]])[0])
+            state["alertV"] = int(data.get("alertV", [state["alertV"]])[0])
+            state["recoverV"] = int(data.get("recoverV", [state["recoverV"]])[0])
             print(f"Settings updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")

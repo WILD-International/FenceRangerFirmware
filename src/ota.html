@@ -126,6 +126,10 @@
     <h3>Settings</h3>
     <label>Sleep Interval (seconds)</label>
     <input type="text" id="si" maxlength="6" placeholder="60">
+    <label>Alert Threshold (V)</label>
+    <input type="text" id="av" maxlength="5" placeholder="3000">
+    <label>Recover Threshold (V)</label>
+    <input type="text" id="rv" maxlength="5" placeholder="3500">
     <button onclick="saveSettings()">Save</button>
     <div class="status" id="st-settings"></div>
   </div>
@@ -170,6 +174,8 @@
         document.getElementById('dn').value = d.name;
         document.getElementById('ak').value = d.appkey;
         document.getElementById('si').value = d.sleepInterval;
+        document.getElementById('av').value = d.alertV;
+        document.getElementById('rv').value = d.recoverV;
       })
       .finally(hideSpinner);
 
@@ -197,7 +203,9 @@
 
     function saveSettings() {
       postConfig('/settings', {
-        sleepInterval: document.getElementById('si').value
+        sleepInterval: document.getElementById('si').value,
+        alertV: document.getElementById('av').value,
+        recoverV: document.getElementById('rv').value
       }, 'st-settings');
     }
 

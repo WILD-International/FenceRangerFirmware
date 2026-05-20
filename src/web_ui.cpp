@@ -43,6 +43,10 @@ void WebUi::start() {
     json += appkey;
     json += "\",\"sleepInterval\":";
     json += config->getSleepIntervalS();
+    json += ",\"alertV\":";
+    json += config->getAlertThresholdV();
+    json += ",\"recoverV\":";
+    json += config->getRecoverThresholdV();
     json += ",\"version\":\"";
     json += GIT_TAG;
     json += "\"}";
@@ -74,6 +78,18 @@ void WebUi::start() {
     String sleepArg = server->arg("sleepInterval");
     if (sleepArg.length() > 0) {
       config->setSleepIntervalS(sleepArg.toInt());
+    }
+
+    String alertArg = server->arg("alertV");
+    String recoverArg = server->arg("recoverV");
+    if (alertArg.length() > 0 && recoverArg.length() > 0) {
+      int32_t alertV = alertArg.toInt();
+      int32_t recoverV = recoverArg.toInt();
+      if (alertV < 0 || alertV > 65535 || recoverV < 0 || recoverV > 65535) {
+        server->send(400, "text/plain", "Threshold must be 0-65535");
+        return;
+      }
+      config->setAlertThresholds(alertV, recoverV);
     }
 
     server->send(200, "text/plain", "Saved");
