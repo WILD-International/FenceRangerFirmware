@@ -11,3 +11,6 @@ compile_commands.json
 .nvim.lua
 
 .DS_Store
+
+# generated from src/ota.html at build time
+src/ota_html.h

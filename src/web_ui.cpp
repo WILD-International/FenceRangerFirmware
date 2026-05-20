@@ -3,14 +3,7 @@
 
 #include "debug.h"
 #include "helpers.h"
-
-const char* uploadPage = R"(
-<!DOCTYPE html><html><body>
-<form method='POST' action='/update' enctype='multipart/form-data'>
-  <input type='file' name='firmware'>
-  <input type='submit' value='Update'>
-</form></body></html>
-)";
+#include "ota_html.h"
 
 WebUi::WebUi(Config* config) : config(config), running(false) {}
 
@@ -27,7 +20,7 @@ void WebUi::start() {
 
   server = new WebServer(80);
 
-  server->on("/", HTTP_GET, [this]() { server->send(200, "text/html", uploadPage); });
+  server->on("/", HTTP_GET, [this]() { server->send(200, "text/html", OTA_HTML); });
   server->on(
       "/update", HTTP_POST,
       [this]() {
