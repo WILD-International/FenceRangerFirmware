@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * {
@@ -145,11 +146,13 @@
     <h3>Firmware Update</h3>
     <label>Current version</label>
     <span class="mono" id="ver">-</span>
-    <form method="POST" action="/update" enctype="multipart/form-data">
-      <label>Firmware file (.bin)</label>
-      <input type="file" name="firmware" accept=".bin">
-      <input type="submit" value="Flash firmware">
-    </form>
+    <label>Firmware file (.bin)</label>
+    <input type="file" id="fw" accept=".bin">
+    <div id="progress-wrap" style="display:none; margin-top:12px; background:#eee; border-radius:4px; overflow:hidden; height:10px">
+      <div id="progress-bar" style="height:100%; width:0; background:#007bff; transition:width 0.2s"></div>
+    </div>
+    <div class="status" id="st-firmware"></div>
+    <button onclick="flashFirmware()">Flash firmware</button>
   </div>
 
   <script>
@@ -196,6 +199,41 @@
       postConfig('/settings', {
         sleepInterval: document.getElementById('si').value
       }, 'st-settings');
+    }
+
+    function flashFirmware() {
+      var file = document.getElementById('fw').files[0];
+      if (!file) { alert('Select a firmware file first'); return; }
+
+      var form = new FormData();
+      form.append('firmware', file);
+
+      var xhr = new XMLHttpRequest();
+      var wrap = document.getElementById('progress-wrap');
+      var bar = document.getElementById('progress-bar');
+      var st = document.getElementById('st-firmware');
+
+      xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+          var pct = Math.round(e.loaded / e.total * 100);
+          bar.style.width = pct + '%';
+          st.textContent = 'Uploading... ' + pct + '%';
+        }
+      });
+
+      xhr.addEventListener('load', function() {
+        st.textContent = xhr.responseText === 'OK' ? 'Rebooting...' : 'Error: ' + xhr.responseText;
+      });
+
+      xhr.addEventListener('error', function() {
+        st.textContent = 'Upload failed';
+        wrap.style.display = 'none';
+      });
+
+      wrap.style.display = 'block';
+      bar.style.width = '0';
+      xhr.open('POST', '/update');
+      xhr.send(form);
     }
   </script>
 </body>

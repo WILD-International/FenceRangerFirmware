@@ -69,6 +69,13 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"Saved")
 
         elif self.path == "/update":
+            chunk_size = 4096
+            received = 0
+            while received < length:
+                chunk = min(chunk_size, length - received)
+                self.rfile.read(chunk)
+                received += chunk
+                time.sleep(0.05)  # simulate ~80 KB/s
             print(f"Firmware upload received ({length} bytes)")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
