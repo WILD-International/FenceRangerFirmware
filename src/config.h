@@ -60,17 +60,26 @@ class Config {
     return sleepIntervalS * 1000;
   }
 
+  uint16_t getAlertThresholdV() const {
+    return alertThresholdV;
+  }
+  uint16_t getRecoverThresholdV() const {
+    return recoverThresholdV;
+  }
+
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();
   void setDevName(const char* name);
   void setSleepIntervalS(uint32_t s);
+  void setAlertThresholds(uint16_t alert, uint16_t recover);
 
  private:
   void loadDevEUI();
   void saveAppKey();
   void saveDevName();
   void saveSleepIntervalS();
+  void saveAlertThresholds();
 
   Preferences prefs;
 
@@ -80,6 +89,8 @@ class Config {
   bool devNameSet = false;
   char devName[DEVNAME_MAX];
   uint32_t sleepIntervalS = 60;
+  uint16_t alertThresholdV = 3000;
+  uint16_t recoverThresholdV = 3500;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

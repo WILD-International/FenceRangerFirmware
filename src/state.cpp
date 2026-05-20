@@ -8,7 +8,7 @@ RTC_DATA_ATTR Mode currentMode = ModeNormal;
 RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 1;  // set to 0 to disable by default
 RTC_DATA_ATTR uint16_t bootCount = 0;
 
-State::State() {}
+State::State(Config* config) : config(config) {}
 
 State::~State() {}
 
@@ -63,8 +63,8 @@ bool State::processMeasurement() {
 
   uint16_t fenceVoltage = max(fence_pos_max_v, fence_neg_max_v);
 
-  uint16_t alertThreshold = 3000;    // V
-  uint16_t recoverThreshold = 3500;  // V
+  uint16_t alertThreshold = config->getAlertThresholdV();
+  uint16_t recoverThreshold = config->getRecoverThresholdV();
 
   bool shouldSend = false;
 

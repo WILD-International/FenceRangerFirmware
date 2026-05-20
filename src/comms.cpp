@@ -210,14 +210,13 @@ int16_t Comms::begin(Display* display) {
   return radiolib_state;
 }
 
-int16_t Comms::send(uint8_t* data, size_t len, Display* display) {
+int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downlink) {
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
 
-  uint8_t downlinkPayload[10];  // Make sure this fits your plans!
-  size_t downlinkSize;          // To hold the actual payload size received
+  uint8_t downlinkPayload[32];
+  size_t downlinkSize;
 
-  // downlink by passing a reference to LoRaWANEvent_t structure
   LoRaWANEvent_t uplinkDetails;
   LoRaWANEvent_t downlinkDetails;
 
@@ -228,12 +227,31 @@ int16_t Comms::send(uint8_t* data, size_t len, Display* display) {
   int16_t radiolib_state = node.sendReceive(data, len, fPort, downlinkPayload, &downlinkSize, false,
                                             &uplinkDetails, &downlinkDetails);
   digitalWrite(LORA_PA_POWER, LOW);
+
   if (radiolib_state > 0) {
     LOGLN("Received a message from server");
-    char hex[10 * 2 + 1] = {};
-    bytesToHex(downlinkPayload, 10, hex);
-    Serial.printf("PAYLOAD: %s\n", hex);
-    // Downlink received
+    if (downlink != nullptr) {
+      switch (downlinkDetails.fPort) {
+        case 10:
+          LOGLN("Downlink: EnableOTA");
+          downlink->type = DownlinkType::EnableOTA;
+          break;
+        case 11:
+          if (downlinkSize == 6) {
+            LOGLN("Downlink: UpdateConfig");
+            downlink->type = DownlinkType::UpdateConfig;
+            downlink->config.sleepIntervalS = (downlinkPayload[0] << 8) | downlinkPayload[1];
+            downlink->config.alertV = (downlinkPayload[2] << 8) | downlinkPayload[3];
+            downlink->config.recoverV = (downlinkPayload[4] << 8) | downlinkPayload[5];
+          } else {
+            LOGLN("Downlink: UpdateConfig ignored (expected 6 bytes)");
+          }
+          break;
+        default:
+          LOG("Downlink: unknown fPort %d\n", downlinkDetails.fPort);
+          break;
+      }
+    }
   } else if (radiolib_state != RADIOLIB_ERR_NONE) {
     LOGLN(radiolib_state);
     display->message("SEND ERR");

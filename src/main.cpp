@@ -20,7 +20,7 @@
 
 // Global objects
 Config config;
-State state;
+State state(&config);
 Comms comms(&config, &state);
 Display display(&config);
 WebUi webUi(&config);
@@ -153,8 +153,21 @@ void setup() {
         uplinkPayload[1] = (fence_voltage >> 8) & 0xFF;
         uplinkPayload[2] = fence_voltage & 0xFF;
         display.message("SENDING");
-        comms.send(uplinkPayload, sizeof(uplinkPayload), &display);
+        Downlink downlink;
+        comms.send(uplinkPayload, sizeof(uplinkPayload), &display, &downlink);
         display.message("SENT", 1000);
+
+        switch (downlink.type) {
+          case DownlinkType::EnableOTA:
+            state.setMode(ModeConfig);
+            break;
+          case DownlinkType::UpdateConfig:
+            config.setSleepIntervalS(downlink.config.sleepIntervalS);
+            config.setAlertThresholds(downlink.config.alertV, downlink.config.recoverV);
+            break;
+          default:
+            break;
+        }
       }
     }
   }
@@ -164,7 +177,9 @@ void setup() {
   // Put radio to sleep
   comms.sleep();
 
-  delay(2000);
+  if (state.getMode() == ModeConfig) {
+    gotoSleep(100);
+  }
 
   if (wasButtonPressed()) {
     gotoSleep(100);

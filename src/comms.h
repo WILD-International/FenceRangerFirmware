@@ -18,12 +18,27 @@ const uint8_t subBand = 0;
 
 const uint64_t joinEUI = 0x0000000000000000;
 
+enum class DownlinkType : uint8_t {
+  None = 0,
+  EnableOTA,
+  UpdateConfig,
+};
+
+struct Downlink {
+  DownlinkType type = DownlinkType::None;
+  struct {
+    uint16_t sleepIntervalS;
+    uint16_t alertV;
+    uint16_t recoverV;
+  } config;
+};
+
 class Comms {
  public:
   Comms(Config* config, State* state);
 
   int16_t begin(Display* display);
-  int16_t send(uint8_t* data, size_t len, Display* display);
+  int16_t send(uint8_t* data, size_t len, Display* display, Downlink* downlink = nullptr);
   void saveSession();
   bool hasJoined();
   void sleep();

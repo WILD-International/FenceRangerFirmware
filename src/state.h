@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
+#include "config.h"
+
 enum Mode { ModeNormal, ModeConfig };
 enum NotifyState {
   NotifyStateIdle,
@@ -13,7 +15,7 @@ enum NotifyState {
 
 class State {
  public:
-  State();
+  State(Config* config);
   ~State();
 
   // Public methods
@@ -42,9 +44,7 @@ class State {
   uint32_t adc_error_count = 0;
 
  private:
-  // Private methods
-
-  // Private data
+  Config* config;
   NotifyState notifyState = NotifyStateIdle;
   uint32_t alertingIntervalSeconds = 0;  // track backoff
 

@@ -58,6 +58,8 @@ void Config::load() {
     devNameSet = false;
   }
   sleepIntervalS = prefs.getUInt("sleepInterval", 60);
+  alertThresholdV = prefs.getUShort("alertV", 3000);
+  recoverThresholdV = prefs.getUShort("recoverV", 3500);
   prefs.end();
 }
 
@@ -88,5 +90,18 @@ void Config::setSleepIntervalS(uint32_t s) {
 void Config::saveSleepIntervalS() {
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUInt("sleepInterval", sleepIntervalS);
+  prefs.end();
+}
+
+void Config::setAlertThresholds(uint16_t alert, uint16_t recover) {
+  alertThresholdV = alert;
+  recoverThresholdV = recover;
+  saveAlertThresholds();
+}
+
+void Config::saveAlertThresholds() {
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("alertV", alertThresholdV);
+  prefs.putUShort("recoverV", recoverThresholdV);
   prefs.end();
 }
