@@ -189,7 +189,7 @@ void setup() {
         uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
         uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
         uint16_t fenceV = max(fenceNeg, fencePos);
-        display.message("SENDING");
+        display.message("SEND MSR");
         Downlink downlink;
         comms.sendMeasurement(battMv, fenceV, &display, &downlink);
         display.message("SENT", 1000);
@@ -198,8 +198,11 @@ void setup() {
 
       for (uint8_t fport = 11; fport <= 14; fport++) {
         if (pendingReport & (1 << (fport - 11))) {
+          delay(3000);
+          display.message("SEND CFG");
           Downlink downlink;
           comms.sendConfigReport(fport, &display, &downlink);
+          display.message("SENT", 1000);
           handleDownlink(downlink);
         }
       }
