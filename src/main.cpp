@@ -128,8 +128,15 @@ void setup() {
     // state.fence_pos_min_v = 2000;
     // state.fence_pos_max_v = 2000;
     uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
-    bool shouldSend = processMeasurement(fenceVoltage, config.getAlertThresholdV(),
-                                         config.getRecoverThresholdV());
+    AlertConfig alertCfg = {
+        .alertThresholdV = config.getAlertThresholdV(),
+        .recoverThresholdV = config.getRecoverThresholdV(),
+        .burstSends = config.getAlertBurstSends(),
+        .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
+        .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
+        .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
+    };
+    bool shouldSend = processMeasurement(fenceVoltage, alertCfg);
 
     if (shouldSend) {
       // No need to initialize the radio if there's nothing to send

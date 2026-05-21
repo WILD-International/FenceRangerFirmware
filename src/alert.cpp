@@ -14,20 +14,9 @@ RTC_DATA_ATTR static uint32_t alertCycles = 0;      // cycles spent in alerting 
 RTC_DATA_ATTR static uint32_t idleCycles = 0;       // cycles spent in idle state
 RTC_DATA_ATTR static uint32_t recoveredCycles = 0;  // consecutive cycles above recover threshold
 
-// On a new alert: send immediately, then send again for the next ALERT_BURST_SENDS-1 cycles.
-// 3 total = 1 immediate + 2 follow-ups within the next ~2 minutes (at default 60s sleep interval).
-static const uint32_t ALERT_BURST_SENDS = 3;
-// Send a heartbeat every N cycles so we know the device is alive.
-static const uint32_t IDLE_HEARTBEAT_CYCLES = 60;
-static const uint32_t ALERT_HEARTBEAT_CYCLES = 15;
-// Require this many consecutive above-threshold cycles before declaring recovery.
-// Filters out brief voltage spikes during fence repairs.
-static const uint32_t RECOVERY_CONFIRM_CYCLES = 30;
-
-bool processMeasurement(uint16_t fenceVoltage, uint16_t alertThresholdV,
-                        uint16_t recoverThresholdV) {
-  bool fenceDown = fenceVoltage < alertThresholdV;
-  bool fenceUp = fenceVoltage >= recoverThresholdV;
+bool processMeasurement(uint16_t fenceVoltage, const AlertConfig& cfg) {
+  bool fenceDown = fenceVoltage < cfg.alertThresholdV;
+  bool fenceUp = fenceVoltage >= cfg.recoverThresholdV;
   bool shouldSend = false;
 
   switch (notifyState) {
@@ -39,7 +28,7 @@ bool processMeasurement(uint16_t fenceVoltage, uint16_t alertThresholdV,
         shouldSend = true;  // send immediately when alert is first detected
       } else {
         shouldSend = (idleCycles == 0);
-        if (++idleCycles >= IDLE_HEARTBEAT_CYCLES)
+        if (++idleCycles >= cfg.idleHeartbeatCycles)
           idleCycles = 0;
       }
       break;
@@ -50,8 +39,8 @@ bool processMeasurement(uint16_t fenceVoltage, uint16_t alertThresholdV,
         recoveredCycles = 1;
       } else {
         alertCycles++;
-        bool inBurst = alertCycles < ALERT_BURST_SENDS;
-        bool heartbeatDue = (alertCycles % ALERT_HEARTBEAT_CYCLES) == 0;
+        bool inBurst = alertCycles < cfg.burstSends;
+        bool heartbeatDue = (alertCycles % cfg.alertHeartbeatCycles) == 0;
         shouldSend = inBurst || heartbeatDue;
       }
       break;
@@ -64,7 +53,7 @@ bool processMeasurement(uint16_t fenceVoltage, uint16_t alertThresholdV,
         recoveredCycles = 0;
       } else if (fenceUp) {
         recoveredCycles++;
-        if (recoveredCycles >= RECOVERY_CONFIRM_CYCLES) {
+        if (recoveredCycles >= cfg.recoveryConfirmCycles) {
           notifyState = NotifyStateIdle;
           idleCycles = 0;
           recoveredCycles = 0;

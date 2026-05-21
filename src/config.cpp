@@ -60,6 +60,10 @@ void Config::load() {
   sleepIntervalS = prefs.getUInt("sleepInterval", 60);
   alertThresholdV = prefs.getUShort("alertV", 3000);
   recoverThresholdV = prefs.getUShort("recoverV", 3500);
+  alertBurstSends = prefs.getUChar("burstSends", 3);
+  idleHeartbeatCycles = prefs.getUChar("idleHbCycles", 60);
+  alertHeartbeatCycles = prefs.getUChar("alertHbCycles", 15);
+  recoveryConfirmCycles = prefs.getUChar("recoverCycles", 30);
   prefs.end();
 }
 
@@ -103,5 +107,23 @@ void Config::saveAlertThresholds() {
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUShort("alertV", alertThresholdV);
   prefs.putUShort("recoverV", recoverThresholdV);
+  prefs.end();
+}
+
+void Config::setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertHeartbeat,
+                            uint8_t recoveryConfirm) {
+  alertBurstSends = burst;
+  idleHeartbeatCycles = idleHeartbeat;
+  alertHeartbeatCycles = alertHeartbeat;
+  recoveryConfirmCycles = recoveryConfirm;
+  saveAlertCycles();
+}
+
+void Config::saveAlertCycles() {
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUChar("burstSends", alertBurstSends);
+  prefs.putUChar("idleHbCycles", idleHeartbeatCycles);
+  prefs.putUChar("alertHbCycles", alertHeartbeatCycles);
+  prefs.putUChar("recoverCycles", recoveryConfirmCycles);
   prefs.end();
 }

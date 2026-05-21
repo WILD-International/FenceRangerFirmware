@@ -66,6 +66,18 @@ class Config {
   uint16_t getRecoverThresholdV() const {
     return recoverThresholdV;
   }
+  uint8_t getAlertBurstSends() const {
+    return alertBurstSends;
+  }
+  uint8_t getIdleHeartbeatCycles() const {
+    return idleHeartbeatCycles;
+  }
+  uint8_t getAlertHeartbeatCycles() const {
+    return alertHeartbeatCycles;
+  }
+  uint8_t getRecoveryConfirmCycles() const {
+    return recoveryConfirmCycles;
+  }
 
   // setters
   void setAppKey(const uint8_t* key);
@@ -73,6 +85,8 @@ class Config {
   void setDevName(const char* name);
   void setSleepIntervalS(uint32_t s);
   void setAlertThresholds(uint16_t alert, uint16_t recover);
+  void setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertHeartbeat,
+                      uint8_t recoveryConfirm);
 
  private:
   void loadDevEUI();
@@ -80,6 +94,7 @@ class Config {
   void saveDevName();
   void saveSleepIntervalS();
   void saveAlertThresholds();
+  void saveAlertCycles();
 
   Preferences prefs;
 
@@ -91,6 +106,10 @@ class Config {
   uint32_t sleepIntervalS = 60;
   uint16_t alertThresholdV = 3000;
   uint16_t recoverThresholdV = 3500;
+  uint8_t alertBurstSends = 3;
+  uint8_t idleHeartbeatCycles = 60;
+  uint8_t alertHeartbeatCycles = 15;
+  uint8_t recoveryConfirmCycles = 30;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 
