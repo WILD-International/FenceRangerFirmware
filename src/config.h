@@ -90,11 +90,6 @@ class Config {
 
  private:
   void loadDevEUI();
-  void saveAppKey();
-  void saveDevName();
-  void saveSleepIntervalS();
-  void saveAlertThresholds();
-  void saveAlertCycles();
 
   Preferences prefs;
 
