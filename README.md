@@ -1,4 +1,57 @@
-# Fence Ranger Firmware
+# FenceRanger Firmware
+
+The FenceRanger monitors an electric fence and sends alerts over LoRaWAN when the fence voltage drops — indicating the energizer is off, a fault has occurred, or an animal has broken through.
+
+Because it runs on a small solar-charged battery, it needs to balance two competing goals: **stay responsive to fence problems** while **conserving power** during bad weather or low-light periods.
+
+---
+
+## Alert behavior
+
+The device measures the fence voltage every cycle. Most of the time the fence is healthy and there is nothing to report, so the device only sends a brief heartbeat every so often to confirm it is still alive. When the fence voltage drops below the alert threshold, it immediately sends a burst of messages to make sure the network receives at least one, then switches to a faster heartbeat so the operator stays informed. Once the fence comes back up, the device waits for several consecutive healthy readings before declaring recovery — this prevents false all-clears during fence repair when the energizer is briefly switched on and off.
+
+**Parameters that control this:**
+- **Alert V / Recover V** — the thresholds that define "problem" and "healthy." The gap between them provides hysteresis so the device doesn't oscillate between states.
+- **Burst Sends** — how many messages are sent in quick succession when an alert first triggers.
+- **Idle Hb / Alert Hb** — heartbeat frequency in healthy vs. alert state (in cycles). Alert heartbeat is faster to keep the operator updated.
+- **Recovery** — how many consecutive above-threshold cycles are required before returning to idle. Higher values filter out brief spikes during repair.
+
+---
+
+## Adaptive sleep behavior
+
+To save power when the battery is low (e.g. several cloudy days in a row), the device automatically stretches its sleep interval. Rather than sleeping 60 seconds every cycle, it can sleep up to several minutes — reducing radio transmissions and processor wakeups. The throttling is proportional to battery voltage: a fully charged battery runs at normal speed, while a critically low battery runs at the maximum sleep interval.
+
+To avoid overshooting in the other direction — waking up too frequently the moment the sun comes back — the device tracks battery voltage through a slow filter. The slow-tracked voltage drops instantly when the battery falls (to apply throttling immediately) but climbs back up gradually over many cycles. This means the device eases back to normal speed slowly, rather than snapping back the moment the battery ticks up slightly.
+
+**Parameters that control this:**
+- **Batt Full mV / Batt Low mV** — define the voltage range over which throttling scales. Above Full: no throttling. Below Low: maximum throttling. In between: linear interpolation.
+- **Sleep Mult** — the maximum multiplier for the sleep interval at minimum battery. E.g. 60 s × 30 = up to 30 minutes per cycle.
+- **Recovery N** — controls the speed of the gradual return to normal. The slow-tracked voltage rises by 1/N of the gap to the real voltage each cycle. N = 50 means it takes roughly 50+ cycles (and often much longer wall-clock time due to the stretched sleep intervals) to fully recover.
+
+---
+
+## Configuration
+
+Parameters can be configured via the web UI (connect to the device's WiFi AP in config mode) or via the OLED menu (single-button interface). Config mode is entered by pressing the boot button on startup, or via a downlink message.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Cycle Sleep | 60 s | Deep sleep duration between measurements |
+| Alert V | 3000 V | Fence voltage below which an alert is triggered |
+| Recover V | 3500 V | Fence voltage above which recovery begins |
+| Burst Sends | 3 | Uplinks sent in quick succession on alert trigger |
+| Idle Heartbeat | 60 cycles | Cycles between uplinks when fence is healthy |
+| Alert Heartbeat | 15 cycles | Cycles between uplinks while fence is in alert |
+| Recovery Confirm | 30 cycles | Consecutive above-threshold cycles to confirm recovery |
+| Batt Full mV | 4000 mV | Battery voltage above which no sleep throttling applies |
+| Batt Low mV | 3300 mV | Battery voltage at which maximum sleep throttling applies |
+| Sleep Mult | 30 | Maximum sleep interval multiplier at low battery |
+| Recovery N | 50 | Slow-filter N for returning to normal sleep speed |
+
+---
+
+## Development
 
 Install Platformio, the easiest method is probably using VSCode: https://platformio.org/platformio-ide
 
@@ -8,8 +61,7 @@ Make sure to get the git submodules, because lib/RadioBoards is a submodule:
 git submodule update --init --recursive
 ```
 
-
-## Without VSCode on MacOS with fish shell
+### Without VSCode on MacOS with fish shell
 
 Install using the script from: https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html
 
@@ -31,7 +83,7 @@ To generate compile_commands.json for other IDE support:
 pio run -e heltec_wifi_lora_32_V4 -t compiledb
 ```
 
-## Make the language server work with Neovim
+### Make the language server work with Neovim
 
 The only way I got this to work properly was by downloading the espressif clangd fork. Download the latest from here: https://github.com/espressif/llvm-project/releases. I used esp-21.1.3_20260304.
 
@@ -82,4 +134,4 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 })
 ```
 
-Besides the language server configuration, it also configures auto-format on save
+Besides the language server configuration, it also configures auto-format on save.
