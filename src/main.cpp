@@ -29,6 +29,13 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
+// Adaptive sleep: slow-tracking battery voltage for gradual recovery
+static const uint16_t BATT_FULL_MV = 4000;  // voltage at which no throttling applies
+static const uint16_t BATT_LOW_MV = 3300;   // voltage at which max throttling applies
+static const float BATT_MAX_MULT = 4.0f;    // maximum sleep interval multiplier
+static const uint8_t BATT_RECOVERY_N = 20;  // slow voltage catches up 1/N of gap per cycle
+RTC_DATA_ATTR uint16_t slowBattMv = 0;
+
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
@@ -88,6 +95,17 @@ void setup() {
   measureProgram.run(config, state);
   display.showMeasurement(state, 2000);
 
+  uint16_t measuredBatt = state.batt_max_mv;
+  if (slowBattMv == 0 || measuredBatt < slowBattMv) {
+    slowBattMv = measuredBatt;
+  } else {
+    slowBattMv = (uint16_t)(slowBattMv + (measuredBatt - slowBattMv) / BATT_RECOVERY_N);
+  }
+  float battT = constrain(((float)BATT_FULL_MV - slowBattMv) / (BATT_FULL_MV - BATT_LOW_MV), 0.0f, 1.0f);
+  uint32_t minSleep = config.getSleepIntervalMs();
+  uint32_t maxSleep = (uint32_t)(minSleep * BATT_MAX_MULT);
+  uint32_t adaptedSleepMs = minSleep + (uint32_t)(battT * (maxSleep - minSleep));
+
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
   LOG("RTC time now: %lld ms\n", now_us / 1000);
@@ -100,7 +118,7 @@ void setup() {
   if (!comms.hasJoined()) {
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
-      gotoSleep(config.getSleepIntervalMs());
+      gotoSleep(adaptedSleepMs);
     }
   }
 
@@ -141,7 +159,7 @@ void setup() {
       // This will restore the LoRaWAN session from RTC memory
       if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
         display.message("RADIO ERR", 2000);
-        gotoSleep(config.getSleepIntervalMs());
+        gotoSleep(adaptedSleepMs);
       } else {
         uint16_t batt_voltage = max(state.batt_min_mv, state.batt_max_mv);
         uint16_t fence_neg_voltage = max(state.fence_neg_min_v, state.fence_neg_max_v);
@@ -195,7 +213,7 @@ void setup() {
     display.message("SLEEP", 500);
   }
 
-  gotoSleep(config.getSleepIntervalMs());
+  gotoSleep(adaptedSleepMs);
 }
 
 void loop() {
