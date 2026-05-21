@@ -31,25 +31,27 @@ enum class DownlinkType : uint8_t {
 struct Downlink {
   DownlinkType type = DownlinkType::None;
   uint8_t fport = 0;
-  struct {
-    uint16_t alertV;
-    uint16_t recoverV;
-  } alertThresholds;
-  struct {
-    uint8_t burstSends;
-    uint8_t idleHbCycles;
-    uint8_t alertHbCycles;
-    uint8_t recoveryCycles;
-  } alertCycles;
-  struct {
-    uint16_t sleepIntervalS;
-    uint8_t sleepMult;
-    uint16_t recoveryN;
-  } sleepConfig;
-  struct {
-    uint16_t battFullMv;
-    uint16_t battLowMv;
-  } sleepAdjRange;
+  union {
+    struct {
+      uint16_t alertV;
+      uint16_t recoverV;
+    } alertThresholds;
+    struct {
+      uint8_t burstSends;
+      uint8_t idleHbCycles;
+      uint8_t alertHbCycles;
+      uint8_t recoveryCycles;
+    } alertCycles;
+    struct {
+      uint16_t sleepIntervalS;
+      uint8_t sleepMult;
+      uint16_t recoveryN;
+    } sleepConfig;
+    struct {
+      uint16_t battFullMv;
+      uint16_t battLowMv;
+    } sleepAdjRange;
+  };
 };
 
 class Comms {
