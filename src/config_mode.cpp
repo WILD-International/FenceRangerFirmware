@@ -17,6 +17,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t IDLE_HB_OPTIONS[] = {5, 10, 15, 30, 45, 60, 90, 120};
   const uint16_t ALERT_HB_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
   const uint16_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
+  const uint16_t VOLTAGE_OPTIONS[] = {500,  1000, 1500, 2000, 2500, 3000, 3500, 4000,
+                                      4500, 5000, 6000, 7000, 8000, 9000, 10000};
 
   struct ValueItem {
     const char* label;
@@ -29,11 +31,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS) / sizeof(IDLE_HB_OPTIONS[0])},
       {"Alert Heartbeat", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS) / sizeof(ALERT_HB_OPTIONS[0])},
       {"Recovery Confirm", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0])},
+      {"Alert V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
+      {"Recover V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
   };
 
-  const int MENU_DEBUG = 5;
-  const int MENU_BACK = 6;
-  const int NUM_MENU_ITEMS = 7;
+  const int MENU_DEBUG = 7;
+  const int MENU_BACK = 8;
+  const int NUM_MENU_ITEMS = 9;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
@@ -64,6 +68,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         return config.getAlertHeartbeatCycles();
       case 4:
         return config.getRecoveryConfirmCycles();
+      case 5:
+        return config.getAlertThresholdV();
+      case 6:
+        return config.getRecoverThresholdV();
       default:
         return 0;
     }
@@ -89,6 +97,12 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       case 4:
         config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(),
                               config.getAlertHeartbeatCycles(), val);
+        break;
+      case 5:
+        config.setAlertThresholds(val, config.getRecoverThresholdV());
+        break;
+      case 6:
+        config.setAlertThresholds(config.getAlertThresholdV(), val);
         break;
     }
   };

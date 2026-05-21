@@ -113,7 +113,7 @@ void Display::showMenu(int selectedIndex, int scrollOffset, bool debugEnabled) {
     return;
   }
 
-  const int TOTAL_ITEMS = 7;
+  const int TOTAL_ITEMS = 9;
   const int VISIBLE_ITEMS = 6;
   const int SCROLLBAR_X = 124;
   const int SCROLLBAR_W = 4;
@@ -121,13 +121,15 @@ void Display::showMenu(int selectedIndex, int scrollOffset, bool debugEnabled) {
   const int TRACK_H = 53;
 
   char labels[TOTAL_ITEMS][22];
-  snprintf(labels[0], 22, "%-16s%3d", "Cycle Sleep", config->getSleepIntervalS());
-  snprintf(labels[1], 22, "%-16s%3d", "Burst Sends", config->getAlertBurstSends());
-  snprintf(labels[2], 22, "%-16s%3d", "Idle Hb", config->getIdleHeartbeatCycles());
-  snprintf(labels[3], 22, "%-16s%3d", "Alert Hb", config->getAlertHeartbeatCycles());
-  snprintf(labels[4], 22, "%-16s%3d", "Recovery", config->getRecoveryConfirmCycles());
-  snprintf(labels[5], 22, "%-16s%3s", "Debug", debugEnabled ? "ON" : "OFF");
-  snprintf(labels[6], 22, "Back");
+  snprintf(labels[0], 22, "%-14s%5d", "Cycle Sleep", config->getSleepIntervalS());
+  snprintf(labels[1], 22, "%-14s%5d", "Burst Sends", config->getAlertBurstSends());
+  snprintf(labels[2], 22, "%-14s%5d", "Idle Hb", config->getIdleHeartbeatCycles());
+  snprintf(labels[3], 22, "%-14s%5d", "Alert Hb", config->getAlertHeartbeatCycles());
+  snprintf(labels[4], 22, "%-14s%5d", "Recovery", config->getRecoveryConfirmCycles());
+  snprintf(labels[5], 22, "%-14s%5d", "Alert V", config->getAlertThresholdV());
+  snprintf(labels[6], 22, "%-14s%5d", "Recover V", config->getRecoverThresholdV());
+  snprintf(labels[7], 22, "%-14s%5s", "Debug", debugEnabled ? "ON" : "OFF");
+  snprintf(labels[8], 22, "Back");
 
   display.clearDisplay();
   displayTitle();
@@ -168,7 +170,7 @@ void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentVal
   display.setCursor(2, 14);
   display.print(name);
 
-  char valStr[4];
+  char valStr[6];
   snprintf(valStr, sizeof(valStr), "%d", value);
   display.setTextSize(3);
   int valWidth = strlen(valStr) * 18;
