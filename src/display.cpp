@@ -108,39 +108,54 @@ void Display::displayTitle() {
   display.println(title);
 }
 
-void Display::showMenu(int selectedIndex, bool debugEnabled) {
+void Display::showMenu(int selectedIndex, int scrollOffset, bool debugEnabled) {
   if (!enabled) {
     return;
   }
 
-  char labels[6][22];
-  snprintf(labels[0], 22, "%-16s%3d", "Burst Sends", config->getAlertBurstSends());
-  snprintf(labels[1], 22, "%-16s%3d", "Idle Hb", config->getIdleHeartbeatCycles());
-  snprintf(labels[2], 22, "%-16s%3d", "Alert Hb", config->getAlertHeartbeatCycles());
-  snprintf(labels[3], 22, "%-16s%3d", "Recovery", config->getRecoveryConfirmCycles());
-  snprintf(labels[4], 22, "%-16s%3s", "Debug", debugEnabled ? "ON" : "OFF");
-  snprintf(labels[5], 22, "Back");
+  const int TOTAL_ITEMS = 7;
+  const int VISIBLE_ITEMS = 6;
+  const int SCROLLBAR_X = 124;
+  const int SCROLLBAR_W = 4;
+  const int TRACK_Y = 11;
+  const int TRACK_H = 53;
+
+  char labels[TOTAL_ITEMS][22];
+  snprintf(labels[0], 22, "%-16s%3d", "Cycle Sleep", config->getSleepIntervalS());
+  snprintf(labels[1], 22, "%-16s%3d", "Burst Sends", config->getAlertBurstSends());
+  snprintf(labels[2], 22, "%-16s%3d", "Idle Hb", config->getIdleHeartbeatCycles());
+  snprintf(labels[3], 22, "%-16s%3d", "Alert Hb", config->getAlertHeartbeatCycles());
+  snprintf(labels[4], 22, "%-16s%3d", "Recovery", config->getRecoveryConfirmCycles());
+  snprintf(labels[5], 22, "%-16s%3s", "Debug", debugEnabled ? "ON" : "OFF");
+  snprintf(labels[6], 22, "Back");
 
   display.clearDisplay();
   displayTitle();
 
-  for (int i = 0; i < 6; i++) {
-    int y = 11 + i * 9;
-    if (i == selectedIndex) {
-      display.fillRect(0, y - 1, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  for (int i = 0; i < VISIBLE_ITEMS; i++) {
+    int itemIdx = scrollOffset + i;
+    int y = TRACK_Y + i * 9;
+    if (itemIdx == selectedIndex) {
+      display.fillRect(0, y - 1, SCROLLBAR_X, 9, SSD1306_WHITE);
       display.setTextColor(SSD1306_BLACK);
     } else {
       display.setTextColor(SSD1306_WHITE);
     }
     display.setCursor(2, y);
-    display.print(labels[i]);
+    display.print(labels[itemIdx]);
   }
+
+  // Scrollbar
+  int thumbH = (VISIBLE_ITEMS * TRACK_H) / TOTAL_ITEMS;
+  int maxOffset = TOTAL_ITEMS - VISIBLE_ITEMS;
+  int thumbY = TRACK_Y + (scrollOffset * (TRACK_H - thumbH)) / maxOffset;
+  display.fillRect(SCROLLBAR_X, thumbY, SCROLLBAR_W, thumbH, SSD1306_WHITE);
 
   display.setTextColor(SSD1306_WHITE);
   display.display();
 }
 
-void Display::showMenuEdit(const char* name, uint8_t value, uint8_t currentValue) {
+void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentValue) {
   if (!enabled) {
     return;
   }
@@ -170,7 +185,7 @@ void Display::showMenuEdit(const char* name, uint8_t value, uint8_t currentValue
   display.display();
 }
 
-void Display::showMenuCancel(const char* name, uint8_t currentValue) {
+void Display::showMenuCancel(const char* name, uint16_t currentValue) {
   if (!enabled) {
     return;
   }

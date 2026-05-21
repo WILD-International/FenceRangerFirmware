@@ -12,34 +12,38 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   state.at_command_mode = true;
   display.message("CONFIG", 1000);
 
-  const uint8_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
-  const uint8_t IDLE_HB_OPTIONS[] = {5, 10, 15, 30, 45, 60, 90, 120};
-  const uint8_t ALERT_HB_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
-  const uint8_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
+  const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
+  const uint16_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
+  const uint16_t IDLE_HB_OPTIONS[] = {5, 10, 15, 30, 45, 60, 90, 120};
+  const uint16_t ALERT_HB_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
+  const uint16_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
 
   struct ValueItem {
     const char* label;
-    const uint8_t* options;
+    const uint16_t* options;
     uint8_t count;
   };
   const ValueItem VALUE_ITEMS[] = {
-      {"Burst Sends", BURST_OPTIONS, sizeof(BURST_OPTIONS)},
-      {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS)},
-      {"Alert Heartbeat", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS)},
-      {"Recovery Confirm", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS)},
+      {"Cycle Sleep", SLEEP_OPTIONS, sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0])},
+      {"Burst Sends", BURST_OPTIONS, sizeof(BURST_OPTIONS) / sizeof(BURST_OPTIONS[0])},
+      {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS) / sizeof(IDLE_HB_OPTIONS[0])},
+      {"Alert Heartbeat", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS) / sizeof(ALERT_HB_OPTIONS[0])},
+      {"Recovery Confirm", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0])},
   };
 
-  const int MENU_DEBUG = 4;
-  const int MENU_BACK = 5;
-  const int NUM_MENU_ITEMS = 6;
+  const int MENU_DEBUG = 5;
+  const int MENU_BACK = 6;
+  const int NUM_MENU_ITEMS = 7;
+  const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
   enum MenuState { INFO, BROWSE, EDIT };
   MenuState menuState = INFO;
   int menuIndex = 0;
+  int scrollOffset = 0;
   int editOptionIndex = 0;
 
-  auto findOptionIndex = [](const uint8_t* opts, uint8_t count, uint8_t val) -> int {
+  auto findOptionIndex = [](const uint16_t* opts, uint8_t count, uint16_t val) -> int {
     for (int i = 0; i < count; i++) {
       if (opts[i] == val) {
         return i;
@@ -48,34 +52,53 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     return 0;
   };
 
-  auto getCurrentValue = [&](int idx) -> uint8_t {
+  auto getCurrentValue = [&](int idx) -> uint16_t {
     switch (idx) {
-      case 0: return config.getAlertBurstSends();
-      case 1: return config.getIdleHeartbeatCycles();
-      case 2: return config.getAlertHeartbeatCycles();
-      case 3: return config.getRecoveryConfirmCycles();
-      default: return 0;
+      case 0:
+        return (uint16_t)config.getSleepIntervalS();
+      case 1:
+        return config.getAlertBurstSends();
+      case 2:
+        return config.getIdleHeartbeatCycles();
+      case 3:
+        return config.getAlertHeartbeatCycles();
+      case 4:
+        return config.getRecoveryConfirmCycles();
+      default:
+        return 0;
     }
   };
 
-  auto saveValue = [&](int idx, uint8_t val) {
+  auto saveValue = [&](int idx, uint16_t val) {
     switch (idx) {
       case 0:
+        config.setSleepIntervalS(val);
+        break;
+      case 1:
         config.setAlertCycles(val, config.getIdleHeartbeatCycles(),
                               config.getAlertHeartbeatCycles(), config.getRecoveryConfirmCycles());
         break;
-      case 1:
-        config.setAlertCycles(config.getAlertBurstSends(), val,
-                              config.getAlertHeartbeatCycles(), config.getRecoveryConfirmCycles());
-        break;
       case 2:
-        config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(), val,
+        config.setAlertCycles(config.getAlertBurstSends(), val, config.getAlertHeartbeatCycles(),
                               config.getRecoveryConfirmCycles());
         break;
       case 3:
+        config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(), val,
+                              config.getRecoveryConfirmCycles());
+        break;
+      case 4:
         config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(),
                               config.getAlertHeartbeatCycles(), val);
         break;
+    }
+  };
+
+  auto updateScrollOffset = [&]() {
+    if (menuIndex < scrollOffset) {
+      scrollOffset = menuIndex;
+    }
+    if (menuIndex >= scrollOffset + VISIBLE_ITEMS) {
+      scrollOffset = menuIndex - VISIBLE_ITEMS + 1;
     }
   };
 
@@ -89,7 +112,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   auto handleLongPress = [&]() {
     if (menuState == INFO) {
       menuState = BROWSE;
-      display.showMenu(menuIndex, Debug::enabled());
+      display.showMenu(menuIndex, scrollOffset, Debug::enabled());
     } else if (menuState == BROWSE) {
       if (menuIndex == MENU_BACK) {
         menuState = INFO;
@@ -100,24 +123,23 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         } else {
           Debug::enable();
         }
-        display.showMenu(menuIndex, Debug::enabled());
+        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
       } else {
         menuState = EDIT;
-        uint8_t currentVal = getCurrentValue(menuIndex);
+        uint16_t currentVal = getCurrentValue(menuIndex);
         editOptionIndex = findOptionIndex(VALUE_ITEMS[menuIndex].options,
-                                         VALUE_ITEMS[menuIndex].count, currentVal);
+                                          VALUE_ITEMS[menuIndex].count, currentVal);
         display.showMenuEdit(VALUE_ITEMS[menuIndex].label,
-                             VALUE_ITEMS[menuIndex].options[editOptionIndex],
-                             getCurrentValue(menuIndex));
+                             VALUE_ITEMS[menuIndex].options[editOptionIndex], currentVal);
       }
     } else {
       if (editOptionIndex == VALUE_ITEMS[menuIndex].count) {
         menuState = BROWSE;
-        display.showMenu(menuIndex, Debug::enabled());
+        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
       } else {
         saveValue(menuIndex, VALUE_ITEMS[menuIndex].options[editOptionIndex]);
         menuState = BROWSE;
-        display.showMenu(menuIndex, Debug::enabled());
+        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
       }
     }
   };
@@ -147,7 +169,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           state.at_command_mode = false;
         } else if (menuState == BROWSE) {
           menuIndex = (menuIndex + 1) % NUM_MENU_ITEMS;
-          display.showMenu(menuIndex, Debug::enabled());
+          updateScrollOffset();
+          display.showMenu(menuIndex, scrollOffset, Debug::enabled());
         } else {
           uint8_t slots = VALUE_ITEMS[menuIndex].count + 1;
           editOptionIndex = (editOptionIndex + 1) % slots;
