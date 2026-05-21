@@ -354,6 +354,9 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
 }
 
 void Comms::saveSession() {
+  if (!beginCalled) {
+    return;
+  }
   // now save session to RTC memory
   uint8_t* persist = node.getBufferSession();
   memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
@@ -364,6 +367,9 @@ bool Comms::hasJoined() {
 }
 
 void Comms::sleep() {
+  if (!beginCalled) {
+    return;
+  }
   LOGLN("Put radio to sleep");
   radio.sleep(false);  // don't retain config
 }
