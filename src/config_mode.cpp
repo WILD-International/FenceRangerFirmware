@@ -29,8 +29,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     const uint16_t* options;
     uint8_t count;
   };
+  // Indices: 0=Cycle Sleep, 1=Burst Sends, 2=Idle Hb, 3=Alert Hb, 4=Recovery Confirm,
+  //          5=Alert V, 6=Recover V, 7=Batt Full, 8=Batt Low, 9=Sleep Mult, 10=Recovery N
   const ValueItem VALUE_ITEMS[] = {
-      {"Cycle Sleep", SLEEP_OPTIONS, sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0])},
+      {"Cycle Sleep Sec", SLEEP_OPTIONS, sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0])},
       {"Burst Sends", BURST_OPTIONS, sizeof(BURST_OPTIONS) / sizeof(BURST_OPTIONS[0])},
       {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS) / sizeof(IDLE_HB_OPTIONS[0])},
       {"Alert Heartbeat", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS) / sizeof(ALERT_HB_OPTIONS[0])},
@@ -45,16 +47,31 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
        sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0])},
   };
 
-  const int MENU_DEBUG = 11;
-  const int MENU_BACK = 12;
-  const int NUM_MENU_ITEMS = 13;
+  struct MenuGroup {
+    const char* label;
+    const int* itemIndices;
+    int count;
+  };
+  const int ALERT_INDICES[] = {5, 6, 1, 2, 3, 4};
+  const int SLEEP_INDICES[] = {0, 7, 8, 9, 10};
+  const MenuGroup GROUPS[] = {
+      {"Alert", ALERT_INDICES, 6},
+      {"Sleep", SLEEP_INDICES, 5},
+  };
+
+  const int BROWSE_DEBUG = 2;
+  const int BROWSE_BACK = 3;
+  const int NUM_BROWSE_ITEMS = 4;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
-  enum MenuState { INFO, BROWSE, EDIT };
+  enum MenuState { INFO, BROWSE, SUBMENU, EDIT };
   MenuState menuState = INFO;
-  int menuIndex = 0;
-  int scrollOffset = 0;
+  int browseIndex = 0;
+  int activeGroup = 0;
+  int submenuIndex = 0;
+  int submenuScrollOffset = 0;
+  int editItemIndex = 0;
   int editOptionIndex = 0;
 
   auto findOptionIndex = [](const uint16_t* opts, uint8_t count, uint16_t val) -> int {
@@ -141,12 +158,64 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     }
   };
 
-  auto updateScrollOffset = [&]() {
-    if (menuIndex < scrollOffset) {
-      scrollOffset = menuIndex;
+  auto updateSubmenuScrollOffset = [&]() {
+    int total = GROUPS[activeGroup].count + 1;
+    if (submenuIndex < submenuScrollOffset) {
+      submenuScrollOffset = submenuIndex;
     }
-    if (menuIndex >= scrollOffset + VISIBLE_ITEMS) {
-      scrollOffset = menuIndex - VISIBLE_ITEMS + 1;
+    if (submenuIndex >= submenuScrollOffset + VISIBLE_ITEMS) {
+      submenuScrollOffset = submenuIndex - VISIBLE_ITEMS + 1;
+    }
+    (void)total;
+  };
+
+  auto handleLongPress = [&]() {
+    if (menuState == INFO) {
+      menuState = BROWSE;
+      display.showMenu(browseIndex, Debug::enabled());
+    } else if (menuState == BROWSE) {
+      if (browseIndex == BROWSE_BACK) {
+        menuState = INFO;
+        display.showConfig(state);
+      } else if (browseIndex == BROWSE_DEBUG) {
+        if (Debug::enabled()) {
+          Debug::disable();
+        } else {
+          Debug::enable();
+        }
+        display.showMenu(browseIndex, Debug::enabled());
+      } else {
+        activeGroup = browseIndex;
+        submenuIndex = 0;
+        submenuScrollOffset = 0;
+        menuState = SUBMENU;
+        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+      }
+    } else if (menuState == SUBMENU) {
+      int backSlot = GROUPS[activeGroup].count;
+      if (submenuIndex == backSlot) {
+        menuState = BROWSE;
+        display.showMenu(browseIndex, Debug::enabled());
+      } else {
+        editItemIndex = GROUPS[activeGroup].itemIndices[submenuIndex];
+        uint16_t currentVal = getCurrentValue(editItemIndex);
+        editOptionIndex = findOptionIndex(VALUE_ITEMS[editItemIndex].options,
+                                          VALUE_ITEMS[editItemIndex].count, currentVal);
+        menuState = EDIT;
+        display.showMenuEdit(VALUE_ITEMS[editItemIndex].label,
+                             VALUE_ITEMS[editItemIndex].options[editOptionIndex], currentVal);
+      }
+    } else {
+      // EDIT state
+      if (editOptionIndex == VALUE_ITEMS[editItemIndex].count) {
+        // CANCEL slot
+        menuState = SUBMENU;
+        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+      } else {
+        saveValue(editItemIndex, VALUE_ITEMS[editItemIndex].options[editOptionIndex]);
+        menuState = SUBMENU;
+        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+      }
     }
   };
 
@@ -156,41 +225,6 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   uint64_t buttonPressStartTime = 0;
   bool buttonPressedState = false;
   bool longPressTriggered = false;
-
-  auto handleLongPress = [&]() {
-    if (menuState == INFO) {
-      menuState = BROWSE;
-      display.showMenu(menuIndex, scrollOffset, Debug::enabled());
-    } else if (menuState == BROWSE) {
-      if (menuIndex == MENU_BACK) {
-        menuState = INFO;
-        display.showConfig(state);
-      } else if (menuIndex == MENU_DEBUG) {
-        if (Debug::enabled()) {
-          Debug::disable();
-        } else {
-          Debug::enable();
-        }
-        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
-      } else {
-        menuState = EDIT;
-        uint16_t currentVal = getCurrentValue(menuIndex);
-        editOptionIndex = findOptionIndex(VALUE_ITEMS[menuIndex].options,
-                                          VALUE_ITEMS[menuIndex].count, currentVal);
-        display.showMenuEdit(VALUE_ITEMS[menuIndex].label,
-                             VALUE_ITEMS[menuIndex].options[editOptionIndex], currentVal);
-      }
-    } else {
-      if (editOptionIndex == VALUE_ITEMS[menuIndex].count) {
-        menuState = BROWSE;
-        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
-      } else {
-        saveValue(menuIndex, VALUE_ITEMS[menuIndex].options[editOptionIndex]);
-        menuState = BROWSE;
-        display.showMenu(menuIndex, scrollOffset, Debug::enabled());
-      }
-    }
-  };
 
   while (state.at_command_mode && millis() - configModeStartTime < 60 * 60 * 1000) {
     webUi.update();
@@ -216,18 +250,24 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         if (menuState == INFO) {
           state.at_command_mode = false;
         } else if (menuState == BROWSE) {
-          menuIndex = (menuIndex + 1) % NUM_MENU_ITEMS;
-          updateScrollOffset();
-          display.showMenu(menuIndex, scrollOffset, Debug::enabled());
+          browseIndex = (browseIndex + 1) % NUM_BROWSE_ITEMS;
+          display.showMenu(browseIndex, Debug::enabled());
+        } else if (menuState == SUBMENU) {
+          int slots = GROUPS[activeGroup].count + 1;
+          submenuIndex = (submenuIndex + 1) % slots;
+          updateSubmenuScrollOffset();
+          display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
         } else {
-          uint8_t slots = VALUE_ITEMS[menuIndex].count + 1;
+          // EDIT
+          uint8_t slots = VALUE_ITEMS[editItemIndex].count + 1;
           editOptionIndex = (editOptionIndex + 1) % slots;
-          if (editOptionIndex == VALUE_ITEMS[menuIndex].count) {
-            display.showMenuCancel(VALUE_ITEMS[menuIndex].label, getCurrentValue(menuIndex));
+          if (editOptionIndex == VALUE_ITEMS[editItemIndex].count) {
+            display.showMenuCancel(VALUE_ITEMS[editItemIndex].label,
+                                   getCurrentValue(editItemIndex));
           } else {
-            display.showMenuEdit(VALUE_ITEMS[menuIndex].label,
-                                 VALUE_ITEMS[menuIndex].options[editOptionIndex],
-                                 getCurrentValue(menuIndex));
+            display.showMenuEdit(VALUE_ITEMS[editItemIndex].label,
+                                 VALUE_ITEMS[editItemIndex].options[editOptionIndex],
+                                 getCurrentValue(editItemIndex));
           }
         }
       }

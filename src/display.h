@@ -16,7 +16,8 @@ class Display {
   void message(const char* msg, uint32_t delayMs = 0);
   void showConfig(State& state);
   void showMeasurement(State& state, uint32_t delayMs = 0);
-  void showMenu(int selectedIndex, int scrollOffset, bool debugEnabled);
+  void showMenu(int selectedIndex, bool debugEnabled);
+  void showSubMenu(int groupId, int selectedIndex, int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
 
