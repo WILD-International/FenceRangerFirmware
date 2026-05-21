@@ -23,6 +23,10 @@ state = {
     "idleHbCycles": 60,
     "alertHbCycles": 15,
     "recoverCycles": 30,
+    "battFullMv": 4000,
+    "battLowMv": 3300,
+    "battSleepMult": 30,
+    "battRecoveryN": 50,
     "version": "v1.2.3-dev",
 }
 
@@ -75,6 +79,19 @@ class Handler(BaseHTTPRequestHandler):
             state["alertHbCycles"] = int(data.get("alertHbCycles", [state["alertHbCycles"]])[0])
             state["recoverCycles"] = int(data.get("recoverCycles", [state["recoverCycles"]])[0])
             print(f"Settings updated: {state}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Saved")
+
+        elif self.path == "/batt-sleep":
+            time.sleep(DELAY)
+            data = parse_qs(body.decode())
+            state["battFullMv"] = int(data.get("battFullMv", [state["battFullMv"]])[0])
+            state["battLowMv"] = int(data.get("battLowMv", [state["battLowMv"]])[0])
+            state["battSleepMult"] = int(data.get("battSleepMult", [state["battSleepMult"]])[0])
+            state["battRecoveryN"] = int(data.get("battRecoveryN", [state["battRecoveryN"]])[0])
+            print(f"Batt adaptive sleep updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
