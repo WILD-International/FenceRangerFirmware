@@ -145,27 +145,52 @@ void setup() {
       if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
         display.message("RADIO ERR", 2000);
         gotoSleep(adaptedSleepMs);
-      } else {
-        uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
-        uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
-        uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
-        uint16_t fenceV = max(fenceNeg, fencePos);
-        display.message("SENDING");
-        Downlink downlink;
-        comms.sendMeasurement(battMv, fenceV, &display, &downlink);
-        display.message("SENT", 1000);
+      }
 
-        switch (downlink.type) {
-          case DownlinkType::EnableOTA:
-            state.setMode(ModeConfig);
-            break;
-          case DownlinkType::UpdateConfig:
-            config.setSleepIntervalS(downlink.config.sleepIntervalS);
-            config.setAlertThresholds(downlink.config.alertV, downlink.config.recoverV);
-            break;
-          default:
-            break;
-        }
+      uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
+      uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
+      uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
+      uint16_t fenceV = max(fenceNeg, fencePos);
+      display.message("SEND MSR");
+      Downlink downlink;
+      comms.sendMeasurement(battMv, fenceV, &display, &downlink);
+      display.message("SENT", 1000);
+
+      while (downlink.type == DownlinkType::QueryConfig) {
+        delay(3000);
+        display.message("SEND CFG");
+        uint8_t fport = downlink.fport;
+        downlink = {};
+        comms.sendConfigReport(fport, &display, &downlink);
+        display.message("SENT", 1000);
+      }
+
+      switch (downlink.type) {
+        case DownlinkType::EnableOTA:
+          state.setMode(ModeConfig);
+          break;
+        case DownlinkType::SetAlertThresholds:
+          config.setAlertThresholds(downlink.alertThresholds.alertV,
+                                    downlink.alertThresholds.recoverV);
+          break;
+        case DownlinkType::SetAlertCycles:
+          config.setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
+                                downlink.alertCycles.alertHbCycles,
+                                downlink.alertCycles.recoveryCycles);
+          break;
+        case DownlinkType::SetSleepConfig:
+          config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
+          config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
+                                      downlink.sleepConfig.sleepMult,
+                                      downlink.sleepConfig.recoveryN);
+          break;
+        case DownlinkType::SetSleepAdjRange:
+          config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
+                                      downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
+                                      config.getBattRecoveryN());
+          break;
+        default:
+          break;
       }
     }
   }
