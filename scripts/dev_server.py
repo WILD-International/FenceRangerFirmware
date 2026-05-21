@@ -19,6 +19,10 @@ state = {
     "sleepInterval": 60,
     "alertV": 3000,
     "recoverV": 3500,
+    "burstSends": 3,
+    "idleHbCycles": 60,
+    "alertHbCycles": 15,
+    "recoverCycles": 30,
     "version": "v1.2.3-dev",
 }
 
@@ -66,6 +70,10 @@ class Handler(BaseHTTPRequestHandler):
             state["sleepInterval"] = int(data.get("sleepInterval", [state["sleepInterval"]])[0])
             state["alertV"] = int(data.get("alertV", [state["alertV"]])[0])
             state["recoverV"] = int(data.get("recoverV", [state["recoverV"]])[0])
+            state["burstSends"] = int(data.get("burstSends", [state["burstSends"]])[0])
+            state["idleHbCycles"] = int(data.get("idleHbCycles", [state["idleHbCycles"]])[0])
+            state["alertHbCycles"] = int(data.get("alertHbCycles", [state["alertHbCycles"]])[0])
+            state["recoverCycles"] = int(data.get("recoverCycles", [state["recoverCycles"]])[0])
             print(f"Settings updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")

@@ -124,12 +124,20 @@
 
   <div class="card">
     <h3>Settings</h3>
-    <label>Sleep Interval (seconds)</label>
+    <label>Cycle Sleep Time (seconds)</label>
     <input type="text" id="si" maxlength="6" placeholder="60">
     <label>Alert Threshold (V)</label>
     <input type="text" id="av" maxlength="5" placeholder="3000">
     <label>Recover Threshold (V)</label>
     <input type="text" id="rv" maxlength="5" placeholder="3500">
+    <label>Alert Burst Sends (cycles)</label>
+    <input type="text" id="bs" maxlength="3" placeholder="3">
+    <label>Idle Heartbeat (cycles)</label>
+    <input type="text" id="ihb" maxlength="3" placeholder="60">
+    <label>Alert Heartbeat (cycles)</label>
+    <input type="text" id="ahb" maxlength="3" placeholder="15">
+    <label>Recovery Confirm (cycles)</label>
+    <input type="text" id="rc" maxlength="3" placeholder="30">
     <button onclick="saveSettings()">Save</button>
     <div class="status" id="st-settings"></div>
   </div>
@@ -176,6 +184,10 @@
         document.getElementById('si').value = d.sleepInterval;
         document.getElementById('av').value = d.alertV;
         document.getElementById('rv').value = d.recoverV;
+        document.getElementById('bs').value = d.burstSends;
+        document.getElementById('ihb').value = d.idleHbCycles;
+        document.getElementById('ahb').value = d.alertHbCycles;
+        document.getElementById('rc').value = d.recoverCycles;
       })
       .finally(hideSpinner);
 
@@ -205,7 +217,11 @@
       postConfig('/settings', {
         sleepInterval: document.getElementById('si').value,
         alertV: document.getElementById('av').value,
-        recoverV: document.getElementById('rv').value
+        recoverV: document.getElementById('rv').value,
+        burstSends: document.getElementById('bs').value,
+        idleHbCycles: document.getElementById('ihb').value,
+        alertHbCycles: document.getElementById('ahb').value,
+        recoverCycles: document.getElementById('rc').value
       }, 'st-settings');
     }
 

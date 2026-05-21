@@ -47,6 +47,14 @@ void WebUi::start() {
     json += config->getAlertThresholdV();
     json += ",\"recoverV\":";
     json += config->getRecoverThresholdV();
+    json += ",\"burstSends\":";
+    json += config->getAlertBurstSends();
+    json += ",\"idleHbCycles\":";
+    json += config->getIdleHeartbeatCycles();
+    json += ",\"alertHbCycles\":";
+    json += config->getAlertHeartbeatCycles();
+    json += ",\"recoverCycles\":";
+    json += config->getRecoveryConfirmCycles();
     json += ",\"version\":\"";
     json += GIT_TAG;
     json += "\"}";
@@ -91,6 +99,26 @@ void WebUi::start() {
       }
       config->setAlertThresholds(alertV, recoverV);
     }
+
+    String burstArg = server->arg("burstSends");
+    String idleHbArg = server->arg("idleHbCycles");
+    String alertHbArg = server->arg("alertHbCycles");
+    String recoverCyclesArg = server->arg("recoverCycles");
+    if (burstArg.length() == 0 || idleHbArg.length() == 0 || alertHbArg.length() == 0 ||
+        recoverCyclesArg.length() == 0) {
+      server->send(400, "text/plain", "Cycle values must not be empty");
+      return;
+    }
+    int32_t burst = burstArg.toInt();
+    int32_t idleHb = idleHbArg.toInt();
+    int32_t alertHb = alertHbArg.toInt();
+    int32_t recoverCycles = recoverCyclesArg.toInt();
+    if (burst < 1 || burst > 255 || idleHb < 1 || idleHb > 255 || alertHb < 1 ||
+        alertHb > 255 || recoverCycles < 1 || recoverCycles > 255) {
+      server->send(400, "text/plain", "Cycle values must be 1-255");
+      return;
+    }
+    config->setAlertCycles(burst, idleHb, alertHb, recoverCycles);
 
     server->send(200, "text/plain", "Saved");
   });
