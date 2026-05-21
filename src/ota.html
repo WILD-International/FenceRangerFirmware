@@ -143,6 +143,20 @@
   </div>
 
   <div class="card">
+    <h3>Adaptive Sleep</h3>
+    <label>Battery Full (mV) — no throttling above this</label>
+    <input type="text" id="bfmv" maxlength="5" placeholder="4000">
+    <label>Battery Low (mV) — max throttling at or below this</label>
+    <input type="text" id="blmv" maxlength="5" placeholder="3300">
+    <label>Sleep Multiplier — max sleep = cycle sleep × this</label>
+    <input type="text" id="bsm" maxlength="3" placeholder="4">
+    <label>Recovery N — slow voltage catches up 1/N per cycle</label>
+    <input type="text" id="brn" maxlength="5" placeholder="20">
+    <button onclick="saveBattSleep()">Save</button>
+    <div class="status" id="st-batt"></div>
+  </div>
+
+  <div class="card">
     <h3>Device Info</h3>
     <label>Device EUI</label>
     <span class="mono" id="eui">-</span>
@@ -188,6 +202,10 @@
         document.getElementById('ihb').value = d.idleHbCycles;
         document.getElementById('ahb').value = d.alertHbCycles;
         document.getElementById('rc').value = d.recoverCycles;
+        document.getElementById('bfmv').value = d.battFullMv;
+        document.getElementById('blmv').value = d.battLowMv;
+        document.getElementById('bsm').value = d.battSleepMult;
+        document.getElementById('brn').value = d.battRecoveryN;
       })
       .finally(hideSpinner);
 
@@ -223,6 +241,15 @@
         alertHbCycles: document.getElementById('ahb').value,
         recoverCycles: document.getElementById('rc').value
       }, 'st-settings');
+    }
+
+    function saveBattSleep() {
+      postConfig('/batt-sleep', {
+        battFullMv: document.getElementById('bfmv').value,
+        battLowMv: document.getElementById('blmv').value,
+        battSleepMult: document.getElementById('bsm').value,
+        battRecoveryN: document.getElementById('brn').value
+      }, 'st-batt');
     }
 
     function flashFirmware() {

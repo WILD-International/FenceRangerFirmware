@@ -79,6 +79,19 @@ class Config {
     return recoveryConfirmCycles;
   }
 
+  uint16_t getBattFullMv() const {
+    return battFullMv;
+  }
+  uint16_t getBattLowMv() const {
+    return battLowMv;
+  }
+  uint8_t getBattSleepMult() const {
+    return battSleepMult;
+  }
+  uint16_t getBattRecoveryN() const {
+    return battRecoveryN;
+  }
+
   // setters
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -87,6 +100,7 @@ class Config {
   void setAlertThresholds(uint16_t alert, uint16_t recover);
   void setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertHeartbeat,
                       uint8_t recoveryConfirm);
+  void setBattAdaptiveSleep(uint16_t fullMv, uint16_t lowMv, uint8_t sleepMult, uint16_t recoveryN);
 
  private:
   void loadDevEUI();
@@ -105,6 +119,10 @@ class Config {
   uint8_t idleHeartbeatCycles = 60;
   uint8_t alertHeartbeatCycles = 15;
   uint8_t recoveryConfirmCycles = 30;
+  uint16_t battFullMv = 4000;
+  uint16_t battLowMv = 3300;
+  uint8_t battSleepMult = 30;
+  uint16_t battRecoveryN = 50;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

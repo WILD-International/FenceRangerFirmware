@@ -29,11 +29,6 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
-// Adaptive sleep: slow-tracking battery voltage for gradual recovery
-static const uint16_t BATT_FULL_MV = 4000;  // voltage at which no throttling applies
-static const uint16_t BATT_LOW_MV = 3300;   // voltage at which max throttling applies
-static const float BATT_MAX_MULT = 4.0f;    // maximum sleep interval multiplier
-static const uint8_t BATT_RECOVERY_N = 20;  // slow voltage catches up 1/N of gap per cycle
 RTC_DATA_ATTR uint16_t slowBattMv = 0;
 
 void setup() {
@@ -99,11 +94,13 @@ void setup() {
   if (slowBattMv == 0 || measuredBatt < slowBattMv) {
     slowBattMv = measuredBatt;
   } else {
-    slowBattMv = (uint16_t)(slowBattMv + (measuredBatt - slowBattMv) / BATT_RECOVERY_N);
+    slowBattMv = (uint16_t)(slowBattMv + (measuredBatt - slowBattMv) / config.getBattRecoveryN());
   }
-  float battT = constrain(((float)BATT_FULL_MV - slowBattMv) / (BATT_FULL_MV - BATT_LOW_MV), 0.0f, 1.0f);
+  float battT = constrain(((float)config.getBattFullMv() - slowBattMv) /
+                              (config.getBattFullMv() - config.getBattLowMv()),
+                          0.0f, 1.0f);
   uint32_t minSleep = config.getSleepIntervalMs();
-  uint32_t maxSleep = (uint32_t)(minSleep * BATT_MAX_MULT);
+  uint32_t maxSleep = (uint32_t)(minSleep * config.getBattSleepMult());
   uint32_t adaptedSleepMs = minSleep + (uint32_t)(battT * (maxSleep - minSleep));
 
   LOG("Firmware version: %s\n", GIT_TAG);

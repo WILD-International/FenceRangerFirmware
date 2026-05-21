@@ -45,6 +45,10 @@ void Config::load() {
   idleHeartbeatCycles = prefs.getUChar("idleHbCycles", 60);
   alertHeartbeatCycles = prefs.getUChar("alertHbCycles", 15);
   recoveryConfirmCycles = prefs.getUChar("recoverCycles", 30);
+  battFullMv = prefs.getUShort("battFullMv", 4000);
+  battLowMv = prefs.getUShort("battLowMv", 3300);
+  battSleepMult = prefs.getUChar("battSleepMult", 30);
+  battRecoveryN = prefs.getUShort("battRecoveryN", 50);
   prefs.end();
 }
 
@@ -105,5 +109,19 @@ void Config::setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertH
   prefs.putUChar("idleHbCycles", idleHeartbeatCycles);
   prefs.putUChar("alertHbCycles", alertHeartbeatCycles);
   prefs.putUChar("recoverCycles", recoveryConfirmCycles);
+  prefs.end();
+}
+
+void Config::setBattAdaptiveSleep(uint16_t fullMv, uint16_t lowMv, uint8_t sleepMult,
+                                  uint16_t recoveryN) {
+  battFullMv = fullMv;
+  battLowMv = lowMv;
+  battSleepMult = sleepMult;
+  battRecoveryN = recoveryN;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("battFullMv", battFullMv);
+  prefs.putUShort("battLowMv", battLowMv);
+  prefs.putUChar("battSleepMult", battSleepMult);
+  prefs.putUShort("battRecoveryN", battRecoveryN);
   prefs.end();
 }
