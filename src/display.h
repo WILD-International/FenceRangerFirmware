@@ -14,9 +14,11 @@ class Display {
   void turnOn();
   void turnOff();
   void message(const char* msg, uint32_t delayMs = 0);
-  void debugModeProgressBar(uint32_t progress, bool enable);
   void showConfig(State& state);
   void showMeasurement(State& state, uint32_t delayMs = 0);
+  void showMenu(int selectedIndex, bool debugEnabled);
+  void showMenuEdit(const char* name, uint8_t value, uint8_t currentValue);
+  void showMenuCancel(const char* name, uint8_t currentValue);
 
  private:
   void displayTitle();
