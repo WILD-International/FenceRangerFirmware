@@ -139,8 +139,7 @@ void setup() {
     };
     bool shouldSend = processMeasurement(fenceVoltage, alertCfg);
 
-    uint8_t pendingReport = state.getPendingConfigReport();
-    if (shouldSend || pendingReport) {
+    if (shouldSend) {
       // No need to initialize the radio if there's nothing to send
       // This will restore the LoRaWAN session from RTC memory
       if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
@@ -148,63 +147,49 @@ void setup() {
         gotoSleep(adaptedSleepMs);
       }
 
-      // Clear before any uplink so QueryConfig downlinks received this cycle go to next cycle
-      state.clearPendingConfigReport();
+      uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
+      uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
+      uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
+      uint16_t fenceV = max(fenceNeg, fencePos);
+      display.message("SEND MSR");
+      Downlink downlink;
+      comms.sendMeasurement(battMv, fenceV, &display, &downlink);
+      display.message("SENT", 1000);
 
-      auto handleDownlink = [&](Downlink& downlink) {
-        switch (downlink.type) {
-          case DownlinkType::EnableOTA:
-            state.setMode(ModeConfig);
-            break;
-          case DownlinkType::SetAlertThresholds:
-            config.setAlertThresholds(downlink.alertThresholds.alertV,
-                                      downlink.alertThresholds.recoverV);
-            break;
-          case DownlinkType::SetAlertCycles:
-            config.setAlertCycles(
-                downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
-                downlink.alertCycles.alertHbCycles, downlink.alertCycles.recoveryCycles);
-            break;
-          case DownlinkType::SetSleepConfig:
-            config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
-            config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
-                                        downlink.sleepConfig.sleepMult,
-                                        downlink.sleepConfig.recoveryN);
-            break;
-          case DownlinkType::SetSleepAdjRange:
-            config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
-                                        downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
-                                        config.getBattRecoveryN());
-            break;
-          case DownlinkType::QueryConfig:
-            state.schedulePendingConfigReport(downlink.fport);
-            break;
-          default:
-            break;
-        }
-      };
-
-      if (shouldSend) {
-        uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
-        uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
-        uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
-        uint16_t fenceV = max(fenceNeg, fencePos);
-        display.message("SEND MSR");
-        Downlink downlink;
-        comms.sendMeasurement(battMv, fenceV, &display, &downlink);
+      while (downlink.type == DownlinkType::QueryConfig) {
+        delay(3000);
+        display.message("SEND CFG");
+        uint8_t fport = downlink.fport;
+        comms.sendConfigReport(fport, &display, &downlink);
         display.message("SENT", 1000);
-        handleDownlink(downlink);
       }
 
-      for (uint8_t fport = 11; fport <= 14; fport++) {
-        if (pendingReport & (1 << (fport - 11))) {
-          delay(3000);
-          display.message("SEND CFG");
-          Downlink downlink;
-          comms.sendConfigReport(fport, &display, &downlink);
-          display.message("SENT", 1000);
-          handleDownlink(downlink);
-        }
+      switch (downlink.type) {
+        case DownlinkType::EnableOTA:
+          state.setMode(ModeConfig);
+          break;
+        case DownlinkType::SetAlertThresholds:
+          config.setAlertThresholds(downlink.alertThresholds.alertV,
+                                    downlink.alertThresholds.recoverV);
+          break;
+        case DownlinkType::SetAlertCycles:
+          config.setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
+                                downlink.alertCycles.alertHbCycles,
+                                downlink.alertCycles.recoveryCycles);
+          break;
+        case DownlinkType::SetSleepConfig:
+          config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
+          config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
+                                      downlink.sleepConfig.sleepMult,
+                                      downlink.sleepConfig.recoveryN);
+          break;
+        case DownlinkType::SetSleepAdjRange:
+          config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
+                                      downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
+                                      config.getBattRecoveryN());
+          break;
+        default:
+          break;
       }
     }
   }
