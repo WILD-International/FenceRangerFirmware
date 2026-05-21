@@ -45,8 +45,6 @@ class State {
 
  private:
   Config* config;
-  NotifyState notifyState = NotifyStateIdle;
-  uint32_t alertingIntervalSeconds = 0;  // track backoff
 
   Preferences prefs;
 };
