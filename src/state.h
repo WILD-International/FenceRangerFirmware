@@ -24,6 +24,9 @@ class State {
   void incrementBootCount();
   uint16_t getBootCount();
 
+  void updateSlowBatt();
+  uint32_t computeAdaptedSleepMs() const;
+
   // Public data
   bool at_command_mode = false;
   bool measurement_running = false;

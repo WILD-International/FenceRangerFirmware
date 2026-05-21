@@ -29,8 +29,6 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
-RTC_DATA_ATTR uint16_t slowBattMv = 0;
-
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
@@ -88,20 +86,10 @@ void setup() {
 
   display.message("MEASURE");
   measureProgram.run(config, state);
+  state.updateSlowBatt();
   display.showMeasurement(state, 2000);
 
-  uint16_t measuredBatt = state.batt_max_mv;
-  if (slowBattMv == 0 || measuredBatt < slowBattMv) {
-    slowBattMv = measuredBatt;
-  } else {
-    slowBattMv = (uint16_t)(slowBattMv + (measuredBatt - slowBattMv) / config.getBattRecoveryN());
-  }
-  float battT = constrain(((float)config.getBattFullMv() - slowBattMv) /
-                              (config.getBattFullMv() - config.getBattLowMv()),
-                          0.0f, 1.0f);
-  uint32_t minSleep = config.getSleepIntervalMs();
-  uint32_t maxSleep = (uint32_t)(minSleep * config.getBattSleepMult());
-  uint32_t adaptedSleepMs = minSleep + (uint32_t)(battT * (maxSleep - minSleep));
+  uint32_t adaptedSleepMs = state.computeAdaptedSleepMs();
 
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
