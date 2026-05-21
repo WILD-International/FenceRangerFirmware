@@ -4,6 +4,7 @@
 #include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
 
+#include "alert.h"
 #include "at_commands.h"
 #include "board.h"
 #include "comms.h"
@@ -126,7 +127,9 @@ void setup() {
     // state.fence_neg_max_v = 1000;
     // state.fence_pos_min_v = 2000;
     // state.fence_pos_max_v = 2000;
-    bool shouldSend = state.processMeasurement();
+    uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
+    bool shouldSend = processMeasurement(fenceVoltage, config.getAlertThresholdV(),
+                                         config.getRecoverThresholdV());
 
     if (shouldSend) {
       // No need to initialize the radio if there's nothing to send

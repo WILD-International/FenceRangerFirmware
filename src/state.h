@@ -7,12 +7,6 @@
 #include "config.h"
 
 enum Mode { ModeNormal, ModeConfig };
-enum NotifyState {
-  NotifyStateIdle,
-  NotifyStateAlerting,
-  NotifyStateRecovering,
-};
-
 class State {
  public:
   State(Config* config);
@@ -29,8 +23,6 @@ class State {
 
   void incrementBootCount();
   uint16_t getBootCount();
-
-  bool processMeasurement();
 
   // Public data
   bool at_command_mode = false;
