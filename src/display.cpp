@@ -26,24 +26,6 @@ void Display::message(const char* msg, uint32_t delayMs) {
   }
 }
 
-void Display::debugModeProgressBar(uint32_t progress, bool enable) {
-  if (!enabled) {
-    return;
-  }
-  display.clearDisplay();
-  displayTitle();
-  if (progress > 100) {
-    progress = 100;
-  }
-  const char* enable_msg = "Enable debug mode";
-  const char* disable_msg = "Disable debug mode";
-  const char* msg = enable ? enable_msg : disable_msg;
-  display.setCursor((SCREEN_WIDTH - strlen(msg) * 6) / 2, (SCREEN_HEIGHT - 8) / 2);
-  display.println(msg);
-  display.fillRect(0, 56, SCREEN_WIDTH * progress / 100, 8, SSD1306_WHITE);
-  display.display();
-}
-
 void Display::showMeasurement(State& state, uint32_t delayMs) {
   if (!enabled) {
     return;
@@ -124,4 +106,108 @@ void Display::displayTitle() {
   display.setTextColor(SSD1306_WHITE);
   display.setCursor((SCREEN_WIDTH - strlen(title) * 6) / 2, 2);
   display.println(title);
+}
+
+void Display::showMenu(int selectedIndex, int scrollOffset, bool debugEnabled) {
+  if (!enabled) {
+    return;
+  }
+
+  const int TOTAL_ITEMS = 7;
+  const int VISIBLE_ITEMS = 6;
+  const int SCROLLBAR_X = 124;
+  const int SCROLLBAR_W = 4;
+  const int TRACK_Y = 11;
+  const int TRACK_H = 53;
+
+  char labels[TOTAL_ITEMS][22];
+  snprintf(labels[0], 22, "%-16s%3d", "Cycle Sleep", config->getSleepIntervalS());
+  snprintf(labels[1], 22, "%-16s%3d", "Burst Sends", config->getAlertBurstSends());
+  snprintf(labels[2], 22, "%-16s%3d", "Idle Hb", config->getIdleHeartbeatCycles());
+  snprintf(labels[3], 22, "%-16s%3d", "Alert Hb", config->getAlertHeartbeatCycles());
+  snprintf(labels[4], 22, "%-16s%3d", "Recovery", config->getRecoveryConfirmCycles());
+  snprintf(labels[5], 22, "%-16s%3s", "Debug", debugEnabled ? "ON" : "OFF");
+  snprintf(labels[6], 22, "Back");
+
+  display.clearDisplay();
+  displayTitle();
+
+  for (int i = 0; i < VISIBLE_ITEMS; i++) {
+    int itemIdx = scrollOffset + i;
+    int y = TRACK_Y + i * 9;
+    if (itemIdx == selectedIndex) {
+      display.fillRect(0, y - 1, SCROLLBAR_X, 9, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+    } else {
+      display.setTextColor(SSD1306_WHITE);
+    }
+    display.setCursor(2, y);
+    display.print(labels[itemIdx]);
+  }
+
+  // Scrollbar
+  int thumbH = (VISIBLE_ITEMS * TRACK_H) / TOTAL_ITEMS;
+  int maxOffset = TOTAL_ITEMS - VISIBLE_ITEMS;
+  int thumbY = TRACK_Y + (scrollOffset * (TRACK_H - thumbH)) / maxOffset;
+  display.fillRect(SCROLLBAR_X, thumbY, SCROLLBAR_W, thumbH, SSD1306_WHITE);
+
+  display.setTextColor(SSD1306_WHITE);
+  display.display();
+}
+
+void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentValue) {
+  if (!enabled) {
+    return;
+  }
+
+  display.clearDisplay();
+  displayTitle();
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 14);
+  display.print(name);
+
+  char valStr[4];
+  snprintf(valStr, sizeof(valStr), "%d", value);
+  display.setTextSize(3);
+  int valWidth = strlen(valStr) * 18;
+  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 28);
+  display.print(valStr);
+
+  const char* action = (value == currentValue) ? "back" : "save";
+  char hint[22];
+  snprintf(hint, sizeof(hint), "now:%-3d  hold=%s", currentValue, action);
+  display.setTextSize(1);
+  display.setCursor(4, 56);
+  display.print(hint);
+
+  display.display();
+}
+
+void Display::showMenuCancel(const char* name, uint16_t currentValue) {
+  if (!enabled) {
+    return;
+  }
+
+  display.clearDisplay();
+  displayTitle();
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 14);
+  display.print(name);
+
+  display.setTextSize(2);
+  int valWidth = 6 * 12;
+  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 32);
+  display.print("CANCEL");
+
+  char hint[22];
+  snprintf(hint, sizeof(hint), "now:%-3d  hold=back", currentValue);
+  display.setTextSize(1);
+  display.setCursor(4, 56);
+  display.print(hint);
+
+  display.display();
 }

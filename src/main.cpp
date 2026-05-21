@@ -5,10 +5,10 @@
 #include <esp_adc_cal.h>
 
 #include "alert.h"
-#include "at_commands.h"
 #include "board.h"
 #include "comms.h"
 #include "config.h"
+#include "config_mode.h"
 #include "debug.h"
 #include "display.h"
 #include "esp32-hal-gpio.h"
@@ -28,8 +28,6 @@ WebUi webUi(&config);
 
 // Programs
 MeasureProgram measureProgram;
-
-void runConfigMode();
 
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
@@ -79,7 +77,7 @@ void setup() {
 
   if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
-    runConfigMode();
+    runConfigMode(config, state, display, webUi);
     comms.resetBootCountForJoining();
   }
 
@@ -198,63 +196,6 @@ void setup() {
   }
 
   gotoSleep(config.getSleepIntervalMs());
-}
-
-void runConfigMode() {
-  // run config mode for max 1 hour
-  uint64_t configModeStartTime = millis();
-
-  state.at_command_mode = true;
-  display.message("CONFIG", 1000);
-  display.showConfig(state);
-
-  uint64_t buttonPressStartTime = 0;
-  bool buttonPressedState = false;
-
-  webUi.start();
-
-  while (state.at_command_mode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    webUi.update();
-    while (Serial.available()) {
-      char c = Serial.read();
-      handleATSerial(c, config, state);
-    }
-
-    if (digitalRead(Boot_Key) == 0) {
-      if (!buttonPressedState) {
-        buttonPressedState = true;
-        buttonPressStartTime = millis();
-      } else {
-        uint64_t pressedTime = millis() - buttonPressStartTime;
-        if (pressedTime > 2500) {
-          if (state.useDisplayInNormalMode()) {
-            state.stopDisplayInNormalMode();
-            display.message("DISABLED", 1000);
-          } else {
-            state.startDisplayInNormalMode();
-            display.message("ENABLED", 1000);
-          }
-        } else if (pressedTime > 1000) {
-          display.debugModeProgressBar((pressedTime - 1000) * 100 / 1500.0,
-                                       !state.useDisplayInNormalMode());
-          continue;
-        }
-      }
-    } else {
-      if (buttonPressedState && millis() - buttonPressStartTime < 600) {
-        display.message("RESUME", 1000);
-        break;
-      }
-      buttonPressedState = false;
-    }
-    display.showConfig(state);
-    delay(1);
-  }
-
-  webUi.stop();
-  state.setMode(ModeNormal);
-  state.at_command_mode = false;
-  Serial.println("EXIT");
 }
 
 void loop() {
