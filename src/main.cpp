@@ -160,6 +160,7 @@ void setup() {
         delay(3000);
         display.message("SEND CFG");
         uint8_t fport = downlink.fport;
+        downlink = {};
         comms.sendConfigReport(fport, &display, &downlink);
         display.message("SENT", 1000);
       }
