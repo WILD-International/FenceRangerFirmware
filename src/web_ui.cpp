@@ -55,6 +55,14 @@ void WebUi::start() {
     json += config->getAlertHeartbeatCycles();
     json += ",\"recoverCycles\":";
     json += config->getRecoveryConfirmCycles();
+    json += ",\"battFullMv\":";
+    json += config->getBattFullMv();
+    json += ",\"battLowMv\":";
+    json += config->getBattLowMv();
+    json += ",\"battSleepMult\":";
+    json += config->getBattSleepMult();
+    json += ",\"battRecoveryN\":";
+    json += config->getBattRecoveryN();
     json += ",\"version\":\"";
     json += GIT_TAG;
     json += "\"}";
@@ -113,13 +121,36 @@ void WebUi::start() {
     int32_t idleHb = idleHbArg.toInt();
     int32_t alertHb = alertHbArg.toInt();
     int32_t recoverCycles = recoverCyclesArg.toInt();
-    if (burst < 1 || burst > 255 || idleHb < 1 || idleHb > 255 || alertHb < 1 ||
-        alertHb > 255 || recoverCycles < 1 || recoverCycles > 255) {
+    if (burst < 1 || burst > 255 || idleHb < 1 || idleHb > 255 || alertHb < 1 || alertHb > 255 ||
+        recoverCycles < 1 || recoverCycles > 255) {
       server->send(400, "text/plain", "Cycle values must be 1-255");
       return;
     }
     config->setAlertCycles(burst, idleHb, alertHb, recoverCycles);
 
+    server->send(200, "text/plain", "Saved");
+  });
+
+  server->on("/batt-sleep", HTTP_POST, [this]() {
+    String battFullArg = server->arg("battFullMv");
+    String battLowArg = server->arg("battLowMv");
+    String battMultArg = server->arg("battSleepMult");
+    String battNArg = server->arg("battRecoveryN");
+    if (battFullArg.length() == 0 || battLowArg.length() == 0 || battMultArg.length() == 0 ||
+        battNArg.length() == 0) {
+      server->send(400, "text/plain", "All fields required");
+      return;
+    }
+    int32_t fullMv = battFullArg.toInt();
+    int32_t lowMv = battLowArg.toInt();
+    int32_t sleepMult = battMultArg.toInt();
+    int32_t recoveryN = battNArg.toInt();
+    if (fullMv < 1 || fullMv > 65535 || lowMv < 1 || lowMv > 65535 || sleepMult < 1 ||
+        sleepMult > 255 || recoveryN < 1 || recoveryN > 65535) {
+      server->send(400, "text/plain", "Invalid values");
+      return;
+    }
+    config->setBattAdaptiveSleep(fullMv, lowMv, sleepMult, recoveryN);
     server->send(200, "text/plain", "Saved");
   });
 

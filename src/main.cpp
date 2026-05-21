@@ -86,7 +86,10 @@ void setup() {
 
   display.message("MEASURE");
   measureProgram.run(config, state);
+  state.updateSlowBatt();
   display.showMeasurement(state, 2000);
+
+  uint32_t adaptedSleepMs = state.computeAdaptedSleepMs();
 
   LOG("Firmware version: %s\n", GIT_TAG);
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
@@ -100,7 +103,7 @@ void setup() {
   if (!comms.hasJoined()) {
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
-      gotoSleep(config.getSleepIntervalMs());
+      gotoSleep(adaptedSleepMs);
     }
   }
 
@@ -141,7 +144,7 @@ void setup() {
       // This will restore the LoRaWAN session from RTC memory
       if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
         display.message("RADIO ERR", 2000);
-        gotoSleep(config.getSleepIntervalMs());
+        gotoSleep(adaptedSleepMs);
       } else {
         uint16_t batt_voltage = max(state.batt_min_mv, state.batt_max_mv);
         uint16_t fence_neg_voltage = max(state.fence_neg_min_v, state.fence_neg_max_v);
@@ -195,7 +198,7 @@ void setup() {
     display.message("SLEEP", 500);
   }
 
-  gotoSleep(config.getSleepIntervalMs());
+  gotoSleep(adaptedSleepMs);
 }
 
 void loop() {
