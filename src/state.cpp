@@ -7,6 +7,7 @@ RTC_DATA_ATTR Mode currentMode = ModeNormal;
 RTC_DATA_ATTR uint16_t slowBattMv = 0;
 RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 1;  // set to 0 to disable by default
 RTC_DATA_ATTR uint16_t bootCount = 0;
+RTC_DATA_ATTR uint8_t pendingConfigReport = 0;
 
 State::State(Config* config) : config(config) {}
 
@@ -62,6 +63,20 @@ void State::updateSlowBatt() {
   } else {
     slowBattMv = (uint16_t)(slowBattMv + (batt_max_mv - slowBattMv) / config->getBattRecoveryN());
   }
+}
+
+void State::schedulePendingConfigReport(uint8_t fport) {
+  if (fport >= 11 && fport <= 14) {
+    pendingConfigReport |= (1 << (fport - 11));
+  }
+}
+
+uint8_t State::getPendingConfigReport() {
+  return pendingConfigReport;
+}
+
+void State::clearPendingConfigReport() {
+  pendingConfigReport = 0;
 }
 
 uint32_t State::computeAdaptedSleepMs() const {

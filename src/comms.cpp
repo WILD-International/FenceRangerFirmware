@@ -217,10 +217,11 @@ int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* displa
   payload[0] = (battMv - 2300) >> 3;
   payload[1] = (fenceV >> 8) & 0xFF;
   payload[2] = fenceV & 0xFF;
-  return send(payload, sizeof(payload), display, downlink);
+  return send(1, payload, sizeof(payload), display, downlink);
 }
 
-int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downlink) {
+int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
+                    Downlink* downlink) {
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
 
@@ -230,11 +231,9 @@ int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downl
   LoRaWANEvent_t uplinkDetails;
   LoRaWANEvent_t downlinkDetails;
 
-  uint8_t fPort = 1;
-
   uint32_t fCntUp = node.getFCntUp();
 
-  int16_t radiolib_state = node.sendReceive(data, len, fPort, downlinkPayload, &downlinkSize, false,
+  int16_t radiolib_state = node.sendReceive(data, len, fport, downlinkPayload, &downlinkSize, false,
                                             &uplinkDetails, &downlinkDetails);
   digitalWrite(LORA_PA_POWER, LOW);
 
@@ -247,14 +246,62 @@ int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downl
           downlink->type = DownlinkType::EnableOTA;
           break;
         case 11:
-          if (downlinkSize == 6) {
-            LOGLN("Downlink: UpdateConfig");
-            downlink->type = DownlinkType::UpdateConfig;
-            downlink->config.sleepIntervalS = (downlinkPayload[0] << 8) | downlinkPayload[1];
-            downlink->config.alertV = (downlinkPayload[2] << 8) | downlinkPayload[3];
-            downlink->config.recoverV = (downlinkPayload[4] << 8) | downlinkPayload[5];
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 11");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 11;
+          } else if (downlinkSize == 4) {
+            LOGLN("Downlink: SetAlertThresholds");
+            downlink->type = DownlinkType::SetAlertThresholds;
+            downlink->alertThresholds.alertV = (downlinkPayload[0] << 8) | downlinkPayload[1];
+            downlink->alertThresholds.recoverV = (downlinkPayload[2] << 8) | downlinkPayload[3];
           } else {
-            LOGLN("Downlink: UpdateConfig ignored (expected 6 bytes)");
+            LOG("Downlink: fPort 11 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 12:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 12");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 12;
+          } else if (downlinkSize == 4) {
+            LOGLN("Downlink: SetAlertCycles");
+            downlink->type = DownlinkType::SetAlertCycles;
+            downlink->alertCycles.burstSends = downlinkPayload[0];
+            downlink->alertCycles.idleHbCycles = downlinkPayload[1];
+            downlink->alertCycles.alertHbCycles = downlinkPayload[2];
+            downlink->alertCycles.recoveryCycles = downlinkPayload[3];
+          } else {
+            LOG("Downlink: fPort 12 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 13:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 13");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 13;
+          } else if (downlinkSize == 5) {
+            LOGLN("Downlink: SetSleepConfig");
+            downlink->type = DownlinkType::SetSleepConfig;
+            downlink->sleepConfig.sleepIntervalS = (downlinkPayload[0] << 8) | downlinkPayload[1];
+            downlink->sleepConfig.sleepMult = downlinkPayload[2];
+            downlink->sleepConfig.recoveryN = (downlinkPayload[3] << 8) | downlinkPayload[4];
+          } else {
+            LOG("Downlink: fPort 13 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 14:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 14");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 14;
+          } else if (downlinkSize == 2) {
+            LOGLN("Downlink: SetSleepAdjRange");
+            downlink->type = DownlinkType::SetSleepAdjRange;
+            downlink->sleepAdjRange.battFullMv = (downlinkPayload[0] << 3) + 2300;
+            downlink->sleepAdjRange.battLowMv = (downlinkPayload[1] << 3) + 2300;
+          } else {
+            LOG("Downlink: fPort 14 ignored (unexpected size %d)\n", downlinkSize);
           }
           break;
         default:
@@ -267,6 +314,43 @@ int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downl
     display->message("SEND ERR");
   }
   return radiolib_state;
+}
+
+int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downlink) {
+  uint8_t payload[5];
+  size_t len = 0;
+  switch (fport) {
+    case 11:
+      payload[0] = (config->getAlertThresholdV() >> 8) & 0xFF;
+      payload[1] = config->getAlertThresholdV() & 0xFF;
+      payload[2] = (config->getRecoverThresholdV() >> 8) & 0xFF;
+      payload[3] = config->getRecoverThresholdV() & 0xFF;
+      len = 4;
+      break;
+    case 12:
+      payload[0] = config->getAlertBurstSends();
+      payload[1] = config->getIdleHeartbeatCycles();
+      payload[2] = config->getAlertHeartbeatCycles();
+      payload[3] = config->getRecoveryConfirmCycles();
+      len = 4;
+      break;
+    case 13:
+      payload[0] = (config->getSleepIntervalS() >> 8) & 0xFF;
+      payload[1] = config->getSleepIntervalS() & 0xFF;
+      payload[2] = config->getBattSleepMult();
+      payload[3] = (config->getBattRecoveryN() >> 8) & 0xFF;
+      payload[4] = config->getBattRecoveryN() & 0xFF;
+      len = 5;
+      break;
+    case 14:
+      payload[0] = (uint8_t)((config->getBattFullMv() - 2300) >> 3);
+      payload[1] = (uint8_t)((config->getBattLowMv() - 2300) >> 3);
+      len = 2;
+      break;
+    default:
+      return RADIOLIB_ERR_NONE;
+  }
+  return send(fport, payload, len, display, downlink);
 }
 
 void Comms::saveSession() {

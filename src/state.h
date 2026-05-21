@@ -27,6 +27,10 @@ class State {
   void updateSlowBatt();
   uint32_t computeAdaptedSleepMs() const;
 
+  void schedulePendingConfigReport(uint8_t fport);
+  uint8_t getPendingConfigReport();
+  void clearPendingConfigReport();
+
   // Public data
   bool at_command_mode = false;
   bool measurement_running = false;

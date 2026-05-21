@@ -21,16 +21,35 @@ const uint64_t joinEUI = 0x0000000000000000;
 enum class DownlinkType : uint8_t {
   None = 0,
   EnableOTA,
-  UpdateConfig,
+  SetAlertThresholds,
+  SetAlertCycles,
+  SetSleepConfig,
+  SetSleepAdjRange,
+  QueryConfig,
 };
 
 struct Downlink {
   DownlinkType type = DownlinkType::None;
+  uint8_t fport = 0;
   struct {
-    uint16_t sleepIntervalS;
     uint16_t alertV;
     uint16_t recoverV;
-  } config;
+  } alertThresholds;
+  struct {
+    uint8_t burstSends;
+    uint8_t idleHbCycles;
+    uint8_t alertHbCycles;
+    uint8_t recoveryCycles;
+  } alertCycles;
+  struct {
+    uint16_t sleepIntervalS;
+    uint8_t sleepMult;
+    uint16_t recoveryN;
+  } sleepConfig;
+  struct {
+    uint16_t battFullMv;
+    uint16_t battLowMv;
+  } sleepAdjRange;
 };
 
 class Comms {
@@ -39,6 +58,7 @@ class Comms {
 
   int16_t begin(Display* display);
   int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink);
+  int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);
   void saveSession();
   bool hasJoined();
   void sleep();
@@ -46,7 +66,7 @@ class Comms {
 
  private:
   bool lwActivate(Display* display);
-  int16_t send(uint8_t* data, size_t len, Display* display, Downlink* downlink);
+  int16_t send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink);
 
   bool beginCalled = false;
   Config* config;
