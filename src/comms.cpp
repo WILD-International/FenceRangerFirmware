@@ -210,6 +210,16 @@ int16_t Comms::begin(Display* display) {
   return radiolib_state;
 }
 
+int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display,
+                               Downlink* downlink) {
+  battMv = constrain(battMv, (uint16_t)2300, (uint16_t)4340);
+  uint8_t payload[3];
+  payload[0] = (battMv - 2300) >> 3;
+  payload[1] = (fenceV >> 8) & 0xFF;
+  payload[2] = fenceV & 0xFF;
+  return send(payload, sizeof(payload), display, downlink);
+}
+
 int16_t Comms::send(uint8_t* data, size_t len, Display* display, Downlink* downlink) {
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);

@@ -38,7 +38,7 @@ class Comms {
   Comms(Config* config, State* state);
 
   int16_t begin(Display* display);
-  int16_t send(uint8_t* data, size_t len, Display* display, Downlink* downlink = nullptr);
+  int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink);
   void saveSession();
   bool hasJoined();
   void sleep();
@@ -46,6 +46,7 @@ class Comms {
 
  private:
   bool lwActivate(Display* display);
+  int16_t send(uint8_t* data, size_t len, Display* display, Downlink* downlink);
 
   bool beginCalled = false;
   Config* config;

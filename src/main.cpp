@@ -146,26 +146,13 @@ void setup() {
         display.message("RADIO ERR", 2000);
         gotoSleep(adaptedSleepMs);
       } else {
-        uint16_t batt_voltage = max(state.batt_min_mv, state.batt_max_mv);
-        uint16_t fence_neg_voltage = max(state.fence_neg_min_v, state.fence_neg_max_v);
-        uint16_t fence_pos_voltage = max(state.fence_pos_min_v, state.fence_pos_max_v);
-        uint16_t fence_voltage = max(fence_neg_voltage, fence_pos_voltage);
-
-        if (batt_voltage < 2300) {
-          batt_voltage = 2300;
-        }
-        if (batt_voltage > 4340) {
-          batt_voltage = 4340;
-        }
-        uint8_t batt_voltage_compressed = ((batt_voltage - 2300) >> 3);
-
-        uint8_t uplinkPayload[3];
-        uplinkPayload[0] = batt_voltage_compressed;
-        uplinkPayload[1] = (fence_voltage >> 8) & 0xFF;
-        uplinkPayload[2] = fence_voltage & 0xFF;
+        uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
+        uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
+        uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
+        uint16_t fenceV = max(fenceNeg, fencePos);
         display.message("SENDING");
         Downlink downlink;
-        comms.send(uplinkPayload, sizeof(uplinkPayload), &display, &downlink);
+        comms.sendMeasurement(battMv, fenceV, &display, &downlink);
         display.message("SENT", 1000);
 
         switch (downlink.type) {
