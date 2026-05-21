@@ -19,6 +19,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
   const uint16_t VOLTAGE_OPTIONS[] = {500,  1000, 1500, 2000, 2500, 3000, 3500, 4000,
                                       4500, 5000, 6000, 7000, 8000, 9000, 10000};
+  const uint16_t BATT_FULL_OPTIONS[] = {3800, 3900, 4000, 4100, 4200};
+  const uint16_t BATT_LOW_OPTIONS[] = {2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600};
+  const uint16_t SLEEP_MULT_OPTIONS[] = {2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30};
+  const uint16_t RECOVERY_N_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
 
   struct ValueItem {
     const char* label;
@@ -33,11 +37,17 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       {"Recovery Confirm", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0])},
       {"Alert V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
       {"Recover V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
+      {"Batt Full mV", BATT_FULL_OPTIONS, sizeof(BATT_FULL_OPTIONS) / sizeof(BATT_FULL_OPTIONS[0])},
+      {"Batt Low mV", BATT_LOW_OPTIONS, sizeof(BATT_LOW_OPTIONS) / sizeof(BATT_LOW_OPTIONS[0])},
+      {"Sleep Mult", SLEEP_MULT_OPTIONS,
+       sizeof(SLEEP_MULT_OPTIONS) / sizeof(SLEEP_MULT_OPTIONS[0])},
+      {"Recovery N", RECOVERY_N_OPTIONS,
+       sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0])},
   };
 
-  const int MENU_DEBUG = 7;
-  const int MENU_BACK = 8;
-  const int NUM_MENU_ITEMS = 9;
+  const int MENU_DEBUG = 11;
+  const int MENU_BACK = 12;
+  const int NUM_MENU_ITEMS = 13;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
@@ -72,6 +82,14 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         return config.getAlertThresholdV();
       case 6:
         return config.getRecoverThresholdV();
+      case 7:
+        return config.getBattFullMv();
+      case 8:
+        return config.getBattLowMv();
+      case 9:
+        return config.getBattSleepMult();
+      case 10:
+        return config.getBattRecoveryN();
       default:
         return 0;
     }
@@ -103,6 +121,22 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         break;
       case 6:
         config.setAlertThresholds(config.getAlertThresholdV(), val);
+        break;
+      case 7:
+        config.setBattAdaptiveSleep(val, config.getBattLowMv(), config.getBattSleepMult(),
+                                    config.getBattRecoveryN());
+        break;
+      case 8:
+        config.setBattAdaptiveSleep(config.getBattFullMv(), val, config.getBattSleepMult(),
+                                    config.getBattRecoveryN());
+        break;
+      case 9:
+        config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(), (uint8_t)val,
+                                    config.getBattRecoveryN());
+        break;
+      case 10:
+        config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
+                                    config.getBattSleepMult(), val);
         break;
     }
   };
