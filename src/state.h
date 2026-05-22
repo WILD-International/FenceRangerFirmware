@@ -22,8 +22,6 @@ class State {
   void updateSlowBatt(uint16_t battMaxMv);
   uint32_t computeAdaptedSleepMs() const;
 
-  bool atCommandMode = false;
-
  private:
   Config* config;
 };
