@@ -14,8 +14,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
   const uint16_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
-  const uint16_t IDLE_HB_OPTIONS[] = {5, 10, 15, 30, 45, 60, 90, 120};
-  const uint16_t ALERT_HB_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
+  const uint16_t IDLE_HB_OPTIONS[] = {1, 5, 10, 15, 30, 45, 60, 90, 120};
+  const uint16_t ALERT_HB_OPTIONS[] = {1, 5, 10, 15, 20, 30, 45, 60};
   const uint16_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
   const uint16_t VOLTAGE_OPTIONS[] = {500,  1000, 1500, 2000, 2500, 3000, 3500, 4000,
                                       4500, 5000, 6000, 7000, 8000, 9000, 10000};
