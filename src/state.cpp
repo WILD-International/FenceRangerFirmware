@@ -1,6 +1,6 @@
 #include "state.h"
 
-#include "helpers.h"
+#include "sleep.h"
 
 State::State(Config* config) : config(config) {}
 
