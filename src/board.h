@@ -10,7 +10,7 @@
 // this must be included AFTER RadioLib!
 #include "RadioBoards.h"
 
-#define Boot_Key 0
+#define USER_BUTTON 0
 #define Led 35
 #define DISPLAY_POWER 36
 

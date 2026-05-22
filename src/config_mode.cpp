@@ -193,7 +193,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       handleATSerial(c, config, state);
     }
 
-    bool buttonDown = digitalRead(Boot_Key) == 0;
+    bool buttonDown = digitalRead(USER_BUTTON) == 0;
 
     if (buttonDown && !buttonPressedState) {
       buttonPressedState = true;

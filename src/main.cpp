@@ -84,7 +84,7 @@ void setup() {
   int64_t now_us = rtcTimeNowUs();
 
   gpioWakeInit();
-  pinMode(Boot_Key, INPUT);
+  pinMode(USER_BUTTON, INPUT);
 
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -113,7 +113,7 @@ void setup() {
   }
 
   digitalWrite(LED, LOW);
-  buttonSetup(Boot_Key);
+  buttonSetup(USER_BUTTON);
 
   display.message("MEASURE");
   measureProgram.run(config, state);
