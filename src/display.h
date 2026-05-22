@@ -20,7 +20,7 @@ class Display {
   void message(const char* msg, uint32_t delayMs = 0);
   void showConfig(State& state);
   void showMeasurement(const Measurement& measurement, uint32_t delayMs = 0);
-  void showMenu(int selectedIndex, bool debugEnabled);
+  void showMenu(int selectedIndex);
   void showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
                    int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);

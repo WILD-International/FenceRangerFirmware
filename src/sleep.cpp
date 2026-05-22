@@ -5,7 +5,7 @@
 #include <soc/rtc.h>
 
 #include "board.h"
-#include "debug.h"
+#include "logging.h"
 #include "esp32-hal-gpio.h"
 #include "hal/gpio_types.h"
 #include "rtc_state.h"

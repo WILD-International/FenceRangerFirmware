@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include "board.h"
-#include "debug.h"
+#include "logging.h"
 
 MeasureProgram::MeasureProgram() {
   adc_cal_init();

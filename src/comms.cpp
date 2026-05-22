@@ -1,7 +1,7 @@
 #include "comms.h"
 
 #include "TypeDef.h"
-#include "debug.h"
+#include "logging.h"
 #include "rtc_state.h"
 
 #if defined(USE_GC1109_PA)

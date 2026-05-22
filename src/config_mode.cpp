@@ -4,7 +4,6 @@
 
 #include "at_commands.h"
 #include "board.h"
-#include "debug.h"
 #include "esp32-hal-gpio.h"
 
 void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi) {
@@ -80,9 +79,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       {"Sleep", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
   };
 
-  const int BROWSE_DEBUG = 2;
-  const int BROWSE_BACK = 3;
-  const int NUM_BROWSE_ITEMS = 4;
+  const int BROWSE_BACK = 2;
+  const int NUM_BROWSE_ITEMS = 3;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
@@ -134,18 +132,11 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   auto handleLongPress = [&]() {
     if (menuState == INFO) {
       menuState = BROWSE;
-      display.showMenu(browseIndex, Debug::enabled());
+      display.showMenu(browseIndex);
     } else if (menuState == BROWSE) {
       if (browseIndex == BROWSE_BACK) {
         menuState = INFO;
         display.showConfig(state);
-      } else if (browseIndex == BROWSE_DEBUG) {
-        if (Debug::enabled()) {
-          Debug::disable();
-        } else {
-          Debug::enable();
-        }
-        display.showMenu(browseIndex, Debug::enabled());
       } else {
         activeGroup = browseIndex;
         submenuIndex = 0;
@@ -157,7 +148,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       int backSlot = GROUPS[activeGroup].count;
       if (submenuIndex == backSlot) {
         menuState = BROWSE;
-        display.showMenu(browseIndex, Debug::enabled());
+        display.showMenu(browseIndex);
       } else {
         editItem = &GROUPS[activeGroup].items[submenuIndex];
         uint16_t currentVal = editItem->get();
@@ -211,7 +202,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           exitConfigMode = true;
         } else if (menuState == BROWSE) {
           browseIndex = (browseIndex + 1) % NUM_BROWSE_ITEMS;
-          display.showMenu(browseIndex, Debug::enabled());
+          display.showMenu(browseIndex);
         } else if (menuState == SUBMENU) {
           int slots = GROUPS[activeGroup].count + 1;
           submenuIndex = (submenuIndex + 1) % slots;

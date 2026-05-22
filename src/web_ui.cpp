@@ -1,7 +1,7 @@
 
 #include "web_ui.h"
 
-#include "debug.h"
+#include "logging.h"
 #include "helpers.h"
 #include "ota_html.h"
 

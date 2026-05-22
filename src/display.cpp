@@ -107,20 +107,19 @@ void Display::displayTitle() {
   display.println(title);
 }
 
-void Display::showMenu(int selectedIndex, bool debugEnabled) {
+void Display::showMenu(int selectedIndex) {
   if (!enabled) {
     return;
   }
 
-  const int TOTAL_ITEMS = 4;
+  const int TOTAL_ITEMS = 3;
   const int VISIBLE_ITEMS = 6;
   const int TRACK_Y = 11;
 
   char labels[TOTAL_ITEMS][22];
   snprintf(labels[0], 22, "%-14s%5s", "Alert config", ">");
   snprintf(labels[1], 22, "%-14s%5s", "Sleep config", ">");
-  snprintf(labels[2], 22, "%-14s%5s", "Debug", debugEnabled ? "ON" : "OFF");
-  snprintf(labels[3], 22, "Back");
+  snprintf(labels[2], 22, "Back");
 
   display.clearDisplay();
   displayTitle();

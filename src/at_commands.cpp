@@ -1,7 +1,6 @@
 #include "at_commands.h"
 
 #include "config.h"
-#include "debug.h"
 #include "helpers.h"
 
 String serialBuffer;
@@ -65,7 +64,6 @@ void handleATCommand(String cmd, Config& config, bool& exitConfigMode) {
     }
   } else if (cmd == "AT+EXIT") {
     Serial.println("OK");
-    Debug::enable();
     exitConfigMode = true;
   } else if (cmd == "AT+HELP") {
     Serial.println("AT          - Ping");

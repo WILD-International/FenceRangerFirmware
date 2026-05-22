@@ -9,7 +9,7 @@
 #include "comms.h"
 #include "config.h"
 #include "config_mode.h"
-#include "debug.h"
+#include "logging.h"
 #include "display.h"
 #include "esp32-hal-gpio.h"
 #include "isr_button.h"

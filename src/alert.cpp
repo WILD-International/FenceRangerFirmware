@@ -1,6 +1,6 @@
 #include "alert.h"
 
-#include "debug.h"
+#include "logging.h"
 
 bool processMeasurement(uint16_t fenceVoltage, const AlertConfig& cfg, AlertState& state) {
   bool fenceDown = fenceVoltage < cfg.alertThresholdV;
