@@ -26,21 +26,20 @@ void Display::message(const char* msg, uint32_t delayMs) {
   }
 }
 
-void Display::showMeasurement(State& state, uint32_t delayMs) {
+void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) {
   if (!enabled) {
     return;
   }
   display.clearDisplay();
   displayTitle();
   display.setCursor(0, 16);
-  display.printf("batt: %d %d", state.batt_min_mv, state.batt_max_mv);
+  display.printf("batt: %d %d", measurement.battMinMv, measurement.battMaxMv);
   display.setCursor(0, 28);
-  display.printf(" neg: %d %d", state.fence_neg_min_v, state.fence_neg_max_v);
+  display.printf(" neg: %d %d", measurement.fenceNegMinV, measurement.fenceNegMaxV);
   display.setCursor(0, 40);
-  display.printf(" pos: %d %d", state.fence_pos_min_v, state.fence_pos_max_v);
+  display.printf(" pos: %d %d", measurement.fencePosMinV, measurement.fencePosMaxV);
   display.setCursor(0, 52);
-  display.printf(" err: %d", state.adc_error_count);
-  //
+  display.printf(" err: %d", measurement.adcErrorCount);
   display.display();
   if (delayMs > 0) {
     delay(delayMs);
@@ -108,20 +107,19 @@ void Display::displayTitle() {
   display.println(title);
 }
 
-void Display::showMenu(int selectedIndex, bool debugEnabled) {
+void Display::showMenu(int selectedIndex) {
   if (!enabled) {
     return;
   }
 
-  const int TOTAL_ITEMS = 4;
+  const int TOTAL_ITEMS = 3;
   const int VISIBLE_ITEMS = 6;
   const int TRACK_Y = 11;
 
   char labels[TOTAL_ITEMS][22];
   snprintf(labels[0], 22, "%-14s%5s", "Alert config", ">");
   snprintf(labels[1], 22, "%-14s%5s", "Sleep config", ">");
-  snprintf(labels[2], 22, "%-14s%5s", "Debug", debugEnabled ? "ON" : "OFF");
-  snprintf(labels[3], 22, "Back");
+  snprintf(labels[2], 22, "Back");
 
   display.clearDisplay();
   displayTitle();

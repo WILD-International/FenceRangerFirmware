@@ -6,7 +6,6 @@
 
 #include "board.h"
 #include "config.h"
-#include "state.h"
 
 // ── ADC Configuration ──────────────────────────────────────────────
 #define NUM_CHANNELS 3
@@ -17,13 +16,23 @@
 #define POOL_SIZE 1024       // tested with 64, add large margin
 #define MEASURE_MS 3000
 
+struct Measurement {
+  uint16_t battMinMv = 0;
+  uint16_t battMaxMv = 0;
+  uint16_t fenceNegMinV = 0;
+  uint16_t fenceNegMaxV = 0;
+  uint16_t fencePosMinV = 0;
+  uint16_t fencePosMaxV = 0;
+  uint32_t adcErrorCount = 0;
+};
+
 class MeasureProgram {
  public:
   MeasureProgram();
   ~MeasureProgram();
-  void run(Config& config, State& state);
+  Measurement run(Config& config);
   void begin();
-  void update(Config& config, State& state);
+  void update(Config& config, Measurement& msr);
   bool isFinished() const;
 
  private:

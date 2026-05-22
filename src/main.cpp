@@ -9,13 +9,12 @@
 #include "comms.h"
 #include "config.h"
 #include "config_mode.h"
-#include "debug.h"
+#include "logging.h"
 #include "display.h"
 #include "esp32-hal-gpio.h"
-#include "hal/gpio_types.h"
-#include "helpers.h"
 #include "isr_button.h"
 #include "measure_program.h"
+#include "sleep.h"
 #include "state.h"
 #include "web_ui.h"
 
@@ -29,31 +28,62 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
+static void runComms(Comms& comms, State& state, Config& config, Display& display,
+                     const Measurement& measurement) {
+  if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
+    display.message("RADIO ERR", 2000);
+    return;
+  }
+
+  display.message("SEND MSR");
+  Downlink downlink;
+  comms.sendMeasurement(measurement.battMaxMv,
+                        max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
+                        &downlink);
+  display.message("SENT", 1000);
+
+  while (downlink.type == DownlinkType::QueryConfig) {
+    delay(3000);
+    display.message("SEND CFG");
+    uint8_t fport = downlink.fport;
+    downlink = {};
+    comms.sendConfigReport(fport, &display, &downlink);
+    display.message("SENT", 1000);
+  }
+
+  switch (downlink.type) {
+    case DownlinkType::EnableOTA:
+      state.setMode(ModeConfig);
+      break;
+    case DownlinkType::SetAlertThresholds:
+      config.setAlertThresholds(downlink.alertThresholds.alertV, downlink.alertThresholds.recoverV);
+      break;
+    case DownlinkType::SetAlertCycles:
+      config.setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
+                            downlink.alertCycles.alertHbCycles,
+                            downlink.alertCycles.recoveryCycles);
+      break;
+    case DownlinkType::SetSleepConfig:
+      config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
+      config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
+                                  downlink.sleepConfig.sleepMult, downlink.sleepConfig.recoveryN);
+      break;
+    case DownlinkType::SetSleepAdjRange:
+      config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
+                                  downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
+                                  config.getBattRecoveryN());
+      break;
+    default:
+      break;
+  }
+}
+
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
-  gpio_deep_sleep_hold_dis();
-  rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
-  gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state after sleep
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
-  pinMode(Boot_Key, INPUT);
-
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_POWER);
-  pinMode(LORA_PA_POWER, OUTPUT);
-  digitalWrite(LORA_PA_POWER, LOW);
-#if defined(USE_GC1109_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_EN);
-  pinMode(LORA_PA_EN, OUTPUT);
-  digitalWrite(LORA_PA_EN, LOW);
-#endif
-
-#if defined(USE_KCT8103L_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_CSD);
-  pinMode(LORA_PA_CSD, OUTPUT);
-  digitalWrite(LORA_PA_CSD, LOW);
-#endif
+  gpioWakeInit();
+  pinMode(USER_BUTTON, INPUT);
 
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -82,12 +112,12 @@ void setup() {
   }
 
   digitalWrite(LED, LOW);
-  buttonSetup(Boot_Key);
+  buttonSetup(USER_BUTTON);
 
   display.message("MEASURE");
-  measureProgram.run(config, state);
-  state.updateSlowBatt();
-  display.showMeasurement(state, 2000);
+  Measurement measurement = measureProgram.run(config);
+  state.updateSlowBatt(measurement.battMaxMv);
+  display.showMeasurement(measurement, 2000);
 
   uint32_t adaptedSleepMs = state.computeAdaptedSleepMs();
 
@@ -95,122 +125,47 @@ void setup() {
   LOG("Awake after sleeping for %lld ms\n", millis_slept);
   LOG("RTC time now: %lld ms\n", now_us / 1000);
 
-  // Allow interrupting before trying to join
   if (wasButtonPressed()) {
     gotoSleep(100);
   }
 
+  // Try joining if not joined yet, even if there's nothing to send
   if (!comms.hasJoined()) {
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
-      gotoSleep(adaptedSleepMs);
+    } else {
+      comms.saveSession();
     }
   }
-
-  if (comms.hasJoined()) {
-    // test the logic for first 1000 calls
-    // state.fence_neg_max_mv = 1000;
-    // state.fence_pos_max_mv = 2000;
-    // for (int i = 0; i < 1000; i++) {
-    //   if (i > 200) {
-    //     state.fence_neg_max_mv = 4000;
-    //     state.fence_pos_max_mv = 4000;
-    //   }
-    //   if (i > 231) {
-    //     state.fence_neg_max_mv = 2000;
-    //     state.fence_pos_max_mv = 2000;
-    //   }
-
-    // Test values
-    // state.batt_min_mv = 3500;
-    // state.batt_max_mv = 3500;
-    // state.fence_neg_min_v = 1000;
-    // state.fence_neg_max_v = 1000;
-    // state.fence_pos_min_v = 2000;
-    // state.fence_pos_max_v = 2000;
-    uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
-    AlertConfig alertCfg = {
-        .alertThresholdV = config.getAlertThresholdV(),
-        .recoverThresholdV = config.getRecoverThresholdV(),
-        .burstSends = config.getAlertBurstSends(),
-        .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
-        .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
-        .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
-    };
-    bool shouldSend = processMeasurement(fenceVoltage, alertCfg);
-
-    if (shouldSend) {
-      // No need to initialize the radio if there's nothing to send
-      // This will restore the LoRaWAN session from RTC memory
-      if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
-        display.message("RADIO ERR", 2000);
-        gotoSleep(adaptedSleepMs);
-      }
-
-      uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
-      uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
-      uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
-      uint16_t fenceV = max(fenceNeg, fencePos);
-      display.message("SEND MSR");
-      Downlink downlink;
-      comms.sendMeasurement(battMv, fenceV, &display, &downlink);
-      display.message("SENT", 1000);
-
-      while (downlink.type == DownlinkType::QueryConfig) {
-        delay(3000);
-        display.message("SEND CFG");
-        uint8_t fport = downlink.fport;
-        downlink = {};
-        comms.sendConfigReport(fport, &display, &downlink);
-        display.message("SENT", 1000);
-      }
-
-      switch (downlink.type) {
-        case DownlinkType::EnableOTA:
-          state.setMode(ModeConfig);
-          break;
-        case DownlinkType::SetAlertThresholds:
-          config.setAlertThresholds(downlink.alertThresholds.alertV,
-                                    downlink.alertThresholds.recoverV);
-          break;
-        case DownlinkType::SetAlertCycles:
-          config.setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
-                                downlink.alertCycles.alertHbCycles,
-                                downlink.alertCycles.recoveryCycles);
-          break;
-        case DownlinkType::SetSleepConfig:
-          config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
-          config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
-                                      downlink.sleepConfig.sleepMult,
-                                      downlink.sleepConfig.recoveryN);
-          break;
-        case DownlinkType::SetSleepAdjRange:
-          config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
-                                      downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
-                                      config.getBattRecoveryN());
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  // now save session to RTC memory
-  comms.saveSession();
-  // Put radio to sleep
-  comms.sleep();
-
-  if (state.getMode() == ModeConfig) {
-    gotoSleep(100);
+  if (!comms.hasJoined()) {
+    gotoSleep(adaptedSleepMs);
   }
 
   if (wasButtonPressed()) {
     gotoSleep(100);
-  } else {
-    display.message("SLEEP", 500);
   }
 
-  gotoSleep(adaptedSleepMs);
+  uint16_t fenceVoltage = max(measurement.fencePosMaxV, measurement.fenceNegMaxV);
+  AlertConfig alertCfg = {
+      .alertThresholdV = config.getAlertThresholdV(),
+      .recoverThresholdV = config.getRecoverThresholdV(),
+      .burstSends = config.getAlertBurstSends(),
+      .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
+      .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
+      .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
+  };
+  bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
+  if (shouldSend) {
+    runComms(comms, state, config, display, measurement);
+    comms.saveSession();
+  }
+  comms.sleep();
+  if (wasButtonPressed() || state.getMode() == ModeConfig) {
+    gotoSleep(100);
+  } else {
+    display.message("SLEEP", 500);
+    gotoSleep(adaptedSleepMs);
+  }
 }
 
 void loop() {

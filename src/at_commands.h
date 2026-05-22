@@ -4,8 +4,7 @@
 #include <Arduino.h>
 
 #include "config.h"
-#include "state.h"
 
-void handleATSerial(char c, Config& config, State& state);
+void handleATSerial(char c, Config& config, bool& exitConfigMode);
 
 #endif  // AT_COMMANDS_H

@@ -1,18 +1,13 @@
 #ifndef STATE_H
 #define STATE_H
 
-#include <Arduino.h>
-#include <Preferences.h>
-
 #include "config.h"
+#include "rtc_state.h"
 
-enum Mode { ModeNormal, ModeConfig };
 class State {
  public:
   State(Config* config);
-  ~State();
 
-  // Public methods
   void setMode(Mode mode);
   Mode getMode();
 
@@ -24,24 +19,11 @@ class State {
   void incrementBootCount();
   uint16_t getBootCount();
 
-  void updateSlowBatt();
+  void updateSlowBatt(uint16_t battMaxMv);
   uint32_t computeAdaptedSleepMs() const;
-
-  // Public data
-  bool at_command_mode = false;
-  bool measurement_running = false;
-  uint16_t batt_min_mv = 0;
-  uint16_t batt_max_mv = 0;
-  uint16_t fence_neg_min_v = 0;
-  uint16_t fence_neg_max_v = 0;
-  uint16_t fence_pos_min_v = 0;
-  uint16_t fence_pos_max_v = 0;
-  uint32_t adc_error_count = 0;
 
  private:
   Config* config;
-
-  Preferences prefs;
 };
 
 #endif  // STATE_H

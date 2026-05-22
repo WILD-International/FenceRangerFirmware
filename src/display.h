@@ -5,6 +5,7 @@
 #include <Adafruit_SSD1306.h>
 
 #include "config.h"
+#include "measure_program.h"
 #include "state.h"
 
 // Buffer size for each submenu label string: "%-14s%5d" = 19 chars + null + margin
@@ -18,8 +19,8 @@ class Display {
   void turnOff();
   void message(const char* msg, uint32_t delayMs = 0);
   void showConfig(State& state);
-  void showMeasurement(State& state, uint32_t delayMs = 0);
-  void showMenu(int selectedIndex, bool debugEnabled);
+  void showMeasurement(const Measurement& measurement, uint32_t delayMs = 0);
+  void showMenu(int selectedIndex);
   void showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
                    int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);

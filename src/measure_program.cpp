@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include "board.h"
-#include "debug.h"
+#include "logging.h"
 
 MeasureProgram::MeasureProgram() {
   adc_cal_init();
@@ -11,12 +11,14 @@ MeasureProgram::MeasureProgram() {
 
 MeasureProgram::~MeasureProgram() {}
 
-void MeasureProgram::run(Config& config, State& state) {
+Measurement MeasureProgram::run(Config& config) {
   begin();
+  Measurement measurement;
   while (!isFinished()) {
-    update(config, state);
+    update(config, measurement);
     delay(1);
   }
+  return measurement;
 }
 
 void MeasureProgram::begin() {
@@ -42,7 +44,7 @@ void MeasureProgram::begin() {
   start = millis();
 }
 
-void MeasureProgram::update(Config& config, State& state) {
+void MeasureProgram::update(Config& config, Measurement& measurement) {
   if (finished) {
     return;
   }
@@ -81,14 +83,13 @@ void MeasureProgram::update(Config& config, State& state) {
       sample_count[idx]++;
     }
   } else {
-    // stop the ADC and print results
     finished = true;
     digitalWrite(ADC_OPAMP, HIGH);     // power off the opamp
     digitalWrite(ADC_CTRL_VBAT, LOW);  // power off the battery adc
     ESP_ERROR_CHECK(adc_digi_stop());
     ESP_ERROR_CHECK(adc_digi_deinitialize());
 
-    state.adc_error_count = error_count;
+    measurement.adcErrorCount = error_count;
     if (error_count > 0) {
       LOG("Errors: %d\n", error_count);
     }
@@ -100,14 +101,14 @@ void MeasureProgram::update(Config& config, State& state) {
           sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
-        state.batt_min_mv = (min_mv * 490 / 100);
-        state.batt_max_mv = (max_mv * 490 / 100);
+        measurement.battMinMv = (min_mv * 490 / 100);
+        measurement.battMaxMv = (max_mv * 490 / 100);
       } else if (channels[i] == ADC_CHANNEL_FENCE_NEG) {
-        state.fence_neg_min_v = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
-        state.fence_neg_max_v = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        measurement.fenceNegMinV = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        measurement.fenceNegMaxV = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
       } else if (channels[i] == ADC_CHANNEL_FENCE_POS) {
-        state.fence_pos_min_v = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
-        state.fence_pos_max_v = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        measurement.fencePosMinV = min_mv * (config.getFenceVoltageMultiplier() * 0.001f);
+        measurement.fencePosMaxV = max_mv * (config.getFenceVoltageMultiplier() * 0.001f);
       }
     }
   }
