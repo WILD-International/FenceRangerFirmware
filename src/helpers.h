@@ -4,6 +4,8 @@
 #include <Arduino.h>
 
 int64_t rtcTimeNowUs();
+void gpioWakeInit();
+void gpioSleepLatch();
 void gotoSleep(uint32_t ms, bool setSleepTime = true);
 int64_t getTimeSleptMs();
 void bytesToHex(const uint8_t* data, size_t len, char* out);

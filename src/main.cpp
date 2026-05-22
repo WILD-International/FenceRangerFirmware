@@ -33,27 +33,8 @@ void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
-  gpio_deep_sleep_hold_dis();
-  rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
-  gpio_hold_dis(gpio_num_t(LED));  // release hold on LED so we can change state after sleep
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
+  gpioWakeInit();
   pinMode(Boot_Key, INPUT);
-
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_POWER);
-  pinMode(LORA_PA_POWER, OUTPUT);
-  digitalWrite(LORA_PA_POWER, LOW);
-#if defined(USE_GC1109_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_EN);
-  pinMode(LORA_PA_EN, OUTPUT);
-  digitalWrite(LORA_PA_EN, LOW);
-#endif
-
-#if defined(USE_KCT8103L_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_CSD);
-  pinMode(LORA_PA_CSD, OUTPUT);
-  digitalWrite(LORA_PA_CSD, LOW);
-#endif
 
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
