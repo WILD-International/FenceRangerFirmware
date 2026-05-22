@@ -70,7 +70,7 @@ class Comms {
   bool lwActivate(Display* display);
   int16_t send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink);
 
-  bool beginCalled = false;
+  bool radioInitialized = false;
   Config* config;
   State* state;
   Preferences store;  // for radiolib persistent data

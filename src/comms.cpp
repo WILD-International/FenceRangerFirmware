@@ -4,12 +4,6 @@
 #include "debug.h"
 #include "rtc_state.h"
 
-uint8_t dataUp[] = {0x42};
-uint8_t dataDown[RADIOLIB_LORAWAN_MAX_DOWNLINK_SIZE + 1];
-size_t downlinkLen = sizeof(dataDown);
-LoRaWANEvent_t uplinkDetails;
-LoRaWANEvent_t downlinkDetails;
-
 #if defined(USE_GC1109_PA)
 static const uint32_t rfswitch_pins[] = {LORA_PA_EN, LORA_PA_TX_EN, RADIOLIB_NC, RADIOLIB_NC,
                                          RADIOLIB_NC};
@@ -175,10 +169,10 @@ bool Comms::lwActivate(Display* display) {
 }
 
 int16_t Comms::begin(Display* display) {
-  if (beginCalled) {
+  if (radioInitialized) {
     return RADIOLIB_ERR_NONE;
   }
-  beginCalled = true;
+  radioInitialized = true;
   LOGLN("[SX1262] Initializing ... ");
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   // TODO! I still put the power back to 10dBm because it's not clear how
@@ -348,7 +342,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
 }
 
 void Comms::saveSession() {
-  if (!beginCalled) {
+  if (!radioInitialized) {
     return;
   }
   // now save session to RTC memory
@@ -361,7 +355,7 @@ bool Comms::hasJoined() {
 }
 
 void Comms::sleep() {
-  if (!beginCalled) {
+  if (!radioInitialized) {
     return;
   }
   LOGLN("Put radio to sleep");
