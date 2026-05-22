@@ -24,39 +24,60 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t SLEEP_MULT_OPTIONS[] = {2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30};
   const uint16_t RECOVERY_N_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
 
-  struct ValueItem {
+  // To add a parameter: add one entry to the relevant group below.
+  struct MenuItem {
     const char* label;
     const uint16_t* options;
-    uint8_t count;
+    uint8_t optCount;
+    std::function<uint16_t()> get;
+    std::function<void(uint16_t)> set;
   };
-  // Indices: 0=Cycle Sleep, 1=Burst Sends, 2=Idle Hb, 3=Alert Hb, 4=Recovery Confirm,
-  //          5=Alert V, 6=Recover V, 7=Batt Full, 8=Batt Low, 9=Sleep Mult, 10=Recovery N
-  const ValueItem VALUE_ITEMS[] = {
-      {"Cycle Sleep Sec", SLEEP_OPTIONS, sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0])},
-      {"Burst Sends", BURST_OPTIONS, sizeof(BURST_OPTIONS) / sizeof(BURST_OPTIONS[0])},
-      {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS) / sizeof(IDLE_HB_OPTIONS[0])},
-      {"Alert Heartbeat", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS) / sizeof(ALERT_HB_OPTIONS[0])},
-      {"Recovery Confirm", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0])},
-      {"Alert V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
-      {"Recover V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0])},
-      {"Batt Full mV", BATT_FULL_OPTIONS, sizeof(BATT_FULL_OPTIONS) / sizeof(BATT_FULL_OPTIONS[0])},
-      {"Batt Low mV", BATT_LOW_OPTIONS, sizeof(BATT_LOW_OPTIONS) / sizeof(BATT_LOW_OPTIONS[0])},
-      {"Sleep Mult", SLEEP_MULT_OPTIONS,
-       sizeof(SLEEP_MULT_OPTIONS) / sizeof(SLEEP_MULT_OPTIONS[0])},
-      {"Recovery N", RECOVERY_N_OPTIONS,
-       sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0])},
+
+  const MenuItem alertItems[] = {
+      {"Alert V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0]),
+       [&] { return config.getAlertThresholdV(); },
+       [&](uint16_t v) { config.setAlertThresholdV(v); }},
+      {"Recover V", VOLTAGE_OPTIONS, sizeof(VOLTAGE_OPTIONS) / sizeof(VOLTAGE_OPTIONS[0]),
+       [&] { return config.getRecoverThresholdV(); },
+       [&](uint16_t v) { config.setRecoverThresholdV(v); }},
+      {"Burst Sends", BURST_OPTIONS, sizeof(BURST_OPTIONS) / sizeof(BURST_OPTIONS[0]),
+       [&] { return (uint16_t)config.getAlertBurstSends(); },
+       [&](uint16_t v) { config.setAlertBurstSends(v); }},
+      {"Idle Heartbeat", IDLE_HB_OPTIONS, sizeof(IDLE_HB_OPTIONS) / sizeof(IDLE_HB_OPTIONS[0]),
+       [&] { return (uint16_t)config.getIdleHeartbeatCycles(); },
+       [&](uint16_t v) { config.setIdleHeartbeatCycles(v); }},
+      {"Alert Heartb", ALERT_HB_OPTIONS, sizeof(ALERT_HB_OPTIONS) / sizeof(ALERT_HB_OPTIONS[0]),
+       [&] { return (uint16_t)config.getAlertHeartbeatCycles(); },
+       [&](uint16_t v) { config.setAlertHeartbeatCycles(v); }},
+      {"Recovery Count", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0]),
+       [&] { return (uint16_t)config.getRecoveryConfirmCycles(); },
+       [&](uint16_t v) { config.setRecoveryConfirmCycles(v); }},
+  };
+
+  const MenuItem sleepItems[] = {
+      {"Cycle Sleep s", SLEEP_OPTIONS, sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0]),
+       [&] { return (uint16_t)config.getSleepIntervalS(); },
+       [&](uint16_t v) { config.setSleepIntervalS(v); }},
+      {"Batt Full mV", BATT_FULL_OPTIONS, sizeof(BATT_FULL_OPTIONS) / sizeof(BATT_FULL_OPTIONS[0]),
+       [&] { return config.getBattFullMv(); }, [&](uint16_t v) { config.setBattFullMv(v); }},
+      {"Batt Low mV", BATT_LOW_OPTIONS, sizeof(BATT_LOW_OPTIONS) / sizeof(BATT_LOW_OPTIONS[0]),
+       [&] { return config.getBattLowMv(); }, [&](uint16_t v) { config.setBattLowMv(v); }},
+      {"Sleep Mult", SLEEP_MULT_OPTIONS, sizeof(SLEEP_MULT_OPTIONS) / sizeof(SLEEP_MULT_OPTIONS[0]),
+       [&] { return (uint16_t)config.getBattSleepMult(); },
+       [&](uint16_t v) { config.setBattSleepMult(v); }},
+      {"Recovery N", RECOVERY_N_OPTIONS, sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0]),
+       [&] { return config.getBattRecoveryN(); }, [&](uint16_t v) { config.setBattRecoveryN(v); }},
   };
 
   struct MenuGroup {
     const char* label;
-    const int* itemIndices;
+    const MenuItem* items;
     int count;
   };
-  const int ALERT_INDICES[] = {5, 6, 1, 2, 3, 4};
-  const int SLEEP_INDICES[] = {0, 7, 8, 9, 10};
+
   const MenuGroup GROUPS[] = {
-      {"Alert", ALERT_INDICES, 6},
-      {"Sleep", SLEEP_INDICES, 5},
+      {"Alert", alertItems, (int)(sizeof(alertItems) / sizeof(alertItems[0]))},
+      {"Sleep", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
   };
 
   const int BROWSE_DEBUG = 2;
@@ -71,7 +92,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   int activeGroup = 0;
   int submenuIndex = 0;
   int submenuScrollOffset = 0;
-  int editItemIndex = 0;
+  const MenuItem* editItem = nullptr;
   int editOptionIndex = 0;
 
   auto findOptionIndex = [](const uint16_t* opts, uint8_t count, uint16_t val) -> int {
@@ -83,90 +104,31 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     return 0;
   };
 
-  auto getCurrentValue = [&](int idx) -> uint16_t {
-    switch (idx) {
-      case 0:
-        return (uint16_t)config.getSleepIntervalS();
-      case 1:
-        return config.getAlertBurstSends();
-      case 2:
-        return config.getIdleHeartbeatCycles();
-      case 3:
-        return config.getAlertHeartbeatCycles();
-      case 4:
-        return config.getRecoveryConfirmCycles();
-      case 5:
-        return config.getAlertThresholdV();
-      case 6:
-        return config.getRecoverThresholdV();
-      case 7:
-        return config.getBattFullMv();
-      case 8:
-        return config.getBattLowMv();
-      case 9:
-        return config.getBattSleepMult();
-      case 10:
-        return config.getBattRecoveryN();
-      default:
-        return 0;
-    }
-  };
-
-  auto saveValue = [&](int idx, uint16_t val) {
-    switch (idx) {
-      case 0:
-        config.setSleepIntervalS(val);
-        break;
-      case 1:
-        config.setAlertCycles(val, config.getIdleHeartbeatCycles(),
-                              config.getAlertHeartbeatCycles(), config.getRecoveryConfirmCycles());
-        break;
-      case 2:
-        config.setAlertCycles(config.getAlertBurstSends(), val, config.getAlertHeartbeatCycles(),
-                              config.getRecoveryConfirmCycles());
-        break;
-      case 3:
-        config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(), val,
-                              config.getRecoveryConfirmCycles());
-        break;
-      case 4:
-        config.setAlertCycles(config.getAlertBurstSends(), config.getIdleHeartbeatCycles(),
-                              config.getAlertHeartbeatCycles(), val);
-        break;
-      case 5:
-        config.setAlertThresholds(val, config.getRecoverThresholdV());
-        break;
-      case 6:
-        config.setAlertThresholds(config.getAlertThresholdV(), val);
-        break;
-      case 7:
-        config.setBattAdaptiveSleep(val, config.getBattLowMv(), config.getBattSleepMult(),
-                                    config.getBattRecoveryN());
-        break;
-      case 8:
-        config.setBattAdaptiveSleep(config.getBattFullMv(), val, config.getBattSleepMult(),
-                                    config.getBattRecoveryN());
-        break;
-      case 9:
-        config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(), (uint8_t)val,
-                                    config.getBattRecoveryN());
-        break;
-      case 10:
-        config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
-                                    config.getBattSleepMult(), val);
-        break;
-    }
-  };
-
   auto updateSubmenuScrollOffset = [&]() {
-    int total = GROUPS[activeGroup].count + 1;
     if (submenuIndex < submenuScrollOffset) {
       submenuScrollOffset = submenuIndex;
     }
     if (submenuIndex >= submenuScrollOffset + VISIBLE_ITEMS) {
       submenuScrollOffset = submenuIndex - VISIBLE_ITEMS + 1;
     }
-    (void)total;
+  };
+
+  int maxGroupItems = 0;
+  for (const MenuGroup& g : GROUPS) {
+    if (g.count > maxGroupItems)
+      maxGroupItems = g.count;
+  }
+  // +1 row for the Back item at the end of every submenu
+  char submenuLabels[maxGroupItems + 1][SUBMENU_LABEL_LEN];
+
+  auto refreshSubMenu = [&]() {
+    const MenuGroup& group = GROUPS[activeGroup];
+    for (int i = 0; i < group.count; i++) {
+      snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5d", group.items[i].label,
+               (int)group.items[i].get());
+    }
+    snprintf(submenuLabels[group.count], SUBMENU_LABEL_LEN, "Back");
+    display.showSubMenu(submenuLabels, group.count + 1, submenuIndex, submenuScrollOffset);
   };
 
   auto handleLongPress = [&]() {
@@ -189,7 +151,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         submenuIndex = 0;
         submenuScrollOffset = 0;
         menuState = SUBMENU;
-        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+        refreshSubMenu();
       }
     } else if (menuState == SUBMENU) {
       int backSlot = GROUPS[activeGroup].count;
@@ -197,24 +159,22 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         menuState = BROWSE;
         display.showMenu(browseIndex, Debug::enabled());
       } else {
-        editItemIndex = GROUPS[activeGroup].itemIndices[submenuIndex];
-        uint16_t currentVal = getCurrentValue(editItemIndex);
-        editOptionIndex = findOptionIndex(VALUE_ITEMS[editItemIndex].options,
-                                          VALUE_ITEMS[editItemIndex].count, currentVal);
+        editItem = &GROUPS[activeGroup].items[submenuIndex];
+        uint16_t currentVal = editItem->get();
+        editOptionIndex = findOptionIndex(editItem->options, editItem->optCount, currentVal);
         menuState = EDIT;
-        display.showMenuEdit(VALUE_ITEMS[editItemIndex].label,
-                             VALUE_ITEMS[editItemIndex].options[editOptionIndex], currentVal);
+        display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal);
       }
     } else {
       // EDIT state
-      if (editOptionIndex == VALUE_ITEMS[editItemIndex].count) {
+      if (editOptionIndex == editItem->optCount) {
         // CANCEL slot
         menuState = SUBMENU;
-        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+        refreshSubMenu();
       } else {
-        saveValue(editItemIndex, VALUE_ITEMS[editItemIndex].options[editOptionIndex]);
+        editItem->set(editItem->options[editOptionIndex]);
         menuState = SUBMENU;
-        display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+        refreshSubMenu();
       }
     }
   };
@@ -256,18 +216,16 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           int slots = GROUPS[activeGroup].count + 1;
           submenuIndex = (submenuIndex + 1) % slots;
           updateSubmenuScrollOffset();
-          display.showSubMenu(activeGroup, submenuIndex, submenuScrollOffset);
+          refreshSubMenu();
         } else {
           // EDIT
-          uint8_t slots = VALUE_ITEMS[editItemIndex].count + 1;
+          uint8_t slots = editItem->optCount + 1;
           editOptionIndex = (editOptionIndex + 1) % slots;
-          if (editOptionIndex == VALUE_ITEMS[editItemIndex].count) {
-            display.showMenuCancel(VALUE_ITEMS[editItemIndex].label,
-                                   getCurrentValue(editItemIndex));
+          if (editOptionIndex == editItem->optCount) {
+            display.showMenuCancel(editItem->label, editItem->get());
           } else {
-            display.showMenuEdit(VALUE_ITEMS[editItemIndex].label,
-                                 VALUE_ITEMS[editItemIndex].options[editOptionIndex],
-                                 getCurrentValue(editItemIndex));
+            display.showMenuEdit(editItem->label, editItem->options[editOptionIndex],
+                                 editItem->get());
           }
         }
       }

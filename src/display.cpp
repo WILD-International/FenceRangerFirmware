@@ -142,7 +142,8 @@ void Display::showMenu(int selectedIndex, bool debugEnabled) {
   display.display();
 }
 
-void Display::showSubMenu(int groupId, int selectedIndex, int scrollOffset) {
+void Display::showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
+                          int scrollOffset) {
   if (!enabled) {
     return;
   }
@@ -152,30 +153,6 @@ void Display::showSubMenu(int groupId, int selectedIndex, int scrollOffset) {
   const int SCROLLBAR_W = 4;
   const int TRACK_Y = 11;
   const int TRACK_H = 53;
-
-  char labels[7][22];
-  int totalItems;
-
-  if (groupId == 0) {
-    // Alert group
-    totalItems = 7;
-    snprintf(labels[0], 22, "%-14s%5d", "Alert V", config->getAlertThresholdV());
-    snprintf(labels[1], 22, "%-14s%5d", "Recover V", config->getRecoverThresholdV());
-    snprintf(labels[2], 22, "%-14s%5d", "Burst Sends", config->getAlertBurstSends());
-    snprintf(labels[3], 22, "%-14s%5d", "Idle Hb", config->getIdleHeartbeatCycles());
-    snprintf(labels[4], 22, "%-14s%5d", "Alert Hb", config->getAlertHeartbeatCycles());
-    snprintf(labels[5], 22, "%-14s%5d", "Recovery", config->getRecoveryConfirmCycles());
-    snprintf(labels[6], 22, "Back");
-  } else {
-    // Sleep group
-    totalItems = 6;
-    snprintf(labels[0], 22, "%-14s%5d", "Cycle Sleep s", config->getSleepIntervalS());
-    snprintf(labels[1], 22, "%-14s%5d", "Batt Full mV", config->getBattFullMv());
-    snprintf(labels[2], 22, "%-14s%5d", "Batt Low mV", config->getBattLowMv());
-    snprintf(labels[3], 22, "%-14s%5d", "Sleep Mult", config->getBattSleepMult());
-    snprintf(labels[4], 22, "%-14s%5d", "Recovery N", config->getBattRecoveryN());
-    snprintf(labels[5], 22, "Back");
-  }
 
   display.clearDisplay();
   displayTitle();

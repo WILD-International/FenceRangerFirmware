@@ -92,15 +92,47 @@ class Config {
     return battRecoveryN;
   }
 
-  // setters
+  // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
   void setDevName(const char* name);
-  void setSleepIntervalS(uint32_t s);
+  void setSleepIntervalS(uint16_t s);
   void setAlertThresholds(uint16_t alert, uint16_t recover);
   void setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertHeartbeat,
                       uint8_t recoveryConfirm);
   void setBattAdaptiveSleep(uint16_t fullMv, uint16_t lowMv, uint8_t sleepMult, uint16_t recoveryN);
+
+  // Individual setters (delegate to grouped setters above)
+  void setAlertThresholdV(uint16_t v) {
+    setAlertThresholds(v, recoverThresholdV);
+  }
+  void setRecoverThresholdV(uint16_t v) {
+    setAlertThresholds(alertThresholdV, v);
+  }
+  void setAlertBurstSends(uint16_t v) {
+    setAlertCycles(v, idleHeartbeatCycles, alertHeartbeatCycles, recoveryConfirmCycles);
+  }
+  void setIdleHeartbeatCycles(uint16_t v) {
+    setAlertCycles(alertBurstSends, v, alertHeartbeatCycles, recoveryConfirmCycles);
+  }
+  void setAlertHeartbeatCycles(uint16_t v) {
+    setAlertCycles(alertBurstSends, idleHeartbeatCycles, v, recoveryConfirmCycles);
+  }
+  void setRecoveryConfirmCycles(uint16_t v) {
+    setAlertCycles(alertBurstSends, idleHeartbeatCycles, alertHeartbeatCycles, v);
+  }
+  void setBattFullMv(uint16_t v) {
+    setBattAdaptiveSleep(v, battLowMv, battSleepMult, battRecoveryN);
+  }
+  void setBattLowMv(uint16_t v) {
+    setBattAdaptiveSleep(battFullMv, v, battSleepMult, battRecoveryN);
+  }
+  void setBattSleepMult(uint16_t v) {
+    setBattAdaptiveSleep(battFullMv, battLowMv, (uint8_t)v, battRecoveryN);
+  }
+  void setBattRecoveryN(uint16_t v) {
+    setBattAdaptiveSleep(battFullMv, battLowMv, battSleepMult, v);
+  }
 
  private:
   void loadDevEUI();

@@ -82,9 +82,10 @@ void Config::setDevName(const char* name) {
   prefs.end();
 }
 
-void Config::setSleepIntervalS(uint32_t s) {
+void Config::setSleepIntervalS(uint16_t s) {
   sleepIntervalS = s;
   prefs.begin(PREFS_NAMESPACE, false);
+  // Keep as UInt (not UShort) to not break existing configs
   prefs.putUInt("sleepInterval", sleepIntervalS);
   prefs.end();
 }

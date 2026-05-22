@@ -7,6 +7,9 @@
 #include "config.h"
 #include "state.h"
 
+// Buffer size for each submenu label string: "%-14s%5d" = 19 chars + null + margin
+constexpr int SUBMENU_LABEL_LEN = 22;
+
 class Display {
  public:
   Display(Config* config);
@@ -17,7 +20,8 @@ class Display {
   void showConfig(State& state);
   void showMeasurement(State& state, uint32_t delayMs = 0);
   void showMenu(int selectedIndex, bool debugEnabled);
-  void showSubMenu(int groupId, int selectedIndex, int scrollOffset);
+  void showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
+                   int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
 
