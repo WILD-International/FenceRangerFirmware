@@ -39,12 +39,12 @@ uint16_t State::getBootCount() {
   return rtc.bootCount;
 }
 
-void State::updateSlowBatt() {
-  if (rtc.slowBattMv == 0 || batt_max_mv < rtc.slowBattMv) {
-    rtc.slowBattMv = batt_max_mv;
+void State::updateSlowBatt(uint16_t battMaxMv) {
+  if (rtc.slowBattMv == 0 || battMaxMv < rtc.slowBattMv) {
+    rtc.slowBattMv = battMaxMv;
   } else {
     rtc.slowBattMv =
-        (uint16_t)(rtc.slowBattMv + (batt_max_mv - rtc.slowBattMv) / config->getBattRecoveryN());
+        (uint16_t)(rtc.slowBattMv + (battMaxMv - rtc.slowBattMv) / config->getBattRecoveryN());
   }
 }
 

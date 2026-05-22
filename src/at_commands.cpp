@@ -20,13 +20,13 @@ void handleATSerial(char c, Config& config, State& state) {
   } else {
     serial_enable_at_mode_count = 0;
   }
-  if (!state.at_command_mode && serial_enable_at_mode_count >= 3) {
-    state.at_command_mode = true;
+  if (!state.atCommandMode && serial_enable_at_mode_count >= 3) {
+    state.atCommandMode = true;
     Debug::disable();
     Serial.println("");
     serialBuffer = "";
     handleATCommand("AT+HELP", config, state);
-  } else if (state.at_command_mode) {
+  } else if (state.atCommandMode) {
     if (c == '\n' || c == '\r') {
       if (serialBuffer.length() > 0) {
         handleATCommand(serialBuffer, config, state);
@@ -99,7 +99,7 @@ void handleATCommand(String cmd, Config& config, State& state) {
   // AT+EXIT
   else if (cmd == "AT+EXIT") {
     Serial.println("OK");
-    state.at_command_mode = false;
+    state.atCommandMode = false;
     Debug::enable();
     state.setMode(ModeNormal);
   }

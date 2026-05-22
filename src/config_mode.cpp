@@ -9,7 +9,7 @@
 
 void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi) {
   uint64_t configModeStartTime = millis();
-  state.at_command_mode = true;
+  state.atCommandMode = true;
   display.message("CONFIG", 1000);
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
@@ -186,7 +186,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   bool buttonPressedState = false;
   bool longPressTriggered = false;
 
-  while (state.at_command_mode && millis() - configModeStartTime < 60 * 60 * 1000) {
+  while (state.atCommandMode && millis() - configModeStartTime < 60 * 60 * 1000) {
     webUi.update();
     while (Serial.available()) {
       char c = Serial.read();
@@ -208,7 +208,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       buttonPressedState = false;
       if (!longPressTriggered) {
         if (menuState == INFO) {
-          state.at_command_mode = false;
+          state.atCommandMode = false;
         } else if (menuState == BROWSE) {
           browseIndex = (browseIndex + 1) % NUM_BROWSE_ITEMS;
           display.showMenu(browseIndex, Debug::enabled());
@@ -236,6 +236,6 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
 
   webUi.stop();
   state.setMode(ModeNormal);
-  state.at_command_mode = false;
+  state.atCommandMode = false;
   Serial.println("EXIT");
 }

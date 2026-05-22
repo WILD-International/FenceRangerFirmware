@@ -26,21 +26,20 @@ void Display::message(const char* msg, uint32_t delayMs) {
   }
 }
 
-void Display::showMeasurement(State& state, uint32_t delayMs) {
+void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) {
   if (!enabled) {
     return;
   }
   display.clearDisplay();
   displayTitle();
   display.setCursor(0, 16);
-  display.printf("batt: %d %d", state.batt_min_mv, state.batt_max_mv);
+  display.printf("batt: %d %d", measurement.battMinMv, measurement.battMaxMv);
   display.setCursor(0, 28);
-  display.printf(" neg: %d %d", state.fence_neg_min_v, state.fence_neg_max_v);
+  display.printf(" neg: %d %d", measurement.fenceNegMinV, measurement.fenceNegMaxV);
   display.setCursor(0, 40);
-  display.printf(" pos: %d %d", state.fence_pos_min_v, state.fence_pos_max_v);
+  display.printf(" pos: %d %d", measurement.fencePosMinV, measurement.fencePosMaxV);
   display.setCursor(0, 52);
-  display.printf(" err: %d", state.adc_error_count);
-  //
+  display.printf(" err: %d", measurement.adcErrorCount);
   display.display();
   if (delayMs > 0) {
     delay(delayMs);

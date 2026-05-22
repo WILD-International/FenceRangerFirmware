@@ -28,19 +28,18 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
-static void runComms(Comms& comms, State& state, Config& config, Display& display) {
+static void runComms(Comms& comms, State& state, Config& config, Display& display,
+                     const Measurement& measurement) {
   if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
     display.message("RADIO ERR", 2000);
     return;
   }
 
-  uint16_t battMv = max(state.batt_min_mv, state.batt_max_mv);
-  uint16_t fenceNeg = max(state.fence_neg_min_v, state.fence_neg_max_v);
-  uint16_t fencePos = max(state.fence_pos_min_v, state.fence_pos_max_v);
-  uint16_t fenceV = max(fenceNeg, fencePos);
   display.message("SEND MSR");
   Downlink downlink;
-  comms.sendMeasurement(battMv, fenceV, &display, &downlink);
+  comms.sendMeasurement(measurement.battMaxMv,
+                        max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
+                        &downlink);
   display.message("SENT", 1000);
 
   while (downlink.type == DownlinkType::QueryConfig) {
@@ -116,9 +115,9 @@ void setup() {
   buttonSetup(USER_BUTTON);
 
   display.message("MEASURE");
-  measureProgram.run(config, state);
-  state.updateSlowBatt();
-  display.showMeasurement(state, 2000);
+  Measurement measurement = measureProgram.run(config);
+  state.updateSlowBatt(measurement.battMaxMv);
+  display.showMeasurement(measurement, 2000);
 
   uint32_t adaptedSleepMs = state.computeAdaptedSleepMs();
 
@@ -146,7 +145,7 @@ void setup() {
     gotoSleep(100);
   }
 
-  uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
+  uint16_t fenceVoltage = max(measurement.fencePosMaxV, measurement.fenceNegMaxV);
   AlertConfig alertCfg = {
       .alertThresholdV = config.getAlertThresholdV(),
       .recoverThresholdV = config.getRecoverThresholdV(),
@@ -157,7 +156,7 @@ void setup() {
   };
   bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
   if (shouldSend) {
-    runComms(comms, state, config, display);
+    runComms(comms, state, config, display, measurement);
     comms.saveSession();
   }
   comms.sleep();
