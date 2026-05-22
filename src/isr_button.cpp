@@ -14,7 +14,7 @@ void buttonSetup(uint8_t pin) {
   buttonPin = pin;
   pinMode(pin, INPUT_PULLUP);
   rtc.buttonPressed = false;
-  attachInterrupt(pin, buttonISR, CHANGE);
+  attachInterrupt(pin, buttonISR, FALLING);
 }
 
 bool wasButtonPressed() {

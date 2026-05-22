@@ -134,7 +134,7 @@ bool Comms::lwActivate(Display* display) {
 
     if (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
       LOGPRINT(F("Join failed: "));
-      display->message("JOIN ERR");
+      display->message("JOIN ERR", 1000);
       LOGLN(radiolib_state);
 
       // how long to wait before join attempts. This is an interim solution pending
@@ -172,7 +172,6 @@ int16_t Comms::begin(Display* display) {
   if (radioInitialized) {
     return RADIOLIB_ERR_NONE;
   }
-  radioInitialized = true;
   LOGLN("[SX1262] Initializing ... ");
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   // TODO! I still put the power back to 10dBm because it's not clear how
@@ -180,6 +179,7 @@ int16_t Comms::begin(Display* display) {
   int radiolib_state =
       radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 10, 8, 1.8, false);
   if (radiolib_state == RADIOLIB_ERR_NONE) {
+    radioInitialized = true;
     LOGLN(F("radiolib begin success!"));
   } else {
     LOG("Failed to initialize radio, code: %d\n", radiolib_state);
