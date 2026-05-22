@@ -137,7 +137,7 @@ void setup() {
         .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
         .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
     };
-    bool shouldSend = processMeasurement(fenceVoltage, alertCfg);
+    bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
 
     if (shouldSend) {
       // No need to initialize the radio if there's nothing to send

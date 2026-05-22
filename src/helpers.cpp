@@ -8,9 +8,7 @@
 #include "debug.h"
 #include "esp32-hal-gpio.h"
 #include "hal/gpio_types.h"
-
-RTC_DATA_ATTR int64_t sleep_enter_us = 0;
-RTC_DATA_ATTR int64_t sleep_time_ms = 0;
+#include "rtc_state.h"
 
 int64_t rtcTimeNowUs() {
   uint32_t cal = esp_clk_slowclk_cal_get();
@@ -20,8 +18,8 @@ int64_t rtcTimeNowUs() {
 // put device in to lowest power deep-sleep mode
 void gotoSleep(uint32_t ms, bool setSleepTime) {
   if (setSleepTime) {
-    sleep_enter_us = rtcTimeNowUs();
-    sleep_time_ms = ms;
+    rtc.sleepEnterUs = rtcTimeNowUs();
+    rtc.sleepTimeMs = ms;
   }
   esp_sleep_enable_timer_wakeup(ms * 1000UL);  // function uses uS
   LOGLN(F("Sleeping\n"));
@@ -65,13 +63,7 @@ void gotoSleep(uint32_t ms, bool setSleepTime) {
 }
 
 int64_t getTimeSleptMs() {
-  return (rtcTimeNowUs() - sleep_enter_us) / 1000;
-}
-
-uint32_t getRemainingSleepTimeMs() {
-  int64_t slept_ms = getTimeSleptMs();
-  int64_t remaining_ms = sleep_time_ms - slept_ms;
-  return remaining_ms > 0 ? remaining_ms : 0;
+  return (rtcTimeNowUs() - rtc.sleepEnterUs) / 1000;
 }
 
 void bytesToHex(const uint8_t* data, size_t len, char* out) {
@@ -93,31 +85,4 @@ bool hexToBytes(const char* hex, uint8_t* out, size_t expectedLen) {
     out[i] = (uint8_t)val;
   }
   return true;
-}
-
-void printWakeupReason() {
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch (wakeup_reason) {
-    case ESP_SLEEP_WAKEUP_EXT0:
-      LOGLN("Wakeup caused by external signal using RTC_IO");
-      break;
-    case ESP_SLEEP_WAKEUP_EXT1:
-      LOGLN("Wakeup caused by external signal using RTC_CNTL");
-      break;
-    case ESP_SLEEP_WAKEUP_TIMER:
-      LOGLN("Wakeup caused by timer");
-      break;
-    case ESP_SLEEP_WAKEUP_TOUCHPAD:
-      LOGLN("Wakeup caused by touchpad");
-      break;
-    case ESP_SLEEP_WAKEUP_ULP:
-      LOGLN("Wakeup caused by ULP program");
-      break;
-    default:
-      LOG("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
-      break;
-  }
 }

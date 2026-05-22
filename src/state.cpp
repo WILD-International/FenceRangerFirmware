@@ -2,70 +2,54 @@
 
 #include "helpers.h"
 
-// Persistent data that lives in RTC memory
-RTC_DATA_ATTR Mode currentMode = ModeNormal;
-RTC_DATA_ATTR uint16_t slowBattMv = 0;
-RTC_DATA_ATTR int64_t useDisplayInNormalModeStartTime = 1;  // set to 0 to disable by default
-RTC_DATA_ATTR uint16_t bootCount = 0;
-
 State::State(Config* config) : config(config) {}
 
-State::~State() {}
-
 void State::setMode(Mode mode) {
-  currentMode = mode;
+  rtc.mode = mode;
 }
 
 Mode State::getMode() {
-  return currentMode;
+  return rtc.mode;
 }
 
 bool State::useDisplayInNormalMode() {
-  int64_t now = rtcTimeNowUs();
-  if (useDisplayInNormalModeStartTime == 0) {
+  if (rtc.displayStartTime == 0) {
     return false;
   }
-
-  // use display for debugging for max of 60 minutes
-  if (now - useDisplayInNormalModeStartTime < 60LL * 60 * 1000 * 1000) {
-    return true;
-  }
-  return false;
+  return rtcTimeNowUs() - rtc.displayStartTime < 60LL * 60 * 1000 * 1000;
 }
 
 bool State::useDisplay() {
-  if (currentMode == ModeConfig) {
-    return true;
-  }
-  return useDisplayInNormalMode();
+  return rtc.mode == ModeConfig || useDisplayInNormalMode();
 }
 
 void State::startDisplayInNormalMode() {
-  useDisplayInNormalModeStartTime = rtcTimeNowUs();
+  rtc.displayStartTime = rtcTimeNowUs();
 }
 
 void State::stopDisplayInNormalMode() {
-  useDisplayInNormalModeStartTime = 0;
+  rtc.displayStartTime = 0;
 }
 
 void State::incrementBootCount() {
-  bootCount++;
+  rtc.bootCount++;
 }
 
 uint16_t State::getBootCount() {
-  return bootCount;
+  return rtc.bootCount;
 }
 
 void State::updateSlowBatt() {
-  if (slowBattMv == 0 || batt_max_mv < slowBattMv) {
-    slowBattMv = batt_max_mv;
+  if (rtc.slowBattMv == 0 || batt_max_mv < rtc.slowBattMv) {
+    rtc.slowBattMv = batt_max_mv;
   } else {
-    slowBattMv = (uint16_t)(slowBattMv + (batt_max_mv - slowBattMv) / config->getBattRecoveryN());
+    rtc.slowBattMv =
+        (uint16_t)(rtc.slowBattMv + (batt_max_mv - rtc.slowBattMv) / config->getBattRecoveryN());
   }
 }
 
 uint32_t State::computeAdaptedSleepMs() const {
-  float battT = constrain(((float)config->getBattFullMv() - slowBattMv) /
+  float battT = constrain(((float)config->getBattFullMv() - rtc.slowBattMv) /
                               (config->getBattFullMv() - config->getBattLowMv()),
                           0.0f, 1.0f);
   uint32_t minSleep = config->getSleepIntervalMs();

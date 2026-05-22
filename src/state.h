@@ -1,16 +1,13 @@
 #ifndef STATE_H
 #define STATE_H
 
-#include <Arduino.h>
 #include <Preferences.h>
 
 #include "config.h"
-
-enum Mode { ModeNormal, ModeConfig };
+#include "rtc_state.h"
 class State {
  public:
   State(Config* config);
-  ~State();
 
   // Public methods
   void setMode(Mode mode);

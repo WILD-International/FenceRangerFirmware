@@ -2,13 +2,7 @@
 
 #include "TypeDef.h"
 #include "debug.h"
-#include "helpers.h"
-
-// utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
-// puts these in to the RTC memory which is preserved during deep-sleep
-RTC_DATA_ATTR uint16_t bootCountForJoining = 0;
-RTC_DATA_ATTR bool joined = false;
-RTC_DATA_ATTR uint8_t LWsession[RADIOLIB_LORAWAN_SESSION_BUF_SIZE];
+#include "rtc_state.h"
 
 uint8_t dataUp[] = {0x42};
 uint8_t dataDown[RADIOLIB_LORAWAN_MAX_DOWNLINK_SIZE + 1];
@@ -61,7 +55,7 @@ Comms::Comms(Config* config, State* state)
 // "Inspired" from
 // https://github.com/radiolib-org/radiolib-persistence/blob/main/examples/LoRaWAN_ESP32/LoRaWAN_ESP32.ino
 bool Comms::lwActivate(Display* display) {
-  bootCountForJoining++;
+  rtc.bootCountForJoining++;
 
   int16_t radiolib_state = RADIOLIB_ERR_UNKNOWN;
 
@@ -80,11 +74,11 @@ bool Comms::lwActivate(Display* display) {
                radiolib_state, false);
 
     // recall session from RTC deep-sleep preserved variable
-    radiolib_state = node.setBufferSession(LWsession);  // send them to LoRaWAN stack
+    radiolib_state = node.setBufferSession(rtc.lwSession);  // send them to LoRaWAN stack
 
     // if we have booted more than once we should have a session to restore, so report any failure
     // otherwise no point saying there's been a failure when it was bound to fail with an empty
-    // LWsession var.
+    // rtc.lwSession var.
     radioDebug((radiolib_state != RADIOLIB_ERR_NONE) && (state->getBootCount() > 1),
                F("Restoring session buffer failed"), radiolib_state, false);
 
@@ -105,17 +99,17 @@ bool Comms::lwActivate(Display* display) {
     LOGLN(F("No Nonces saved - starting fresh."));
   }
 
-  if ((bootCountForJoining - 1) > 30) {
+  if ((rtc.bootCountForJoining - 1) > 30) {
     // From now on, only try joining every 10th time
-    if ((bootCountForJoining - 1) % 10 != 0) {
-      LOG("Next join attempt in %d boots\n", 10 - ((bootCountForJoining - 1) % 10));
+    if ((rtc.bootCountForJoining - 1) % 10 != 0) {
+      LOG("Next join attempt in %d boots\n", 10 - ((rtc.bootCountForJoining - 1) % 10));
       store.end();
       return false;
     }
   } else {
     // From now on, only try joining every 5th time
-    if ((bootCountForJoining - 1) % 5 != 0) {
-      LOG("Next join attempt in %d boots\n", 5 - ((bootCountForJoining - 1) % 5));
+    if ((rtc.bootCountForJoining - 1) % 5 != 0) {
+      LOG("Next join attempt in %d boots\n", 5 - ((rtc.bootCountForJoining - 1) % 5));
       store.end();
       return false;
     }
@@ -204,7 +198,7 @@ int16_t Comms::begin(Display* display) {
   if (config->hasAppKey()) {
     digitalWrite(LORA_PA_POWER, HIGH);
     delay(1);
-    joined = lwActivate(display);
+    rtc.joined = lwActivate(display);
     digitalWrite(LORA_PA_POWER, LOW);
   }
   return radiolib_state;
@@ -359,11 +353,11 @@ void Comms::saveSession() {
   }
   // now save session to RTC memory
   uint8_t* persist = node.getBufferSession();
-  memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
+  memcpy(rtc.lwSession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
 }
 
 bool Comms::hasJoined() {
-  return joined;
+  return rtc.joined;
 }
 
 void Comms::sleep() {
@@ -375,5 +369,5 @@ void Comms::sleep() {
 }
 
 void Comms::resetBootCountForJoining() {
-  bootCountForJoining = 0;
+  rtc.bootCountForJoining = 0;
 }
