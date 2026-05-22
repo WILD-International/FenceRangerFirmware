@@ -29,21 +29,6 @@ WebUi webUi(&config);
 MeasureProgram measureProgram;
 
 static void runComms(Comms& comms, State& state, Config& config, Display& display) {
-  uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
-  AlertConfig alertCfg = {
-      .alertThresholdV = config.getAlertThresholdV(),
-      .recoverThresholdV = config.getRecoverThresholdV(),
-      .burstSends = config.getAlertBurstSends(),
-      .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
-      .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
-      .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
-  };
-  bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
-
-  if (!shouldSend) {
-    return;
-  }
-
   if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
     display.message("RADIO ERR", 2000);
     return;
@@ -149,6 +134,8 @@ void setup() {
   if (!comms.hasJoined()) {
     if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
       display.message("RADIO ERR", 2000);
+    } else {
+      comms.saveSession();
     }
   }
   if (!comms.hasJoined()) {
@@ -158,8 +145,21 @@ void setup() {
   if (wasButtonPressed()) {
     gotoSleep(100);
   }
-  runComms(comms, state, config, display);
-  comms.saveSession();
+
+  uint16_t fenceVoltage = max(state.fence_pos_max_v, state.fence_neg_max_v);
+  AlertConfig alertCfg = {
+      .alertThresholdV = config.getAlertThresholdV(),
+      .recoverThresholdV = config.getRecoverThresholdV(),
+      .burstSends = config.getAlertBurstSends(),
+      .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
+      .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
+      .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
+  };
+  bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
+  if (shouldSend) {
+    runComms(comms, state, config, display);
+    comms.saveSession();
+  }
   comms.sleep();
   if (wasButtonPressed() || state.getMode() == ModeConfig) {
     gotoSleep(100);
