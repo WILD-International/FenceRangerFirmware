@@ -212,9 +212,9 @@ int16_t Comms::begin(Display* display) {
 
 int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display,
                                Downlink* downlink) {
-  battMv = constrain(battMv, (uint16_t)2300, (uint16_t)4340);
+  battMv = constrain(battMv, (uint16_t)1950, (uint16_t)4500);
   uint8_t payload[3];
-  payload[0] = (battMv - 2300) >> 3;
+  payload[0] = (battMv - 1950) / 10;
   payload[1] = (fenceV >> 8) & 0xFF;
   payload[2] = fenceV & 0xFF;
   return send(1, payload, sizeof(payload), display, downlink);
@@ -298,8 +298,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
           } else if (downlinkSize == 2) {
             LOGLN("Downlink: SetSleepAdjRange");
             downlink->type = DownlinkType::SetSleepAdjRange;
-            downlink->sleepAdjRange.battFullMv = (downlinkPayload[0] << 3) + 2300;
-            downlink->sleepAdjRange.battLowMv = (downlinkPayload[1] << 3) + 2300;
+            downlink->sleepAdjRange.battFullMv = downlinkPayload[0] * 10 + 1950;
+            downlink->sleepAdjRange.battLowMv = downlinkPayload[1] * 10 + 1950;
           } else {
             LOG("Downlink: fPort 14 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -343,8 +343,8 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       len = 5;
       break;
     case 14:
-      payload[0] = (uint8_t)((config->getBattFullMv() - 2300) >> 3);
-      payload[1] = (uint8_t)((config->getBattLowMv() - 2300) >> 3);
+      payload[0] = (uint8_t)((config->getBattFullMv() - 1950) / 10);
+      payload[1] = (uint8_t)((config->getBattLowMv() - 1950) / 10);
       len = 2;
       break;
     default:

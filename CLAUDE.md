@@ -75,7 +75,7 @@ The public send API is `comms.sendMeasurement(battMv, fenceV, display, downlink)
 
 | Byte | Content |
 |------|---------|
-| 0 | Battery voltage compressed: `(mv - 2300) >> 3`, covering 2300–4340 mV |
+| 0 | Battery voltage compressed: `(mv - 1950) / 10`, covering 1950–4500 mV in 10 mV steps |
 | 1–2 | Fence voltage in volts, big-endian uint16 |
 
 Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max reading to use) stays in `main.cpp`.
