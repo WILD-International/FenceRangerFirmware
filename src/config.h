@@ -121,6 +121,11 @@ class Config {
   }
   void setAdrEnabled(bool enabled);
 
+  bool getSyncwordPublic() const {
+    return syncwordPublic;
+  }
+  void setSyncwordPublic(bool isPublic);
+
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -190,6 +195,7 @@ class Config {
   int8_t txPower = 10;
   uint8_t spreadingFactor = 12;
   bool adrEnabled = true;
+  bool syncwordPublic = true;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

@@ -55,6 +55,7 @@ void Config::load() {
   txPower = (int8_t)prefs.getChar("txPower", 10);
   spreadingFactor = prefs.getUChar("spreadFactor", 12);
   adrEnabled = prefs.getBool("adrEnabled", true);
+  syncwordPublic = prefs.getBool("syncwordPublic", true);
   prefs.end();
 }
 
@@ -151,6 +152,13 @@ void Config::setSpreadingFactor(uint8_t sf) {
   spreadingFactor = sf;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUChar("spreadFactor", spreadingFactor);
+  prefs.end();
+}
+
+void Config::setSyncwordPublic(bool isPublic) {
+  syncwordPublic = isPublic;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putBool("syncwordPublic", syncwordPublic);
   prefs.end();
 }
 

@@ -176,9 +176,10 @@ int16_t Comms::begin(Display* display) {
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   // TODO! I still put the power back to 10dBm because it's not clear how
   // TODO! this combines with the amplifiers
-  int radiolib_state =
-      radio.begin(868.1, 125.0, config->getSpreadingFactor(), 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC,
-                  config->getTxPower(), 8, 1.8, false);
+  int radiolib_state = radio.begin(868.1, 125.0, config->getSpreadingFactor(), 7,
+                                   config->getSyncwordPublic() ? RADIOLIB_SX126X_SYNC_WORD_PUBLIC
+                                                               : RADIOLIB_SX126X_SYNC_WORD_PRIVATE,
+                                   config->getTxPower(), 8, 1.8, false);
   if (radiolib_state == RADIOLIB_ERR_NONE) {
     radioInitialized = true;
     LOGLN(F("radiolib begin success!"));

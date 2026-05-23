@@ -29,6 +29,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
   const uint16_t SPREADING_FACTOR_OPTIONS[] = {7, 8, 9, 10, 11, 12};
   const uint16_t ADR_OPTIONS[] = {0, 1};
+  const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
 
   // To add a parameter: add one entry to the relevant group below.
   struct MenuItem {
@@ -105,6 +106,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       {"ADR", ADR_OPTIONS, sizeof(ADR_OPTIONS) / sizeof(ADR_OPTIONS[0]),
        [&] { return (uint16_t)config.getAdrEnabled(); },
        [&](uint16_t value) { config.setAdrEnabled(value != 0); }},
+      {"Syncword Pub", SYNCWORD_PUBLIC_OPTIONS,
+       sizeof(SYNCWORD_PUBLIC_OPTIONS) / sizeof(SYNCWORD_PUBLIC_OPTIONS[0]),
+       [&] { return (uint16_t)config.getSyncwordPublic(); },
+       [&](uint16_t value) { config.setSyncwordPublic(value != 0); }},
   };
 
   const MenuGroup GROUPS[] = {
