@@ -9,6 +9,7 @@
 #include "board.h"
 #include "config.h"
 #include "display.h"
+#include "signal_info.h"
 
 // regional choices: EU868, US915, AU915, AS923, AS923_2, AS923_3, AS923_4, IN865, KR920, CN470
 const LoRaWANBand_t Region = EU868;
@@ -59,7 +60,8 @@ class Comms {
   Comms(Config* config, State* state);
 
   int16_t begin(Display* display);
-  int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink);
+  int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink,
+                          bool confirmed = false, SignalInfo* signalInfo = nullptr);
   int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);
   void processDownlink(Downlink& downlink, Display* display);
   void saveSession();
@@ -69,7 +71,8 @@ class Comms {
 
  private:
   bool lwActivate(Display* display);
-  int16_t send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink);
+  int16_t send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink,
+               bool confirmed = false, SignalInfo* signalInfo = nullptr);
 
   bool radioInitialized = false;
   Config* config;

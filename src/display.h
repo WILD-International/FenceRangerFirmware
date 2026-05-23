@@ -6,6 +6,7 @@
 
 #include "config.h"
 #include "measure_program.h"
+#include "signal_info.h"
 #include "state.h"
 
 // Buffer size for each submenu label string: "%-14s%5d" = 19 chars + null + margin
@@ -27,7 +28,8 @@ class Display {
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
   void showVoltageTest(const Measurement& measurement);
-  void showLoraTest(bool joined);
+  void showLoraTest(bool joined, LoraTestState state = LoraTestState::Idle,
+                    const SignalInfo* signalInfo = nullptr);
 
  private:
   void displayTitle();

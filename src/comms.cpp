@@ -207,17 +207,17 @@ int16_t Comms::begin(Display* display) {
 }
 
 int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display,
-                               Downlink* downlink) {
+                               Downlink* downlink, bool confirmed, SignalInfo* signalInfo) {
   battMv = constrain(battMv, (uint16_t)1950, (uint16_t)4500);
   uint8_t payload[3];
   payload[0] = (battMv - 1950) / 10;
   payload[1] = (fenceV >> 8) & 0xFF;
   payload[2] = fenceV & 0xFF;
-  return send(1, payload, sizeof(payload), display, downlink);
+  return send(1, payload, sizeof(payload), display, downlink, confirmed, signalInfo);
 }
 
-int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
-                    Downlink* downlink) {
+int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink,
+                    bool confirmed, SignalInfo* signalInfo) {
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
 
@@ -229,11 +229,18 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
 
   uint32_t fCntUp = node.getFCntUp();
 
-  int16_t radiolib_state = node.sendReceive(data, len, fport, downlinkPayload, &downlinkSize, false,
-                                            &uplinkDetails, &downlinkDetails);
+  int16_t radiolib_state = node.sendReceive(data, len, fport, downlinkPayload, &downlinkSize,
+                                            confirmed, &uplinkDetails, &downlinkDetails);
   digitalWrite(LORA_PA_POWER, LOW);
 
   if (radiolib_state > 0) {
+    if (signalInfo != nullptr) {
+      signalInfo->rssi = radio.getRSSI();
+      signalInfo->snr = radio.getSNR();
+      signalInfo->freq = downlinkDetails.freq;
+      signalInfo->datarate = downlinkDetails.datarate;
+      signalInfo->rxWindow = radiolib_state;
+    }
     LOGLN("Received a message from server");
     if (downlink != nullptr) {
       switch (downlinkDetails.fPort) {

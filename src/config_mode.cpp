@@ -138,6 +138,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   int editOptionIndex = 0;
   MeasureProgram measureProgram;
   Measurement liveMeasurement;
+  SignalInfo lastSignalInfo = {};
+  LoraTestState loraTestState = LoraTestState::Idle;
 
   auto findOptionIndex = [](const uint16_t* opts, uint8_t count, uint16_t val) -> int {
     for (int i = 0; i < count; i++) {
@@ -203,6 +205,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         measureProgram.begin(config.getMeasureDurationMs());
       } else if (browseIndex == BROWSE_LORA_TEST) {
         menuState = LORA_TEST;
+        loraTestState = LoraTestState::Idle;
         display.showLoraTest(comms.hasJoined());
       } else {
         activeGroup = browseIndex;
@@ -275,16 +278,22 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           display.showVoltageTest(liveMeasurement);
           measureProgram.begin(config.getMeasureDurationMs());
         } else if (menuState == LORA_TEST) {
-          uint16_t fenceV = max(liveMeasurement.fencePosMaxV, liveMeasurement.fenceNegMaxV);
-          Downlink dl = {};
+          uint16_t fenceVoltage = max(liveMeasurement.fencePosMaxV, liveMeasurement.fenceNegMaxV);
+          Downlink downlink = {};
+          SignalInfo signalInfo = {};
           display.message("SEND DATA");
-          int16_t sendState =
-              comms.sendMeasurement(liveMeasurement.battMaxMv, fenceV, &display, &dl);
-          if (sendState >= 0) {
-            display.message("DATA SENT", 1000);
-            comms.processDownlink(dl, &display);
+          int16_t sendResult = comms.sendMeasurement(liveMeasurement.battMaxMv, fenceVoltage,
+                                                     &display, &downlink, true, &signalInfo);
+          if (sendResult > 0) {
+            lastSignalInfo = signalInfo;
+            loraTestState = LoraTestState::Received;
+            comms.processDownlink(downlink, &display);
+          } else {
+            loraTestState = LoraTestState::NoDownlink;
           }
-          display.showLoraTest(comms.hasJoined());
+          display.showLoraTest(
+              comms.hasJoined(), loraTestState,
+              loraTestState == LoraTestState::Received ? &lastSignalInfo : nullptr);
         }
       }
     }
@@ -324,10 +333,14 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             comms.resetJoinSchedule();
             comms.begin(&display);
             comms.saveSession();
-            display.showLoraTest(comms.hasJoined());
+            display.showLoraTest(
+                comms.hasJoined(), loraTestState,
+                loraTestState == LoraTestState::Received ? &lastSignalInfo : nullptr);
           } else if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
             display.message("RADIO ERR", 2000);
-            display.showLoraTest(comms.hasJoined());
+            display.showLoraTest(
+                comms.hasJoined(), loraTestState,
+                loraTestState == LoraTestState::Received ? &lastSignalInfo : nullptr);
           } else {
             liveMeasurement = Measurement{};
             display.message("MEASURE");

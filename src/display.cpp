@@ -322,7 +322,7 @@ void Display::showVoltageTest(const Measurement& measurement) {
   display.display();
 }
 
-void Display::showLoraTest(bool joined) {
+void Display::showLoraTest(bool joined, LoraTestState state, const SignalInfo* signalInfo) {
   if (!enabled) {
     return;
   }
@@ -330,9 +330,26 @@ void Display::showLoraTest(bool joined) {
   displayHeader("LoRa Test");
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  const char* status = joined ? "Joined" : "Not joined";
-  display.setCursor((SCREEN_WIDTH - (int)strlen(status) * 6) / 2, 24);
-  display.print(status);
+
+  if (state == LoraTestState::Received && signalInfo != nullptr) {
+    display.setCursor(2, 13);
+    display.printf("RSSI: %.0f dBm", signalInfo->rssi);
+    display.setCursor(2, 23);
+    display.printf("SNR:  %.1f dB", signalInfo->snr);
+    display.setCursor(2, 33);
+    display.printf("Freq: %.1f MHz", signalInfo->freq);
+    display.setCursor(2, 43);
+    display.printf("DR: %d   RX win: %d", signalInfo->datarate, signalInfo->rxWindow);
+  } else if (state == LoraTestState::NoDownlink) {
+    const char* noDownlinkMsg = "Sent, no downlink";
+    display.setCursor((SCREEN_WIDTH - (int)strlen(noDownlinkMsg) * 6) / 2, 24);
+    display.print(noDownlinkMsg);
+  } else {
+    const char* status = joined ? "Joined" : "Not joined";
+    display.setCursor((SCREEN_WIDTH - (int)strlen(status) * 6) / 2, 24);
+    display.print(status);
+  }
+
   display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
   display.setTextColor(SSD1306_BLACK);
   display.setCursor(2, 56);
