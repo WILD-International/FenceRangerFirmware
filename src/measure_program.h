@@ -43,7 +43,7 @@ class MeasureProgram {
 
   uint32_t start = 0;
   uint32_t measureDurationMs = 3000;  // overwritten by begin(); default never used
-  bool finished = false;
+  bool finished = true;
   esp_adc_cal_characteristics_t adc_chars;
   const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
                                                 ADC_CHANNEL_FENCE_POS};

@@ -232,8 +232,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     } else if (menuState == VOLT_TEST) {
       // long press ignored in volt test — tap exits
     } else if (menuState == LORA_TEST) {
-      menuState = BROWSE;
-      display.showMenu(browseIndex);
+      if (measureProgram.isFinished()) {
+        menuState = BROWSE;
+        display.showMenu(browseIndex);
+      }
     } else {
       // EDIT state
       if (editOptionIndex == editItem->optCount) {
@@ -258,7 +260,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
     // Skip webUi during active measurement: webUi can block 10-20ms, long enough
     // to overflow the DMA pool (~4ms capacity) before update() drains it.
-    if (menuState != VOLT_TEST || measureProgram.isFinished()) {
+    if (measureProgram.isFinished()) {
       webUi.update();
     }
     while (Serial.available()) {
@@ -266,11 +268,24 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       handleATSerial(c, config, exitConfigMode);
     }
 
-    if (menuState == VOLT_TEST) {
+    if (!measureProgram.isFinished()) {
       measureProgram.update(config, liveMeasurement);
       if (measureProgram.isFinished()) {
-        display.showVoltageTest(liveMeasurement);
-        measureProgram.begin(config.getMeasureDurationMs());
+        if (menuState == VOLT_TEST) {
+          display.showVoltageTest(liveMeasurement);
+          measureProgram.begin(config.getMeasureDurationMs());
+        } else if (menuState == LORA_TEST) {
+          uint16_t fenceV = max(liveMeasurement.fencePosMaxV, liveMeasurement.fenceNegMaxV);
+          Downlink dl = {};
+          display.message("SEND DATA");
+          int16_t sendState =
+              comms.sendMeasurement(liveMeasurement.battMaxMv, fenceV, &display, &dl);
+          if (sendState >= 0) {
+            display.message("DATA SENT", 1000);
+            comms.processDownlink(dl, &display);
+          }
+          display.showLoraTest(comms.hasJoined());
+        }
       }
     }
 
@@ -303,22 +318,18 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           menuState = BROWSE;
           display.showMenu(browseIndex);
         } else if (menuState == LORA_TEST) {
-          if (!comms.hasJoined()) {
+          if (!measureProgram.isFinished()) {
+            // ignore tap during ongoing measurement
+          } else if (!comms.hasJoined()) {
             comms.resetJoinSchedule();
             comms.begin(&display);
             comms.saveSession();
+            display.showLoraTest(comms.hasJoined());
           } else {
-            Measurement m = measureProgram.run(config);
-            uint16_t fenceV = max(m.fencePosMaxV, m.fenceNegMaxV);
-            Downlink dl = {};
-            display.message("SEND DATA");
-            int16_t sendState = comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
-            if (sendState >= 0) {
-              display.message("DATA SENT", 1000);
-              comms.processDownlink(dl, &display);
-            }
+            liveMeasurement = Measurement{};
+            display.message("MEASURE");
+            measureProgram.begin(config.getMeasureDurationMs());
           }
-          display.showLoraTest(comms.hasJoined());
         } else {
           // EDIT
           uint8_t slots = editItem->optCount + 1;
