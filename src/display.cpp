@@ -159,15 +159,16 @@ void Display::showMenu(int selectedIndex) {
     return;
   }
 
-  const int TOTAL_ITEMS = 4;
+  const int TOTAL_ITEMS = 5;
   const int VISIBLE_ITEMS = 6;
   const int TRACK_Y = 11;
 
   char labels[TOTAL_ITEMS][22];
   snprintf(labels[0], 22, "%-14s%5s", "Alert config", ">");
   snprintf(labels[1], 22, "%-14s%5s", "Sleep config", ">");
-  snprintf(labels[2], 22, "%-14s%5s", "Radio config", ">");
-  snprintf(labels[3], 22, "Back");
+  snprintf(labels[2], 22, "%-14s%5s", "Measure config", ">");
+  snprintf(labels[3], 22, "%-14s%5s", "Radio config", ">");
+  snprintf(labels[4], 22, "Back");
 
   display.clearDisplay();
   displayHeader("Settings");
@@ -188,8 +189,8 @@ void Display::showMenu(int selectedIndex) {
   display.display();
 }
 
-void Display::showSubMenu(const char* header, const char labels[][SUBMENU_LABEL_LEN], int totalItems,
-                          int selectedIndex, int scrollOffset) {
+void Display::showSubMenu(const char* header, const char labels[][SUBMENU_LABEL_LEN],
+                          int totalItems, int selectedIndex, int scrollOffset) {
   if (!enabled) {
     return;
   }

@@ -97,6 +97,11 @@ class Config {
   }
   void setRxLnaEnabled(uint16_t enabled);
 
+  uint16_t getMeasureDurationMs() const {
+    return measureDurationMs;
+  }
+  void setMeasureDurationMs(uint16_t ms);
+
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -161,6 +166,7 @@ class Config {
   uint8_t battSleepMult = 30;
   uint16_t battRecoveryN = 50;
   bool rxLnaEnabled = true;
+  uint16_t measureDurationMs = 3000;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

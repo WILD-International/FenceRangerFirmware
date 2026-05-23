@@ -50,6 +50,14 @@ void Config::load() {
   battSleepMult = prefs.getUChar("battSleepMult", 30);
   battRecoveryN = prefs.getUShort("battRecoveryN", 50);
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
+  measureDurationMs = prefs.getUShort("measureMs", 3000);
+  prefs.end();
+}
+
+void Config::setMeasureDurationMs(uint16_t ms) {
+  measureDurationMs = ms;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("measureMs", measureDurationMs);
   prefs.end();
 }
 

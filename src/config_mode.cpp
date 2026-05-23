@@ -23,6 +23,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t SLEEP_MULT_OPTIONS[] = {2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30};
   const uint16_t RECOVERY_N_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
   const uint16_t RX_LNA_OPTIONS[] = {0, 1};
+  const uint16_t MEASURE_DURATION_OPTIONS[] = {1200, 2200, 3000, 6000, 12000};
 
   // To add a parameter: add one entry to the relevant group below.
   struct MenuItem {
@@ -75,6 +76,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     int count;
   };
 
+  const MenuItem measureItems[] = {
+      {"Measure ms", MEASURE_DURATION_OPTIONS,
+       sizeof(MEASURE_DURATION_OPTIONS) / sizeof(MEASURE_DURATION_OPTIONS[0]),
+       [&] { return config.getMeasureDurationMs(); },
+       [&](uint16_t ms) { config.setMeasureDurationMs(ms); }},
+  };
+
   const MenuItem radioItems[] = {
       {"RX LNA", RX_LNA_OPTIONS, sizeof(RX_LNA_OPTIONS) / sizeof(RX_LNA_OPTIONS[0]),
        [&] { return (uint16_t)config.getRxLnaEnabled(); },
@@ -84,11 +92,12 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const MenuGroup GROUPS[] = {
       {"Alert config", alertItems, (int)(sizeof(alertItems) / sizeof(alertItems[0]))},
       {"Sleep config", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
+      {"Measure config", measureItems, (int)(sizeof(measureItems) / sizeof(measureItems[0]))},
       {"Radio config", radioItems, (int)(sizeof(radioItems) / sizeof(radioItems[0]))},
   };
 
-  const int BROWSE_BACK = 3;
-  const int NUM_BROWSE_ITEMS = 4;
+  const int BROWSE_BACK = 4;
+  const int NUM_BROWSE_ITEMS = 5;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
@@ -145,7 +154,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       }
     }
     snprintf(submenuLabels[group.count], SUBMENU_LABEL_LEN, "Back");
-    display.showSubMenu(group.label, submenuLabels, group.count + 1, submenuIndex, submenuScrollOffset);
+    display.showSubMenu(group.label, submenuLabels, group.count + 1, submenuIndex,
+                        submenuScrollOffset);
   };
 
   auto handleLongPress = [&]() {

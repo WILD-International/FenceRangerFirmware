@@ -12,7 +12,7 @@ MeasureProgram::MeasureProgram() {
 MeasureProgram::~MeasureProgram() {}
 
 Measurement MeasureProgram::run(Config& config) {
-  begin();
+  begin(config.getMeasureDurationMs());
   Measurement measurement;
   while (!isFinished()) {
     update(config, measurement);
@@ -21,7 +21,8 @@ Measurement MeasureProgram::run(Config& config) {
   return measurement;
 }
 
-void MeasureProgram::begin() {
+void MeasureProgram::begin(uint32_t durationMs) {
+  measureDurationMs = durationMs;
   LOGLN("MeasureProgram::begin()");
   finished = false;
 
@@ -49,7 +50,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
     return;
   }
 
-  if (millis() - start < MEASURE_MS) {
+  if (millis() - start < measureDurationMs) {
     uint32_t out_len = 0;
     esp_err_t ret = adc_digi_read_bytes(dma_buf, CONV_FRAME_SIZE, &out_len, 100);
     if (ret != ESP_OK) {
@@ -98,7 +99,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
       uint32_t max_mv = esp_adc_cal_raw_to_voltage(max_val[i], &adc_chars);
 
       LOG("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
-          sample_count[i] * 1000 / MEASURE_MS, min_mv, max_mv);
+          sample_count[i] * 1000 / measureDurationMs, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
         measurement.battMinMv = (min_mv * 490 / 100);

@@ -14,7 +14,6 @@
                              // We use 60khz because that is effectively 20khz per channel
 #define CONV_FRAME_SIZE 256  // tested with 16, add large margin
 #define POOL_SIZE 1024       // tested with 64, add large margin
-#define MEASURE_MS 3000
 
 struct Measurement {
   uint16_t battMinMv = 0;
@@ -31,7 +30,7 @@ class MeasureProgram {
   MeasureProgram();
   ~MeasureProgram();
   Measurement run(Config& config);
-  void begin();
+  void begin(uint32_t durationMs);
   void update(Config& config, Measurement& msr);
   bool isFinished() const;
 
@@ -41,6 +40,7 @@ class MeasureProgram {
   void measureMinMax();
 
   uint32_t start = 0;
+  uint32_t measureDurationMs = 3000;  // overwritten by begin(); default never used
   bool finished = false;
   esp_adc_cal_characteristics_t adc_chars;
   const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
