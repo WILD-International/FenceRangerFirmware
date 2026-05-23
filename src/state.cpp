@@ -1,7 +1,5 @@
 #include "state.h"
 
-#include "sleep.h"
-
 State::State(Config* config) : config(config) {}
 
 void State::setMode(Mode mode) {
@@ -13,10 +11,7 @@ Mode State::getMode() {
 }
 
 bool State::useDisplayInNormalMode() {
-  if (rtc.displayStartTime == 0) {
-    return false;
-  }
-  return rtcTimeNowUs() - rtc.displayStartTime < 5LL * 60 * 1000 * 1000;
+  return rtc.displayCyclesRemaining > 0;
 }
 
 bool State::useDisplay() {
@@ -24,11 +19,17 @@ bool State::useDisplay() {
 }
 
 void State::startDisplayInNormalMode() {
-  rtc.displayStartTime = rtcTimeNowUs();
+  rtc.displayCyclesRemaining = 10;
 }
 
 void State::stopDisplayInNormalMode() {
-  rtc.displayStartTime = 0;
+  rtc.displayCyclesRemaining = 0;
+}
+
+void State::tickDisplayCycles() {
+  if (rtc.displayCyclesRemaining > 0) {
+    rtc.displayCyclesRemaining--;
+  }
 }
 
 void State::incrementBootCount() {

@@ -15,6 +15,7 @@ class State {
   bool useDisplay();
   void startDisplayInNormalMode();
   void stopDisplayInNormalMode();
+  void tickDisplayCycles();
 
   void incrementBootCount();
   uint16_t getBootCount();

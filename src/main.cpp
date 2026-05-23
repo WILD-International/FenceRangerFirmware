@@ -88,6 +88,7 @@ void setup() {
   display.message("MEASURE");
   Measurement measurement = measureProgram.run(config);
   state.updateSlowBatt(measurement.battMaxMv);
+  state.tickDisplayCycles();
   display.showMeasurement(measurement, 2000);
 
   uint32_t adaptedSleepMs = state.computeAdaptedSleepMs();

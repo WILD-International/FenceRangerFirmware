@@ -18,8 +18,8 @@ struct RtcState {
   // Battery slow filter
   uint16_t slowBattMv = 0;
 
-  // Display: 0 = disabled, any other value = start time in us (1 = show from first boot)
-  int64_t displayStartTime = 1;
+  // Display: cycles remaining to show display in normal mode (0 = disabled)
+  uint8_t displayCyclesRemaining = 10;
 
   // Boot tracking
   uint16_t bootCount = 0;
