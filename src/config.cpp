@@ -49,6 +49,14 @@ void Config::load() {
   battLowMv = prefs.getUShort("battLowMv", 3300);
   battSleepMult = prefs.getUChar("battSleepMult", 30);
   battRecoveryN = prefs.getUShort("battRecoveryN", 50);
+  rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
+  prefs.end();
+}
+
+void Config::setRxLnaEnabled(uint16_t enabled) {
+  rxLnaEnabled = (enabled != 0);
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putBool("rxLnaEnabled", rxLnaEnabled);
   prefs.end();
 }
 

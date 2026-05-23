@@ -92,6 +92,11 @@ class Config {
     return battRecoveryN;
   }
 
+  bool getRxLnaEnabled() const {
+    return rxLnaEnabled;
+  }
+  void setRxLnaEnabled(uint16_t enabled);
+
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -103,35 +108,35 @@ class Config {
   void setBattAdaptiveSleep(uint16_t fullMv, uint16_t lowMv, uint8_t sleepMult, uint16_t recoveryN);
 
   // Individual setters (delegate to grouped setters above)
-  void setAlertThresholdV(uint16_t v) {
-    setAlertThresholds(v, recoverThresholdV);
+  void setAlertThresholdV(uint16_t value) {
+    setAlertThresholds(value, recoverThresholdV);
   }
-  void setRecoverThresholdV(uint16_t v) {
-    setAlertThresholds(alertThresholdV, v);
+  void setRecoverThresholdV(uint16_t value) {
+    setAlertThresholds(alertThresholdV, value);
   }
-  void setAlertBurstSends(uint16_t v) {
-    setAlertCycles(v, idleHeartbeatCycles, alertHeartbeatCycles, recoveryConfirmCycles);
+  void setAlertBurstSends(uint16_t value) {
+    setAlertCycles(value, idleHeartbeatCycles, alertHeartbeatCycles, recoveryConfirmCycles);
   }
-  void setIdleHeartbeatCycles(uint16_t v) {
-    setAlertCycles(alertBurstSends, v, alertHeartbeatCycles, recoveryConfirmCycles);
+  void setIdleHeartbeatCycles(uint16_t value) {
+    setAlertCycles(alertBurstSends, value, alertHeartbeatCycles, recoveryConfirmCycles);
   }
-  void setAlertHeartbeatCycles(uint16_t v) {
-    setAlertCycles(alertBurstSends, idleHeartbeatCycles, v, recoveryConfirmCycles);
+  void setAlertHeartbeatCycles(uint16_t value) {
+    setAlertCycles(alertBurstSends, idleHeartbeatCycles, value, recoveryConfirmCycles);
   }
-  void setRecoveryConfirmCycles(uint16_t v) {
-    setAlertCycles(alertBurstSends, idleHeartbeatCycles, alertHeartbeatCycles, v);
+  void setRecoveryConfirmCycles(uint16_t value) {
+    setAlertCycles(alertBurstSends, idleHeartbeatCycles, alertHeartbeatCycles, value);
   }
-  void setBattFullMv(uint16_t v) {
-    setBattAdaptiveSleep(v, battLowMv, battSleepMult, battRecoveryN);
+  void setBattFullMv(uint16_t value) {
+    setBattAdaptiveSleep(value, battLowMv, battSleepMult, battRecoveryN);
   }
-  void setBattLowMv(uint16_t v) {
-    setBattAdaptiveSleep(battFullMv, v, battSleepMult, battRecoveryN);
+  void setBattLowMv(uint16_t value) {
+    setBattAdaptiveSleep(battFullMv, value, battSleepMult, battRecoveryN);
   }
-  void setBattSleepMult(uint16_t v) {
-    setBattAdaptiveSleep(battFullMv, battLowMv, (uint8_t)v, battRecoveryN);
+  void setBattSleepMult(uint16_t value) {
+    setBattAdaptiveSleep(battFullMv, battLowMv, (uint8_t)value, battRecoveryN);
   }
-  void setBattRecoveryN(uint16_t v) {
-    setBattAdaptiveSleep(battFullMv, battLowMv, battSleepMult, v);
+  void setBattRecoveryN(uint16_t value) {
+    setBattAdaptiveSleep(battFullMv, battLowMv, battSleepMult, value);
   }
 
  private:
@@ -155,6 +160,7 @@ class Config {
   uint16_t battLowMv = 3300;
   uint8_t battSleepMult = 30;
   uint16_t battRecoveryN = 50;
+  bool rxLnaEnabled = true;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

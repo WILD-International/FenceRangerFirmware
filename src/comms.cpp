@@ -20,9 +20,9 @@ static const Module::RfSwitchMode_t rfswitch_table[] = {
 static const uint32_t rfswitch_pins[] = {LORA_PA_CSD, LORA_PA_CTX, RADIOLIB_NC, RADIOLIB_NC,
                                          RADIOLIB_NC};
 
-static const Module::RfSwitchMode_t rfswitch_table[] = {
+static Module::RfSwitchMode_t rfswitch_table[] = {
     {Module::MODE_IDLE, {LOW, LOW}},
-    {Module::MODE_RX, {HIGH, LORA_RX_LNA}},
+    {Module::MODE_RX, {HIGH, LOW}},
     {Module::MODE_TX, {HIGH, HIGH}},
     END_OF_MODE_TABLE,
 };
@@ -185,6 +185,9 @@ int16_t Comms::begin(Display* display) {
     LOG("Failed to initialize radio, code: %d\n", radiolib_state);
     return radiolib_state;
   }
+#if defined(USE_KCT8103L_PA)
+  rfswitch_table[1].values[1] = config->getRxLnaEnabled() ? LOW : HIGH;
+#endif
   radio.setRfSwitchTable(rfswitch_pins, rfswitch_table);
 
   pinMode(LORA_PA_POWER, OUTPUT);

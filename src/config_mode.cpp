@@ -22,6 +22,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t BATT_LOW_OPTIONS[] = {2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600};
   const uint16_t SLEEP_MULT_OPTIONS[] = {2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30};
   const uint16_t RECOVERY_N_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
+  const uint16_t RX_LNA_OPTIONS[] = {0, 1};
 
   // To add a parameter: add one entry to the relevant group below.
   struct MenuItem {
@@ -74,13 +75,20 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     int count;
   };
 
+  const MenuItem radioItems[] = {
+      {"RX LNA", RX_LNA_OPTIONS, sizeof(RX_LNA_OPTIONS) / sizeof(RX_LNA_OPTIONS[0]),
+       [&] { return (uint16_t)config.getRxLnaEnabled(); },
+       [&](uint16_t enabled) { config.setRxLnaEnabled(enabled); }},
+  };
+
   const MenuGroup GROUPS[] = {
       {"Alert config", alertItems, (int)(sizeof(alertItems) / sizeof(alertItems[0]))},
       {"Sleep config", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
+      {"Radio config", radioItems, (int)(sizeof(radioItems) / sizeof(radioItems[0]))},
   };
 
-  const int BROWSE_BACK = 2;
-  const int NUM_BROWSE_ITEMS = 3;
+  const int BROWSE_BACK = 3;
+  const int NUM_BROWSE_ITEMS = 4;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
