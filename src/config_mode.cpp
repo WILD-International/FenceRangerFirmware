@@ -204,6 +204,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         display.showVoltageTest(liveMeasurement);
         measureProgram.begin(config.getMeasureDurationMs());
       } else if (browseIndex == BROWSE_LORA_TEST) {
+        comms.sleep();
         menuState = LORA_TEST;
         loraTestState = LoraTestState::Idle;
         display.showLoraTest(comms.hasJoined());

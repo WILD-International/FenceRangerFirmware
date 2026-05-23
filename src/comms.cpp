@@ -413,6 +413,7 @@ void Comms::sleep() {
   }
   LOGLN("Put radio to sleep");
   radio.sleep(false);  // don't retain config
+  radioInitialized = false;
 }
 
 void Comms::resetJoinSchedule() {
