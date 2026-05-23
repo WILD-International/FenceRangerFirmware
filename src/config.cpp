@@ -52,6 +52,9 @@ void Config::load() {
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
   measureDurationMs = prefs.getUShort("measureMs", 3000);
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
+  txPower = (int8_t)prefs.getChar("txPower", 10);
+  spreadingFactor = prefs.getUChar("spreadFactor", 12);
+  adrEnabled = prefs.getBool("adrEnabled", true);
   prefs.end();
 }
 
@@ -69,8 +72,8 @@ void Config::setMeasureDurationMs(uint16_t ms) {
   prefs.end();
 }
 
-void Config::setRxLnaEnabled(uint16_t enabled) {
-  rxLnaEnabled = (enabled != 0);
+void Config::setRxLnaEnabled(bool enabled) {
+  rxLnaEnabled = enabled;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putBool("rxLnaEnabled", rxLnaEnabled);
   prefs.end();
@@ -134,6 +137,27 @@ void Config::setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertH
   prefs.putUChar("idleHbCycles", idleHeartbeatCycles);
   prefs.putUChar("alertHbCycles", alertHeartbeatCycles);
   prefs.putUChar("recoverCycles", recoveryConfirmCycles);
+  prefs.end();
+}
+
+void Config::setTxPower(int8_t power) {
+  txPower = power;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putChar("txPower", txPower);
+  prefs.end();
+}
+
+void Config::setSpreadingFactor(uint8_t sf) {
+  spreadingFactor = sf;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUChar("spreadFactor", spreadingFactor);
+  prefs.end();
+}
+
+void Config::setAdrEnabled(bool enabled) {
+  adrEnabled = enabled;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putBool("adrEnabled", adrEnabled);
   prefs.end();
 }
 

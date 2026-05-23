@@ -94,7 +94,7 @@ class Config {
   bool getRxLnaEnabled() const {
     return rxLnaEnabled;
   }
-  void setRxLnaEnabled(uint16_t enabled);
+  void setRxLnaEnabled(bool enabled);
 
   uint16_t getMeasureDurationMs() const {
     return measureDurationMs;
@@ -105,6 +105,21 @@ class Config {
     return fenceCalPercent;
   }
   void setFenceCalPercent(uint16_t percent);
+
+  int8_t getTxPower() const {
+    return txPower;
+  }
+  void setTxPower(int8_t power);
+
+  uint8_t getSpreadingFactor() const {
+    return spreadingFactor;
+  }
+  void setSpreadingFactor(uint8_t sf);
+
+  bool getAdrEnabled() const {
+    return adrEnabled;
+  }
+  void setAdrEnabled(bool enabled);
 
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
@@ -172,6 +187,9 @@ class Config {
   bool rxLnaEnabled = true;
   uint16_t measureDurationMs = 3000;
   uint16_t fenceCalPercent = 100;
+  int8_t txPower = 10;
+  uint8_t spreadingFactor = 12;
+  bool adrEnabled = true;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

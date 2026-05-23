@@ -26,6 +26,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const uint16_t MEASURE_DURATION_OPTIONS[] = {1200, 2200, 3000, 6000, 12000};
   const uint16_t FENCE_CAL_OPTIONS[] = {86,  88,  90,  92,  94,  96,  98, 100,
                                         102, 104, 106, 108, 110, 112, 114};
+  const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
+  const uint16_t SPREADING_FACTOR_OPTIONS[] = {7, 8, 9, 10, 11, 12};
+  const uint16_t ADR_OPTIONS[] = {0, 1};
 
   // To add a parameter: add one entry to the relevant group below.
   struct MenuItem {
@@ -91,7 +94,17 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   const MenuItem radioItems[] = {
       {"RX LNA", RX_LNA_OPTIONS, sizeof(RX_LNA_OPTIONS) / sizeof(RX_LNA_OPTIONS[0]),
        [&] { return (uint16_t)config.getRxLnaEnabled(); },
-       [&](uint16_t enabled) { config.setRxLnaEnabled(enabled); }},
+       [&](uint16_t value) { config.setRxLnaEnabled(value != 0); }},
+      {"TX Power dBm", TX_POWER_OPTIONS, sizeof(TX_POWER_OPTIONS) / sizeof(TX_POWER_OPTIONS[0]),
+       [&] { return (uint16_t)config.getTxPower(); },
+       [&](uint16_t power) { config.setTxPower((int8_t)power); }},
+      {"Spread Factor", SPREADING_FACTOR_OPTIONS,
+       sizeof(SPREADING_FACTOR_OPTIONS) / sizeof(SPREADING_FACTOR_OPTIONS[0]),
+       [&] { return (uint16_t)config.getSpreadingFactor(); },
+       [&](uint16_t sf) { config.setSpreadingFactor((uint8_t)sf); }},
+      {"ADR", ADR_OPTIONS, sizeof(ADR_OPTIONS) / sizeof(ADR_OPTIONS[0]),
+       [&] { return (uint16_t)config.getAdrEnabled(); },
+       [&](uint16_t value) { config.setAdrEnabled(value != 0); }},
   };
 
   const MenuGroup GROUPS[] = {
@@ -165,6 +178,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
 
   auto handleLongPress = [&]() {
     if (menuState == INFO) {
+      browseIndex = 0;
       menuState = BROWSE;
       display.showMenu(browseIndex);
     } else if (menuState == BROWSE) {

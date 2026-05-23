@@ -177,7 +177,8 @@ int16_t Comms::begin(Display* display) {
   // TODO! I still put the power back to 10dBm because it's not clear how
   // TODO! this combines with the amplifiers
   int radiolib_state =
-      radio.begin(868.1, 125.0, 12, 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC, 10, 8, 1.8, false);
+      radio.begin(868.1, 125.0, config->getSpreadingFactor(), 7, RADIOLIB_SX126X_SYNC_WORD_PUBLIC,
+                  config->getTxPower(), 8, 1.8, false);
   if (radiolib_state == RADIOLIB_ERR_NONE) {
     radioInitialized = true;
     LOGLN(F("radiolib begin success!"));
@@ -196,6 +197,9 @@ int16_t Comms::begin(Display* display) {
     digitalWrite(LORA_PA_POWER, HIGH);
     delay(1);
     rtc.joined = lwActivate(display);
+    if (rtc.joined) {
+      node.setADR(config->getAdrEnabled());
+    }
     digitalWrite(LORA_PA_POWER, LOW);
   }
   return radiolib_state;
