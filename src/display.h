@@ -26,6 +26,7 @@ class Display {
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
   void showVoltageTest(const Measurement& measurement);
+  void showLoraTest(bool joined);
 
  private:
   void displayTitle();

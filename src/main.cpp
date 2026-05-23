@@ -107,7 +107,7 @@ void setup() {
 
   if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
-    runConfigMode(config, state, display, webUi);
+    runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
     gotoSleep(100);
   }

@@ -4,10 +4,11 @@
 
 #include "at_commands.h"
 #include "board.h"
+#include "comms.h"
 #include "esp32-hal-gpio.h"
 #include "measure_program.h"
 
-void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi) {
+void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
   uint64_t configModeStartTime = millis();
   bool exitConfigMode = false;
   display.message("CONFIG", 1000);
@@ -121,12 +122,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   };
 
   const int BROWSE_VOLT_TEST = 4;
-  const int BROWSE_BACK = 5;
-  const int NUM_BROWSE_ITEMS = 6;
+  const int BROWSE_LORA_TEST = 5;
+  const int BROWSE_BACK = 6;
+  const int NUM_BROWSE_ITEMS = 7;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
-  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST };
+  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST, LORA_TEST };
   MenuState menuState = INFO;
   int browseIndex = 0;
   int activeGroup = 0;
@@ -199,6 +201,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         liveMeasurement = Measurement{};
         display.showVoltageTest(liveMeasurement);
         measureProgram.begin(config.getMeasureDurationMs());
+      } else if (browseIndex == BROWSE_LORA_TEST) {
+        menuState = LORA_TEST;
+        display.showLoraTest(comms.hasJoined());
       } else {
         activeGroup = browseIndex;
         submenuIndex = 0;
@@ -226,6 +231,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       }
     } else if (menuState == VOLT_TEST) {
       // long press ignored in volt test — tap exits
+    } else if (menuState == LORA_TEST) {
+      menuState = BROWSE;
+      display.showMenu(browseIndex);
     } else {
       // EDIT state
       if (editOptionIndex == editItem->optCount) {
@@ -294,6 +302,20 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           measureProgram.stop();
           menuState = BROWSE;
           display.showMenu(browseIndex);
+        } else if (menuState == LORA_TEST) {
+          if (!comms.hasJoined()) {
+            comms.resetJoinSchedule();
+            comms.begin(&display);
+            comms.saveSession();
+          } else {
+            Measurement m = measureProgram.run(config);
+            uint16_t fenceV = max(m.fencePosMaxV, m.fenceNegMaxV);
+            Downlink dl = {};
+            int16_t result = comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
+            comms.saveSession();
+            display.message(result >= 0 ? "SENT OK" : "SEND ERR", 1500);
+          }
+          display.showLoraTest(comms.hasJoined());
         } else {
           // EDIT
           uint8_t slots = editItem->optCount + 1;

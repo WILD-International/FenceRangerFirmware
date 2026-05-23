@@ -64,6 +64,7 @@ class Comms {
   void saveSession();
   bool hasJoined();
   void sleep();
+  void resetJoinSchedule();
 
  private:
   bool lwActivate(Display* display);

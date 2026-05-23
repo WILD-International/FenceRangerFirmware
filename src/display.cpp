@@ -159,9 +159,14 @@ void Display::showMenu(int selectedIndex) {
     return;
   }
 
-  const int TOTAL_ITEMS = 6;
+  const int TOTAL_ITEMS = 7;
   const int VISIBLE_ITEMS = 6;
+  const int SCROLLBAR_X = 124;
+  const int SCROLLBAR_W = 4;
   const int TRACK_Y = 11;
+  const int TRACK_H = 53;
+
+  int scrollOffset = (selectedIndex >= VISIBLE_ITEMS) ? selectedIndex - VISIBLE_ITEMS + 1 : 0;
 
   char labels[TOTAL_ITEMS][22];
   snprintf(labels[0], 22, "%-14s%5s", "Alert config", ">");
@@ -169,22 +174,32 @@ void Display::showMenu(int selectedIndex) {
   snprintf(labels[2], 22, "%-14s%5s", "Measure config", ">");
   snprintf(labels[3], 22, "%-14s%5s", "Radio config", ">");
   snprintf(labels[4], 22, "%-14s%5s", "Voltage Test", ">");
-  snprintf(labels[5], 22, "Back");
+  snprintf(labels[5], 22, "%-14s%5s", "LoRa Test", ">");
+  snprintf(labels[6], 22, "Back");
 
   display.clearDisplay();
   displayHeader("Menu");
 
-  for (int i = 0; i < TOTAL_ITEMS; i++) {
+  for (int i = 0; i < VISIBLE_ITEMS; i++) {
+    int itemIdx = scrollOffset + i;
+    if (itemIdx >= TOTAL_ITEMS) {
+      break;
+    }
     int y = TRACK_Y + i * 9;
-    if (i == selectedIndex) {
-      display.fillRect(0, y - 1, SCREEN_WIDTH, 9, SSD1306_WHITE);
+    if (itemIdx == selectedIndex) {
+      display.fillRect(0, y - 1, SCROLLBAR_X, 9, SSD1306_WHITE);
       display.setTextColor(SSD1306_BLACK);
     } else {
       display.setTextColor(SSD1306_WHITE);
     }
     display.setCursor(2, y);
-    display.print(labels[i]);
+    display.print(labels[itemIdx]);
   }
+
+  int thumbH = (VISIBLE_ITEMS * TRACK_H) / TOTAL_ITEMS;
+  int maxOffset = TOTAL_ITEMS - VISIBLE_ITEMS;
+  int thumbY = TRACK_Y + (scrollOffset * (TRACK_H - thumbH)) / maxOffset;
+  display.fillRect(SCROLLBAR_X, thumbY, SCROLLBAR_W, thumbH, SSD1306_WHITE);
 
   display.setTextColor(SSD1306_WHITE);
   display.display();
@@ -283,6 +298,25 @@ void Display::showVoltageTest(const Measurement& measurement) {
   display.setTextColor(SSD1306_BLACK);
   display.setCursor(2, 56);
   display.print("tap=stop");
+  display.setTextColor(SSD1306_WHITE);
+  display.display();
+}
+
+void Display::showLoraTest(bool joined) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayHeader("LoRa Test");
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  const char* status = joined ? "Joined" : "Not joined";
+  display.setCursor((SCREEN_WIDTH - (int)strlen(status) * 6) / 2, 24);
+  display.print(status);
+  display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 56);
+  display.print(joined ? "tap=send  hold=back" : "tap=join  hold=back");
   display.setTextColor(SSD1306_WHITE);
   display.display();
 }
