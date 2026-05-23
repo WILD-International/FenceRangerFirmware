@@ -21,13 +21,14 @@ class Display {
   void showConfig(State& state);
   void showMeasurement(const Measurement& measurement, uint32_t delayMs = 0);
   void showMenu(int selectedIndex);
-  void showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
-                   int scrollOffset);
+  void showSubMenu(const char* header, const char labels[][SUBMENU_LABEL_LEN], int totalItems,
+                   int selectedIndex, int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
 
  private:
   void displayTitle();
+  void displayHeader(const char* text);
   bool enabled;
   Config* config;
   Adafruit_SSD1306 display;

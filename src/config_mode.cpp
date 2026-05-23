@@ -75,8 +75,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   };
 
   const MenuGroup GROUPS[] = {
-      {"Alert", alertItems, (int)(sizeof(alertItems) / sizeof(alertItems[0]))},
-      {"Sleep", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
+      {"Alert config", alertItems, (int)(sizeof(alertItems) / sizeof(alertItems[0]))},
+      {"Sleep config", sleepItems, (int)(sizeof(sleepItems) / sizeof(sleepItems[0]))},
   };
 
   const int BROWSE_BACK = 2;
@@ -126,7 +126,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
                (int)group.items[i].get());
     }
     snprintf(submenuLabels[group.count], SUBMENU_LABEL_LEN, "Back");
-    display.showSubMenu(submenuLabels, group.count + 1, submenuIndex, submenuScrollOffset);
+    display.showSubMenu(group.label, submenuLabels, group.count + 1, submenuIndex, submenuScrollOffset);
   };
 
   auto handleLongPress = [&]() {

@@ -6,6 +6,22 @@
 
 const char* title = "WILD FenceRanger";
 
+static void printTruncated(Adafruit_SSD1306& disp, const char* text, int maxChars) {
+  if ((int)strlen(text) <= maxChars) {
+    disp.print(text);
+    return;
+  }
+  char buf[22];
+  strncpy(buf, text, maxChars - 1);
+  buf[maxChars - 1] = '\0';
+  disp.print(buf);
+  int16_t x = disp.getCursorX();
+  int16_t y = disp.getCursorY() + 6;
+  disp.drawPixel(x, y, SSD1306_WHITE);
+  disp.drawPixel(x + 2, y, SSD1306_WHITE);
+  disp.drawPixel(x + 4, y, SSD1306_WHITE);
+}
+
 Display::Display(Config* config)
     : enabled(false), config(config), display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST) {}
 
@@ -54,18 +70,45 @@ void Display::showConfig(State& state) {
 
   display.clearDisplay();
   displayTitle();
-  display.setCursor(2, display.getCursorY());
-  display.println("Name:");
-  display.setCursor(2, display.getCursorY());
-  display.println(config->getDevName());
-  display.setCursor(2, 34);
-  display.println("Device EUI:");
-  display.setCursor(2, display.getCursorY());
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  const char* name = config->getDevName();
+  int nameLen = strlen(name);
+  if (nameLen <= 15) {
+    display.setCursor(2, 12);
+    display.print("Name: ");
+    display.print(name);
+  } else if (nameLen <= 21) {
+    display.setCursor(2, 12);
+    display.print("Name:");
+    display.setCursor(SCREEN_WIDTH - nameLen * 6, 22);
+    display.print(name);
+  } else {
+    char line1[22];
+    strncpy(line1, name, 21);
+    line1[21] = '\0';
+    display.setCursor(2, 12);
+    display.print(line1);
+    display.setCursor(2, 22);
+    printTruncated(display, name + 21, 21);
+  }
+
+  display.setCursor(2, 32);
+  display.print("EUI: ");
   bytesToHex(config->getDevEUI(), DEVEUI_LEN, hex);
-  display.println(hex);
-  display.setCursor(2, 54);
+  display.print(hex);
+
+  display.setCursor(2, 42);
   display.print("ver: ");
-  display.print(GIT_TAG);
+  printTruncated(display, GIT_TAG, 16);
+
+  display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 56);
+  display.print("tap=exit  hold=menu");
+  display.setTextColor(SSD1306_WHITE);
+
   display.display();
 }
 
@@ -100,11 +143,15 @@ void Display::turnOff() {
   enabled = false;
 }
 
-void Display::displayTitle() {
+void Display::displayHeader(const char* text) {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor((SCREEN_WIDTH - strlen(title) * 6) / 2, 2);
-  display.println(title);
+  display.setCursor((SCREEN_WIDTH - strlen(text) * 6) / 2, 2);
+  display.println(text);
+}
+
+void Display::displayTitle() {
+  displayHeader(title);
 }
 
 void Display::showMenu(int selectedIndex) {
@@ -122,7 +169,7 @@ void Display::showMenu(int selectedIndex) {
   snprintf(labels[2], 22, "Back");
 
   display.clearDisplay();
-  displayTitle();
+  displayHeader("Settings");
 
   for (int i = 0; i < TOTAL_ITEMS; i++) {
     int y = TRACK_Y + i * 9;
@@ -140,8 +187,8 @@ void Display::showMenu(int selectedIndex) {
   display.display();
 }
 
-void Display::showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems, int selectedIndex,
-                          int scrollOffset) {
+void Display::showSubMenu(const char* header, const char labels[][SUBMENU_LABEL_LEN], int totalItems,
+                          int selectedIndex, int scrollOffset) {
   if (!enabled) {
     return;
   }
@@ -153,7 +200,7 @@ void Display::showSubMenu(const char labels[][SUBMENU_LABEL_LEN], int totalItems
   const int TRACK_H = 53;
 
   display.clearDisplay();
-  displayTitle();
+  displayHeader(header);
 
   for (int i = 0; i < VISIBLE_ITEMS; i++) {
     int itemIdx = scrollOffset + i;
@@ -188,18 +235,17 @@ void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentVal
   }
 
   display.clearDisplay();
-  displayTitle();
 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(2, 14);
+  display.setCursor(2, 4);
   display.print(name);
 
   char valStr[6];
   snprintf(valStr, sizeof(valStr), "%d", value);
   display.setTextSize(3);
   int valWidth = strlen(valStr) * 18;
-  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 28);
+  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 18);
   display.print(valStr);
 
   const char* action = (value == currentValue) ? "back" : "save";
@@ -218,16 +264,15 @@ void Display::showMenuCancel(const char* name, uint16_t currentValue) {
   }
 
   display.clearDisplay();
-  displayTitle();
 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(2, 14);
+  display.setCursor(2, 4);
   display.print(name);
 
   display.setTextSize(2);
   int valWidth = 6 * 12;
-  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 32);
+  display.setCursor((SCREEN_WIDTH - valWidth) / 2, 24);
   display.print("CANCEL");
 
   char hint[22];
