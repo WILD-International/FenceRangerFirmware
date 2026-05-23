@@ -68,14 +68,18 @@ void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) 
   }
   display.clearDisplay();
   displayTitle();
-  display.setCursor(0, 16);
-  display.printf("batt: %d %d", measurement.battMinMv, measurement.battMaxMv);
-  display.setCursor(0, 28);
-  display.printf(" neg: %d %d", measurement.fenceNegMinV, measurement.fenceNegMaxV);
-  display.setCursor(0, 40);
-  display.printf(" pos: %d %d", measurement.fencePosMinV, measurement.fencePosMaxV);
-  display.setCursor(0, 52);
-  display.printf(" err: %d", measurement.adcErrorCount);
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 11);
+  display.printf("Fence+ %5u V", measurement.fencePosMaxV);
+  display.setCursor(2, 22);
+  display.printf("Fence- %5u V", measurement.fenceNegMaxV);
+  display.setCursor(2, 33);
+  display.printf("Batt   %5u mV", measurement.battMaxMv);
+  if (measurement.adcErrorCount > 0) {
+    display.setCursor(2, 44);
+    display.printf("Errors %5u", measurement.adcErrorCount);
+  }
   display.display();
   if (delayMs > 0) {
     delay(delayMs);
