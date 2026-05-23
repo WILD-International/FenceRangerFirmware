@@ -370,6 +370,3 @@ void Comms::sleep() {
   radio.sleep(false);  // don't retain config
 }
 
-void Comms::resetBootCountForJoining() {
-  rtc.bootCountForJoining = 0;
-}

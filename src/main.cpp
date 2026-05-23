@@ -9,10 +9,10 @@
 #include "comms.h"
 #include "config.h"
 #include "config_mode.h"
-#include "logging.h"
 #include "display.h"
 #include "esp32-hal-gpio.h"
 #include "isr_button.h"
+#include "logging.h"
 #include "measure_program.h"
 #include "sleep.h"
 #include "state.h"
@@ -108,7 +108,8 @@ void setup() {
   if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
     runConfigMode(config, state, display, webUi);
-    comms.resetBootCountForJoining();
+    buttonResetState();
+    gotoSleep(100);
   }
 
   digitalWrite(LED, LOW);
