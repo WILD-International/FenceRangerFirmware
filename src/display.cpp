@@ -159,7 +159,7 @@ void Display::showMenu(int selectedIndex) {
     return;
   }
 
-  const int TOTAL_ITEMS = 5;
+  const int TOTAL_ITEMS = 6;
   const int VISIBLE_ITEMS = 6;
   const int TRACK_Y = 11;
 
@@ -168,10 +168,11 @@ void Display::showMenu(int selectedIndex) {
   snprintf(labels[1], 22, "%-14s%5s", "Sleep config", ">");
   snprintf(labels[2], 22, "%-14s%5s", "Measure config", ">");
   snprintf(labels[3], 22, "%-14s%5s", "Radio config", ">");
-  snprintf(labels[4], 22, "Back");
+  snprintf(labels[4], 22, "%-14s%5s", "Voltage Test", ">");
+  snprintf(labels[5], 22, "Back");
 
   display.clearDisplay();
-  displayHeader("Settings");
+  displayHeader("Menu");
 
   for (int i = 0; i < TOTAL_ITEMS; i++) {
     int y = TRACK_Y + i * 9;
@@ -257,6 +258,32 @@ void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentVal
   display.setCursor(4, 56);
   display.print(hint);
 
+  display.display();
+}
+
+void Display::showVoltageTest(const Measurement& measurement) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayHeader("Volt Test");
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 11);
+  display.printf("Fence+ %5u V", measurement.fencePosMaxV);
+  display.setCursor(2, 22);
+  display.printf("Fence- %5u V", measurement.fenceNegMaxV);
+  display.setCursor(2, 33);
+  display.printf("Batt   %5u mV", measurement.battMaxMv);
+  if (measurement.adcErrorCount > 0) {
+    display.setCursor(2, 44);
+    display.printf("Errors %5u", measurement.adcErrorCount);
+  }
+  display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 56);
+  display.print("tap=stop");
+  display.setTextColor(SSD1306_WHITE);
   display.display();
 }
 

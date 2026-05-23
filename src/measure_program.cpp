@@ -84,11 +84,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
       sample_count[idx]++;
     }
   } else {
-    finished = true;
-    digitalWrite(ADC_OPAMP, HIGH);     // power off the opamp
-    digitalWrite(ADC_CTRL_VBAT, LOW);  // power off the battery adc
-    ESP_ERROR_CHECK(adc_digi_stop());
-    ESP_ERROR_CHECK(adc_digi_deinitialize());
+    teardown();
 
     measurement.adcErrorCount = error_count;
     if (error_count > 0) {
@@ -113,6 +109,21 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
       }
     }
   }
+}
+
+void MeasureProgram::teardown() {
+  finished = true;
+  digitalWrite(ADC_OPAMP, HIGH);
+  digitalWrite(ADC_CTRL_VBAT, LOW);
+  ESP_ERROR_CHECK(adc_digi_stop());
+  ESP_ERROR_CHECK(adc_digi_deinitialize());
+}
+
+void MeasureProgram::stop() {
+  if (finished) {
+    return;
+  }
+  teardown();
 }
 
 bool MeasureProgram::isFinished() const {

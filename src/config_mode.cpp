@@ -5,6 +5,7 @@
 #include "at_commands.h"
 #include "board.h"
 #include "esp32-hal-gpio.h"
+#include "measure_program.h"
 
 void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi) {
   uint64_t configModeStartTime = millis();
@@ -119,12 +120,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       {"Radio config", radioItems, (int)(sizeof(radioItems) / sizeof(radioItems[0]))},
   };
 
-  const int BROWSE_BACK = 4;
-  const int NUM_BROWSE_ITEMS = 5;
+  const int BROWSE_VOLT_TEST = 4;
+  const int BROWSE_BACK = 5;
+  const int NUM_BROWSE_ITEMS = 6;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
-  enum MenuState { INFO, BROWSE, SUBMENU, EDIT };
+  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST };
   MenuState menuState = INFO;
   int browseIndex = 0;
   int activeGroup = 0;
@@ -132,6 +134,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   int submenuScrollOffset = 0;
   const MenuItem* editItem = nullptr;
   int editOptionIndex = 0;
+  MeasureProgram measureProgram;
+  Measurement liveMeasurement;
 
   auto findOptionIndex = [](const uint16_t* opts, uint8_t count, uint16_t val) -> int {
     for (int i = 0; i < count; i++) {
@@ -190,6 +194,11 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
       if (browseIndex == BROWSE_BACK) {
         menuState = INFO;
         display.showConfig(state);
+      } else if (browseIndex == BROWSE_VOLT_TEST) {
+        menuState = VOLT_TEST;
+        liveMeasurement = Measurement{};
+        display.showVoltageTest(liveMeasurement);
+        measureProgram.begin(config.getMeasureDurationMs());
       } else {
         activeGroup = browseIndex;
         submenuIndex = 0;
@@ -215,6 +224,8 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal);
         }
       }
+    } else if (menuState == VOLT_TEST) {
+      // long press ignored in volt test — tap exits
     } else {
       // EDIT state
       if (editOptionIndex == editItem->optCount) {
@@ -237,10 +248,22 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   bool longPressTriggered = false;
 
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    webUi.update();
+    // Skip webUi during active measurement: webUi can block 10-20ms, long enough
+    // to overflow the DMA pool (~4ms capacity) before update() drains it.
+    if (menuState != VOLT_TEST || measureProgram.isFinished()) {
+      webUi.update();
+    }
     while (Serial.available()) {
       char c = Serial.read();
       handleATSerial(c, config, exitConfigMode);
+    }
+
+    if (menuState == VOLT_TEST) {
+      measureProgram.update(config, liveMeasurement);
+      if (measureProgram.isFinished()) {
+        display.showVoltageTest(liveMeasurement);
+        measureProgram.begin(config.getMeasureDurationMs());
+      }
     }
 
     bool buttonDown = digitalRead(USER_BUTTON) == 0;
@@ -267,6 +290,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
           submenuIndex = (submenuIndex + 1) % slots;
           updateSubmenuScrollOffset();
           refreshSubMenu();
+        } else if (menuState == VOLT_TEST) {
+          measureProgram.stop();
+          menuState = BROWSE;
+          display.showMenu(browseIndex);
         } else {
           // EDIT
           uint8_t slots = editItem->optCount + 1;

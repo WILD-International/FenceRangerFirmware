@@ -32,12 +32,14 @@ class MeasureProgram {
   Measurement run(Config& config);
   void begin(uint32_t durationMs);
   void update(Config& config, Measurement& msr);
+  void stop();
   bool isFinished() const;
 
  private:
   void adc_cal_init();
   void adc_continuous_init();
   void measureMinMax();
+  void teardown();
 
   uint32_t start = 0;
   uint32_t measureDurationMs = 3000;  // overwritten by begin(); default never used

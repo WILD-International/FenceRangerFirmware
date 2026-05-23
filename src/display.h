@@ -25,6 +25,7 @@ class Display {
                    int selectedIndex, int scrollOffset);
   void showMenuEdit(const char* name, uint16_t value, uint16_t currentValue);
   void showMenuCancel(const char* name, uint16_t currentValue);
+  void showVoltageTest(const Measurement& measurement);
 
  private:
   void displayTitle();
