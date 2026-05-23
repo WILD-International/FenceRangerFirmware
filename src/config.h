@@ -47,9 +47,8 @@ class Config {
   const float getFenceVoltageMultiplier() const {
     static constexpr float kR1_ohms = 20000000.0f;  // 2x 10MΩ in series
     static constexpr float kR2_ohms = 5100.0f;      // 5.1kΩ
-    static constexpr float kFenceVoltageMultiplier = (kR1_ohms + kR2_ohms) / kR2_ohms;
-
-    return kFenceVoltageMultiplier;
+    static constexpr float kBaseMultiplier = (kR1_ohms + kR2_ohms) / kR2_ohms;
+    return kBaseMultiplier * fenceCalPercent / 100.0f;
   }
 
   const uint32_t getSleepIntervalS() const {
@@ -101,6 +100,11 @@ class Config {
     return measureDurationMs;
   }
   void setMeasureDurationMs(uint16_t ms);
+
+  uint16_t getFenceCalPercent() const {
+    return fenceCalPercent;
+  }
+  void setFenceCalPercent(uint16_t percent);
 
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
@@ -167,6 +171,7 @@ class Config {
   uint16_t battRecoveryN = 50;
   bool rxLnaEnabled = true;
   uint16_t measureDurationMs = 3000;
+  uint16_t fenceCalPercent = 100;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

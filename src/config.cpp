@@ -51,6 +51,14 @@ void Config::load() {
   battRecoveryN = prefs.getUShort("battRecoveryN", 50);
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
   measureDurationMs = prefs.getUShort("measureMs", 3000);
+  fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
+  prefs.end();
+}
+
+void Config::setFenceCalPercent(uint16_t percent) {
+  fenceCalPercent = percent;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("fenceCalPct", fenceCalPercent);
   prefs.end();
 }
 
