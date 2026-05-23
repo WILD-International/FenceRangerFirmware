@@ -110,6 +110,12 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
     return 0;
   };
 
+  // Items with exactly the options {0, 1} are treated as toggles: shown as ON/OFF and
+  // long press flips the value directly without entering the edit screen.
+  auto isToggleItem = [](const MenuItem& item) {
+    return item.optCount == 2 && item.options[0] == 0 && item.options[1] == 1;
+  };
+
   auto updateSubmenuScrollOffset = [&]() {
     if (submenuIndex < submenuScrollOffset) {
       submenuScrollOffset = submenuIndex;
@@ -130,8 +136,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
   auto refreshSubMenu = [&]() {
     const MenuGroup& group = GROUPS[activeGroup];
     for (int i = 0; i < group.count; i++) {
-      snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5d", group.items[i].label,
-               (int)group.items[i].get());
+      if (isToggleItem(group.items[i])) {
+        snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5s", group.items[i].label,
+                 group.items[i].get() ? "ON" : "OFF");
+      } else {
+        snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5d", group.items[i].label,
+                 (int)group.items[i].get());
+      }
     }
     snprintf(submenuLabels[group.count], SUBMENU_LABEL_LEN, "Back");
     display.showSubMenu(group.label, submenuLabels, group.count + 1, submenuIndex, submenuScrollOffset);
@@ -158,11 +169,17 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi)
         menuState = BROWSE;
         display.showMenu(browseIndex);
       } else {
-        editItem = &GROUPS[activeGroup].items[submenuIndex];
-        uint16_t currentVal = editItem->get();
-        editOptionIndex = findOptionIndex(editItem->options, editItem->optCount, currentVal);
-        menuState = EDIT;
-        display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal);
+        const MenuItem& selectedItem = GROUPS[activeGroup].items[submenuIndex];
+        if (isToggleItem(selectedItem)) {
+          selectedItem.set(selectedItem.get() ? 0 : 1);
+          refreshSubMenu();
+        } else {
+          editItem = &selectedItem;
+          uint16_t currentVal = editItem->get();
+          editOptionIndex = findOptionIndex(editItem->options, editItem->optCount, currentVal);
+          menuState = EDIT;
+          display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal);
+        }
       }
     } else {
       // EDIT state
