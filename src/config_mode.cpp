@@ -325,6 +325,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             comms.begin(&display);
             comms.saveSession();
             display.showLoraTest(comms.hasJoined());
+          } else if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
+            display.message("RADIO ERR", 2000);
+            display.showLoraTest(comms.hasJoined());
           } else {
             liveMeasurement = Measurement{};
             display.message("MEASURE");
