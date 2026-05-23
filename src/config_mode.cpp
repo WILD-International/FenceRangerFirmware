@@ -349,5 +349,6 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
 
   webUi.stop();
   state.setMode(ModeNormal);
+  state.startDisplayInNormalMode();
   Serial.println("EXIT");
 }

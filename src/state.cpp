@@ -16,7 +16,7 @@ bool State::useDisplayInNormalMode() {
   if (rtc.displayStartTime == 0) {
     return false;
   }
-  return rtcTimeNowUs() - rtc.displayStartTime < 60LL * 60 * 1000 * 1000;
+  return rtcTimeNowUs() - rtc.displayStartTime < 5LL * 60 * 1000 * 1000;
 }
 
 bool State::useDisplay() {
