@@ -311,9 +311,10 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             Measurement m = measureProgram.run(config);
             uint16_t fenceV = max(m.fencePosMaxV, m.fenceNegMaxV);
             Downlink dl = {};
-            int16_t result = comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
-            comms.saveSession();
-            display.message(result >= 0 ? "SENT OK" : "SEND ERR", 1500);
+            display.message("SEND DATA");
+            comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
+            display.message("DATA SENT", 1000);
+            comms.processDownlink(dl, &display);
           }
           display.showLoraTest(comms.hasJoined());
         } else {

@@ -309,6 +309,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
     LOGLN(radiolib_state);
     display->message("SEND ERR");
   }
+  saveSession();
   return radiolib_state;
 }
 
@@ -349,6 +350,43 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
   return send(fport, payload, len, display, downlink);
 }
 
+void Comms::processDownlink(Downlink& downlink, Display* display) {
+  while (downlink.type == DownlinkType::QueryConfig) {
+    delay(3000);
+    display->message("SEND CFG");
+    uint8_t fport = downlink.fport;
+    downlink = {};
+    sendConfigReport(fport, display, &downlink);
+    display->message("SENT", 1000);
+  }
+  switch (downlink.type) {
+    case DownlinkType::EnableOTA:
+      state->setMode(ModeConfig);
+      break;
+    case DownlinkType::SetAlertThresholds:
+      config->setAlertThresholds(downlink.alertThresholds.alertV,
+                                 downlink.alertThresholds.recoverV);
+      break;
+    case DownlinkType::SetAlertCycles:
+      config->setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
+                             downlink.alertCycles.alertHbCycles,
+                             downlink.alertCycles.recoveryCycles);
+      break;
+    case DownlinkType::SetSleepConfig:
+      config->setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
+      config->setBattAdaptiveSleep(config->getBattFullMv(), config->getBattLowMv(),
+                                   downlink.sleepConfig.sleepMult, downlink.sleepConfig.recoveryN);
+      break;
+    case DownlinkType::SetSleepAdjRange:
+      config->setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
+                                   downlink.sleepAdjRange.battLowMv, config->getBattSleepMult(),
+                                   config->getBattRecoveryN());
+      break;
+    default:
+      break;
+  }
+}
+
 void Comms::saveSession() {
   if (!radioInitialized) {
     return;
@@ -373,4 +411,3 @@ void Comms::sleep() {
 void Comms::resetJoinSchedule() {
   rtc.bootCountForJoining = 0;
 }
-

@@ -61,6 +61,7 @@ class Comms {
   int16_t begin(Display* display);
   int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink);
   int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);
+  void processDownlink(Downlink& downlink, Display* display);
   void saveSession();
   bool hasJoined();
   void sleep();

@@ -35,47 +35,14 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
     return;
   }
 
-  display.message("SEND MSR");
+  display.message("SEND DATA");
   Downlink downlink;
   comms.sendMeasurement(measurement.battMaxMv,
                         max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
                         &downlink);
-  display.message("SENT", 1000);
+  display.message("DATA SENT", 1000);
 
-  while (downlink.type == DownlinkType::QueryConfig) {
-    delay(3000);
-    display.message("SEND CFG");
-    uint8_t fport = downlink.fport;
-    downlink = {};
-    comms.sendConfigReport(fport, &display, &downlink);
-    display.message("SENT", 1000);
-  }
-
-  switch (downlink.type) {
-    case DownlinkType::EnableOTA:
-      state.setMode(ModeConfig);
-      break;
-    case DownlinkType::SetAlertThresholds:
-      config.setAlertThresholds(downlink.alertThresholds.alertV, downlink.alertThresholds.recoverV);
-      break;
-    case DownlinkType::SetAlertCycles:
-      config.setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
-                            downlink.alertCycles.alertHbCycles,
-                            downlink.alertCycles.recoveryCycles);
-      break;
-    case DownlinkType::SetSleepConfig:
-      config.setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
-      config.setBattAdaptiveSleep(config.getBattFullMv(), config.getBattLowMv(),
-                                  downlink.sleepConfig.sleepMult, downlink.sleepConfig.recoveryN);
-      break;
-    case DownlinkType::SetSleepAdjRange:
-      config.setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
-                                  downlink.sleepAdjRange.battLowMv, config.getBattSleepMult(),
-                                  config.getBattRecoveryN());
-      break;
-    default:
-      break;
-  }
+  comms.processDownlink(downlink, &display);
 }
 
 void setup() {
@@ -158,7 +125,6 @@ void setup() {
   bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
   if (shouldSend) {
     runComms(comms, state, config, display, measurement);
-    comms.saveSession();
   }
   comms.sleep();
   if (wasButtonPressed() || state.getMode() == ModeConfig) {
