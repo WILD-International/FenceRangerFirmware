@@ -42,6 +42,26 @@ void Display::message(const char* msg, uint32_t delayMs) {
   }
 }
 
+void Display::messageWithCode(const char* msg, int code, uint32_t delayMs) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayTitle();
+  display.setTextSize(2);
+  display.setCursor((SCREEN_WIDTH - strlen(msg) * 12) / 2, 16);
+  display.println(msg);
+  display.setTextSize(1);
+  char codeStr[16];
+  snprintf(codeStr, sizeof(codeStr), "code: %d", code);
+  display.setCursor((SCREEN_WIDTH - (int)strlen(codeStr) * 6) / 2, 40);
+  display.print(codeStr);
+  display.display();
+  if (delayMs > 0) {
+    delay(delayMs);
+  }
+}
+
 void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) {
   if (!enabled) {
     return;

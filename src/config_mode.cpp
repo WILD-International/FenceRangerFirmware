@@ -312,9 +312,11 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             uint16_t fenceV = max(m.fencePosMaxV, m.fenceNegMaxV);
             Downlink dl = {};
             display.message("SEND DATA");
-            comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
-            display.message("DATA SENT", 1000);
-            comms.processDownlink(dl, &display);
+            int16_t sendState = comms.sendMeasurement(m.battMaxMv, fenceV, &display, &dl);
+            if (sendState >= 0) {
+              display.message("DATA SENT", 1000);
+              comms.processDownlink(dl, &display);
+            }
           }
           display.showLoraTest(comms.hasJoined());
         } else {

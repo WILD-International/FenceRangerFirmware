@@ -37,9 +37,12 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
 
   display.message("SEND DATA");
   Downlink downlink;
-  comms.sendMeasurement(measurement.battMaxMv,
-                        max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
-                        &downlink);
+  int16_t sendState = comms.sendMeasurement(measurement.battMaxMv,
+                                            max(measurement.fenceNegMaxV, measurement.fencePosMaxV),
+                                            &display, &downlink);
+  if (sendState < 0) {
+    return;
+  }
   display.message("DATA SENT", 1000);
 
   comms.processDownlink(downlink, &display);

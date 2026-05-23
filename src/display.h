@@ -18,6 +18,7 @@ class Display {
   void turnOn();
   void turnOff();
   void message(const char* msg, uint32_t delayMs = 0);
+  void messageWithCode(const char* msg, int code, uint32_t delayMs = 0);
   void showConfig(State& state);
   void showMeasurement(const Measurement& measurement, uint32_t delayMs = 0);
   void showMenu(int selectedIndex);

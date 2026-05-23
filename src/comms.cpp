@@ -134,7 +134,7 @@ bool Comms::lwActivate(Display* display) {
 
     if (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
       LOGPRINT(F("Join failed: "));
-      display->message("JOIN ERR", 1000);
+      display->messageWithCode("JOIN ERR", radiolib_state, 2000);
       LOGLN(radiolib_state);
 
       // how long to wait before join attempts. This is an interim solution pending
@@ -307,7 +307,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display,
     }
   } else if (radiolib_state != RADIOLIB_ERR_NONE) {
     LOGLN(radiolib_state);
-    display->message("SEND ERR");
+    display->messageWithCode("SEND ERR", radiolib_state, 2000);
   }
   saveSession();
   return radiolib_state;
