@@ -16,6 +16,7 @@
 #include "measure_program.h"
 #include "sleep.h"
 #include "state.h"
+#include "version.h"
 #include "web_ui.h"
 
 // Global objects

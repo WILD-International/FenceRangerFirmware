@@ -3,6 +3,7 @@
 #include "board.h"
 #include "esp32-hal-gpio.h"
 #include "helpers.h"
+#include "version.h"
 
 const char* title = "WILD FenceRanger";
 

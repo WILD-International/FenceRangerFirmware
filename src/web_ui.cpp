@@ -5,9 +5,7 @@
 #include "helpers.h"
 #include "ota_html.h"
 
-#ifndef GIT_TAG
-#define GIT_TAG "unknown"
-#endif
+#include "version.h"
 
 WebUi::WebUi(Config* config) : config(config), running(false) {}
 

@@ -3,9 +3,7 @@
 #include "config.h"
 #include "helpers.h"
 
-#ifndef GIT_TAG
-#define GIT_TAG "unknown"
-#endif
+#include "version.h"
 
 String serialBuffer;
 

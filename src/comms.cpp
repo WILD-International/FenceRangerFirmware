@@ -3,6 +3,7 @@
 #include "TypeDef.h"
 #include "logging.h"
 #include "rtc_state.h"
+#include "version.h"
 
 #if defined(USE_GC1109_PA)
 static const uint32_t rfswitch_pins[] = {LORA_PA_EN, LORA_PA_TX_EN, RADIOLIB_NC, RADIOLIB_NC,
@@ -307,6 +308,48 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             LOG("Downlink: fPort 14 ignored (unexpected size %d)\n", downlinkSize);
           }
           break;
+        case 15:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 15");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 15;
+          } else if (downlinkSize == 4) {
+            LOGLN("Downlink: SetMeasureConfig");
+            downlink->type = DownlinkType::SetMeasureConfig;
+            downlink->measureConfig.measureDurationMs =
+                (downlinkPayload[0] << 8) | downlinkPayload[1];
+            downlink->measureConfig.fenceCalPercent =
+                (downlinkPayload[2] << 8) | downlinkPayload[3];
+          } else {
+            LOG("Downlink: fPort 15 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 16:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryConfig fPort 16");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 16;
+          } else if (downlinkSize == 5) {
+            LOGLN("Downlink: SetRadioConfig");
+            downlink->type = DownlinkType::SetRadioConfig;
+            downlink->radioConfig.rxLnaEnabled = downlinkPayload[0];
+            downlink->radioConfig.txPower = downlinkPayload[1];
+            downlink->radioConfig.spreadingFactor = downlinkPayload[2];
+            downlink->radioConfig.adrEnabled = downlinkPayload[3];
+            downlink->radioConfig.syncwordPublic = downlinkPayload[4];
+          } else {
+            LOG("Downlink: fPort 16 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 20:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryVersion fPort 20");
+            downlink->type = DownlinkType::QueryConfig;
+            downlink->fport = 20;
+          } else {
+            LOG("Downlink: fPort 20 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
         default:
           LOG("Downlink: unknown fPort %d\n", downlinkDetails.fPort);
           break;
@@ -321,6 +364,17 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
 }
 
 int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downlink) {
+  if (fport == 20) {
+    const char* tag = GIT_TAG;
+    size_t len = strlen(tag);
+    if (len > 51) {
+      len = 51;
+    }
+    uint8_t buf[52];
+    memcpy(buf, tag, len);
+    return send(fport, buf, len, display, downlink);
+  }
+
   uint8_t payload[5];
   size_t len = 0;
   switch (fport) {
@@ -350,6 +404,21 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[0] = (uint8_t)((config->getBattFullMv() - 1950) / 10);
       payload[1] = (uint8_t)((config->getBattLowMv() - 1950) / 10);
       len = 2;
+      break;
+    case 15:
+      payload[0] = (config->getMeasureDurationMs() >> 8) & 0xFF;
+      payload[1] = config->getMeasureDurationMs() & 0xFF;
+      payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
+      payload[3] = config->getFenceCalPercent() & 0xFF;
+      len = 4;
+      break;
+    case 16:
+      payload[0] = config->getRxLnaEnabled() ? 1 : 0;
+      payload[1] = (uint8_t)config->getTxPower();
+      payload[2] = config->getSpreadingFactor();
+      payload[3] = config->getAdrEnabled() ? 1 : 0;
+      payload[4] = config->getSyncwordPublic() ? 1 : 0;
+      len = 5;
       break;
     default:
       return RADIOLIB_ERR_NONE;
@@ -388,6 +457,17 @@ void Comms::processDownlink(Downlink& downlink, Display* display) {
       config->setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
                                    downlink.sleepAdjRange.battLowMv, config->getBattSleepMult(),
                                    config->getBattRecoveryN());
+      break;
+    case DownlinkType::SetMeasureConfig:
+      config->setMeasureDurationMs(downlink.measureConfig.measureDurationMs);
+      config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
+      break;
+    case DownlinkType::SetRadioConfig:
+      config->setRxLnaEnabled(downlink.radioConfig.rxLnaEnabled != 0);
+      config->setTxPower(downlink.radioConfig.txPower);
+      config->setSpreadingFactor(downlink.radioConfig.spreadingFactor);
+      config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
+      config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
       break;
     default:
       break;

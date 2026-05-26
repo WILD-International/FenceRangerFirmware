@@ -26,6 +26,8 @@ enum class DownlinkType : uint8_t {
   SetAlertCycles,
   SetSleepConfig,
   SetSleepAdjRange,
+  SetMeasureConfig,
+  SetRadioConfig,
   QueryConfig,
 };
 
@@ -52,6 +54,17 @@ struct Downlink {
       uint16_t battFullMv;
       uint16_t battLowMv;
     } sleepAdjRange;
+    struct {
+      uint16_t measureDurationMs;
+      uint16_t fenceCalPercent;
+    } measureConfig;
+    struct {
+      uint8_t rxLnaEnabled;
+      uint8_t txPower;
+      uint8_t spreadingFactor;
+      uint8_t adrEnabled;
+      uint8_t syncwordPublic;
+    } radioConfig;
   };
 };
 
