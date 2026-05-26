@@ -3,6 +3,10 @@
 #include "config.h"
 #include "helpers.h"
 
+#ifndef GIT_TAG
+#define GIT_TAG "unknown"
+#endif
+
 String serialBuffer;
 
 struct ATCmd {
@@ -30,6 +34,9 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
   trimmed.trim();
 
   const ATCmd commands[] = {
+      {"VERSION", "Firmware version",
+       [&]() -> String { return String(GIT_TAG); },
+       nullptr},
       {"DEVEUI", "Device EUI (read-only)",
        [&]() -> String {
          char hex[DEVEUI_LEN * 2 + 1] = {};
