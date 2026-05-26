@@ -16,17 +16,24 @@ state = {
     "eui": "AABBCCDDEEFF0011",
     "name": "test-fence",
     "appkey": "00112233445566778899aabbccddeeff",
-    "sleepInterval": 60,
     "alertV": 3000,
     "recoverV": 3500,
     "burstSends": 3,
     "idleHbCycles": 60,
     "alertHbCycles": 15,
     "recoverCycles": 30,
+    "sleepInterval": 60,
     "battFullMv": 4000,
     "battLowMv": 3300,
     "battSleepMult": 30,
     "battRecoveryN": 50,
+    "measureDurationMs": 3000,
+    "fenceCalPercent": 100,
+    "rxLnaEnabled": 1,
+    "txPower": 10,
+    "spreadingFactor": 12,
+    "adrEnabled": 1,
+    "syncwordPublic": 1,
     "version": "v1.2.3-dev",
 }
 
@@ -68,30 +75,55 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Saved")
 
-        elif self.path == "/settings":
+        elif self.path == "/alert":
             time.sleep(DELAY)
             data = parse_qs(body.decode())
-            state["sleepInterval"] = int(data.get("sleepInterval", [state["sleepInterval"]])[0])
             state["alertV"] = int(data.get("alertV", [state["alertV"]])[0])
             state["recoverV"] = int(data.get("recoverV", [state["recoverV"]])[0])
             state["burstSends"] = int(data.get("burstSends", [state["burstSends"]])[0])
             state["idleHbCycles"] = int(data.get("idleHbCycles", [state["idleHbCycles"]])[0])
             state["alertHbCycles"] = int(data.get("alertHbCycles", [state["alertHbCycles"]])[0])
             state["recoverCycles"] = int(data.get("recoverCycles", [state["recoverCycles"]])[0])
-            print(f"Settings updated: {state}")
+            print(f"Alert config updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(b"Saved")
 
-        elif self.path == "/batt-sleep":
+        elif self.path == "/sleep":
             time.sleep(DELAY)
             data = parse_qs(body.decode())
+            state["sleepInterval"] = int(data.get("sleepInterval", [state["sleepInterval"]])[0])
             state["battFullMv"] = int(data.get("battFullMv", [state["battFullMv"]])[0])
             state["battLowMv"] = int(data.get("battLowMv", [state["battLowMv"]])[0])
             state["battSleepMult"] = int(data.get("battSleepMult", [state["battSleepMult"]])[0])
             state["battRecoveryN"] = int(data.get("battRecoveryN", [state["battRecoveryN"]])[0])
-            print(f"Batt adaptive sleep updated: {state}")
+            print(f"Sleep config updated: {state}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Saved")
+
+        elif self.path == "/measure":
+            time.sleep(DELAY)
+            data = parse_qs(body.decode())
+            state["measureDurationMs"] = int(data.get("measureDurationMs", [state["measureDurationMs"]])[0])
+            state["fenceCalPercent"] = int(data.get("fenceCalPercent", [state["fenceCalPercent"]])[0])
+            print(f"Measure config updated: {state}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Saved")
+
+        elif self.path == "/radio":
+            time.sleep(DELAY)
+            data = parse_qs(body.decode())
+            state["rxLnaEnabled"] = int(data.get("rxLnaEnabled", [state["rxLnaEnabled"]])[0])
+            state["txPower"] = int(data.get("txPower", [state["txPower"]])[0])
+            state["spreadingFactor"] = int(data.get("spreadingFactor", [state["spreadingFactor"]])[0])
+            state["adrEnabled"] = int(data.get("adrEnabled", [state["adrEnabled"]])[0])
+            state["syncwordPublic"] = int(data.get("syncwordPublic", [state["syncwordPublic"]])[0])
+            print(f"Radio config updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()

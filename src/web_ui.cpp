@@ -63,6 +63,20 @@ void WebUi::start() {
     json += config->getBattSleepMult();
     json += ",\"battRecoveryN\":";
     json += config->getBattRecoveryN();
+    json += ",\"rxLnaEnabled\":";
+    json += (int)config->getRxLnaEnabled();
+    json += ",\"measureDurationMs\":";
+    json += config->getMeasureDurationMs();
+    json += ",\"fenceCalPercent\":";
+    json += config->getFenceCalPercent();
+    json += ",\"txPower\":";
+    json += config->getTxPower();
+    json += ",\"spreadingFactor\":";
+    json += config->getSpreadingFactor();
+    json += ",\"adrEnabled\":";
+    json += (int)config->getAdrEnabled();
+    json += ",\"syncwordPublic\":";
+    json += (int)config->getSyncwordPublic();
     json += ",\"version\":\"";
     json += GIT_TAG;
     json += "\"}";
@@ -90,31 +104,26 @@ void WebUi::start() {
     server->send(200, "text/plain", "Saved");
   });
 
-  server->on("/settings", HTTP_POST, [this]() {
-    String sleepArg = server->arg("sleepInterval");
-    if (sleepArg.length() > 0) {
-      config->setSleepIntervalS(sleepArg.toInt());
-    }
-
+  server->on("/alert", HTTP_POST, [this]() {
     String alertArg = server->arg("alertV");
     String recoverArg = server->arg("recoverV");
-    if (alertArg.length() > 0 && recoverArg.length() > 0) {
-      int32_t alertV = alertArg.toInt();
-      int32_t recoverV = recoverArg.toInt();
-      if (alertV < 0 || alertV > 65535 || recoverV < 0 || recoverV > 65535) {
-        server->send(400, "text/plain", "Threshold must be 0-65535");
-        return;
-      }
-      config->setAlertThresholds(alertV, recoverV);
+    if (alertArg.length() == 0 || recoverArg.length() == 0) {
+      server->send(400, "text/plain", "alertV and recoverV required");
+      return;
     }
-
+    int32_t alertV = alertArg.toInt();
+    int32_t recoverV = recoverArg.toInt();
+    if (alertV < 0 || alertV > 65535 || recoverV < 0 || recoverV > 65535) {
+      server->send(400, "text/plain", "Threshold must be 0-65535");
+      return;
+    }
     String burstArg = server->arg("burstSends");
     String idleHbArg = server->arg("idleHbCycles");
     String alertHbArg = server->arg("alertHbCycles");
     String recoverCyclesArg = server->arg("recoverCycles");
     if (burstArg.length() == 0 || idleHbArg.length() == 0 || alertHbArg.length() == 0 ||
         recoverCyclesArg.length() == 0) {
-      server->send(400, "text/plain", "Cycle values must not be empty");
+      server->send(400, "text/plain", "All cycle fields required");
       return;
     }
     int32_t burst = burstArg.toInt();
@@ -126,31 +135,73 @@ void WebUi::start() {
       server->send(400, "text/plain", "Cycle values must be 1-255");
       return;
     }
+    config->setAlertThresholds(alertV, recoverV);
     config->setAlertCycles(burst, idleHb, alertHb, recoverCycles);
-
     server->send(200, "text/plain", "Saved");
   });
 
-  server->on("/batt-sleep", HTTP_POST, [this]() {
+  server->on("/sleep", HTTP_POST, [this]() {
+    String sleepArg = server->arg("sleepInterval");
     String battFullArg = server->arg("battFullMv");
     String battLowArg = server->arg("battLowMv");
     String battMultArg = server->arg("battSleepMult");
     String battNArg = server->arg("battRecoveryN");
-    if (battFullArg.length() == 0 || battLowArg.length() == 0 || battMultArg.length() == 0 ||
-        battNArg.length() == 0) {
+    if (sleepArg.length() == 0 || battFullArg.length() == 0 || battLowArg.length() == 0 ||
+        battMultArg.length() == 0 || battNArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
+    int32_t sleepS = sleepArg.toInt();
     int32_t fullMv = battFullArg.toInt();
     int32_t lowMv = battLowArg.toInt();
     int32_t sleepMult = battMultArg.toInt();
     int32_t recoveryN = battNArg.toInt();
-    if (fullMv < 1 || fullMv > 65535 || lowMv < 1 || lowMv > 65535 || sleepMult < 1 ||
-        sleepMult > 255 || recoveryN < 1 || recoveryN > 65535) {
+    if (sleepS < 1 || sleepS > 65535 || fullMv < 1 || fullMv > 65535 || lowMv < 1 ||
+        lowMv > 65535 || sleepMult < 1 || sleepMult > 255 || recoveryN < 1 || recoveryN > 65535) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
+    config->setSleepIntervalS(sleepS);
     config->setBattAdaptiveSleep(fullMv, lowMv, sleepMult, recoveryN);
+    server->send(200, "text/plain", "Saved");
+  });
+
+  server->on("/measure", HTTP_POST, [this]() {
+    String durArg = server->arg("measureDurationMs");
+    String calArg = server->arg("fenceCalPercent");
+    if (durArg.length() == 0 || calArg.length() == 0) {
+      server->send(400, "text/plain", "All fields required");
+      return;
+    }
+    int32_t dur = durArg.toInt();
+    int32_t cal = calArg.toInt();
+    if (dur < 100 || dur > 60000 || cal < 1 || cal > 1000) {
+      server->send(400, "text/plain", "Invalid values");
+      return;
+    }
+    config->setMeasureDurationMs((uint16_t)dur);
+    config->setFenceCalPercent((uint16_t)cal);
+    server->send(200, "text/plain", "Saved");
+  });
+
+  server->on("/radio", HTTP_POST, [this]() {
+    String txPowerArg = server->arg("txPower");
+    String sfArg = server->arg("spreadingFactor");
+    if (txPowerArg.length() == 0 || sfArg.length() == 0) {
+      server->send(400, "text/plain", "All fields required");
+      return;
+    }
+    int32_t txPow = txPowerArg.toInt();
+    int32_t sf = sfArg.toInt();
+    if (txPow < 0 || txPow > 22 || sf < 7 || sf > 12) {
+      server->send(400, "text/plain", "Invalid values");
+      return;
+    }
+    config->setRxLnaEnabled(server->arg("rxLnaEnabled") == "1");
+    config->setTxPower((int8_t)txPow);
+    config->setSpreadingFactor((uint8_t)sf);
+    config->setAdrEnabled(server->arg("adrEnabled") == "1");
+    config->setSyncwordPublic(server->arg("syncwordPublic") == "1");
     server->send(200, "text/plain", "Saved");
   });
 

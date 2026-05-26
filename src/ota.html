@@ -56,6 +56,19 @@
       border-color: #007bff;
     }
 
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0 3px;
+    }
+
+    .toggle-row label {
+      margin: 0;
+      font-size: 0.8em;
+      color: #666;
+    }
+
     .mono {
       font-family: monospace;
       font-size: 0.85em;
@@ -123,40 +136,6 @@
   <h2>FenceRanger</h2>
 
   <div class="card">
-    <h3>Settings</h3>
-    <label>Cycle Sleep Time (seconds)</label>
-    <input type="text" id="si" maxlength="6" placeholder="60">
-    <label>Alert Threshold (V)</label>
-    <input type="text" id="av" maxlength="5" placeholder="3000">
-    <label>Recover Threshold (V)</label>
-    <input type="text" id="rv" maxlength="5" placeholder="3500">
-    <label>Alert Burst Sends (cycles)</label>
-    <input type="text" id="bs" maxlength="3" placeholder="3">
-    <label>Idle Heartbeat (cycles)</label>
-    <input type="text" id="ihb" maxlength="3" placeholder="60">
-    <label>Alert Heartbeat (cycles)</label>
-    <input type="text" id="ahb" maxlength="3" placeholder="15">
-    <label>Recovery Confirm (cycles)</label>
-    <input type="text" id="rc" maxlength="3" placeholder="30">
-    <button onclick="saveSettings()">Save</button>
-    <div class="status" id="st-settings"></div>
-  </div>
-
-  <div class="card">
-    <h3>Adaptive Sleep</h3>
-    <label>Battery Full (mV) — no throttling above this</label>
-    <input type="text" id="bfmv" maxlength="5" placeholder="4000">
-    <label>Battery Low (mV) — max throttling at or below this</label>
-    <input type="text" id="blmv" maxlength="5" placeholder="3300">
-    <label>Sleep Multiplier — max sleep = cycle sleep × this</label>
-    <input type="text" id="bsm" maxlength="3" placeholder="4">
-    <label>Recovery N — slow voltage catches up 1/N per cycle</label>
-    <input type="text" id="brn" maxlength="5" placeholder="20">
-    <button onclick="saveBattSleep()">Save</button>
-    <div class="status" id="st-batt"></div>
-  </div>
-
-  <div class="card">
     <h3>Device Info</h3>
     <label>Device EUI</label>
     <span class="mono" id="eui">-</span>
@@ -166,6 +145,72 @@
     <input type="text" id="ak" class="mono" maxlength="32" placeholder="00112233445566778899aabbccddeeff">
     <button onclick="saveDevice()">Save</button>
     <div class="status" id="st-device"></div>
+  </div>
+
+  <div class="card">
+    <h3>Alert config</h3>
+    <label>Alert V</label>
+    <input type="text" id="av" maxlength="5" placeholder="3000">
+    <label>Recover V</label>
+    <input type="text" id="rv" maxlength="5" placeholder="3500">
+    <label>Burst Sends</label>
+    <input type="text" id="bs" maxlength="3" placeholder="3">
+    <label>Idle Heartbeat (cycles)</label>
+    <input type="text" id="ihb" maxlength="3" placeholder="60">
+    <label>Alert Heartbeat (cycles)</label>
+    <input type="text" id="ahb" maxlength="3" placeholder="15">
+    <label>Recovery Confirm (cycles)</label>
+    <input type="text" id="rc" maxlength="3" placeholder="30">
+    <button onclick="saveAlert()">Save</button>
+    <div class="status" id="st-alert"></div>
+  </div>
+
+  <div class="card">
+    <h3>Sleep config</h3>
+    <label>Cycle Sleep (s)</label>
+    <input type="text" id="si" maxlength="6" placeholder="60">
+    <label>Batt Full mV</label>
+    <input type="text" id="bfmv" maxlength="5" placeholder="4000">
+    <label>Batt Low mV</label>
+    <input type="text" id="blmv" maxlength="5" placeholder="3300">
+    <label>Sleep Mult</label>
+    <input type="text" id="bsm" maxlength="3" placeholder="30">
+    <label>Recovery N</label>
+    <input type="text" id="brn" maxlength="5" placeholder="50">
+    <button onclick="saveSleep()">Save</button>
+    <div class="status" id="st-sleep"></div>
+  </div>
+
+  <div class="card">
+    <h3>Measure config</h3>
+    <label>Measure Duration (ms)</label>
+    <input type="text" id="md" maxlength="5" placeholder="3000">
+    <label>Fence Cal (%)</label>
+    <input type="text" id="fc" maxlength="3" placeholder="100">
+    <button onclick="saveMeasure()">Save</button>
+    <div class="status" id="st-measure"></div>
+  </div>
+
+  <div class="card">
+    <h3>Radio config</h3>
+    <div class="toggle-row">
+      <label>RX LNA</label>
+      <input type="checkbox" id="rx-lna">
+    </div>
+    <label>TX Power (dBm)</label>
+    <input type="text" id="tp" maxlength="2" placeholder="10">
+    <label>Spreading Factor</label>
+    <input type="text" id="sf" maxlength="2" placeholder="12">
+    <div class="toggle-row">
+      <label>ADR</label>
+      <input type="checkbox" id="adr">
+    </div>
+    <div class="toggle-row">
+      <label>Syncword Public</label>
+      <input type="checkbox" id="sync">
+    </div>
+    <button onclick="saveRadio()">Save</button>
+    <div class="status" id="st-radio"></div>
   </div>
 
   <div class="card">
@@ -195,17 +240,24 @@
         document.getElementById('ver').textContent = d.version;
         document.getElementById('dn').value = d.name;
         document.getElementById('ak').value = d.appkey;
-        document.getElementById('si').value = d.sleepInterval;
         document.getElementById('av').value = d.alertV;
         document.getElementById('rv').value = d.recoverV;
         document.getElementById('bs').value = d.burstSends;
         document.getElementById('ihb').value = d.idleHbCycles;
         document.getElementById('ahb').value = d.alertHbCycles;
         document.getElementById('rc').value = d.recoverCycles;
+        document.getElementById('si').value = d.sleepInterval;
         document.getElementById('bfmv').value = d.battFullMv;
         document.getElementById('blmv').value = d.battLowMv;
         document.getElementById('bsm').value = d.battSleepMult;
         document.getElementById('brn').value = d.battRecoveryN;
+        document.getElementById('md').value = d.measureDurationMs;
+        document.getElementById('fc').value = d.fenceCalPercent;
+        document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
+        document.getElementById('tp').value = d.txPower;
+        document.getElementById('sf').value = d.spreadingFactor;
+        document.getElementById('adr').checked = d.adrEnabled == 1;
+        document.getElementById('sync').checked = d.syncwordPublic == 1;
       })
       .finally(hideSpinner);
 
@@ -231,25 +283,42 @@
       }, 'st-device');
     }
 
-    function saveSettings() {
-      postConfig('/settings', {
-        sleepInterval: document.getElementById('si').value,
+    function saveAlert() {
+      postConfig('/alert', {
         alertV: document.getElementById('av').value,
         recoverV: document.getElementById('rv').value,
         burstSends: document.getElementById('bs').value,
         idleHbCycles: document.getElementById('ihb').value,
         alertHbCycles: document.getElementById('ahb').value,
         recoverCycles: document.getElementById('rc').value
-      }, 'st-settings');
+      }, 'st-alert');
     }
 
-    function saveBattSleep() {
-      postConfig('/batt-sleep', {
+    function saveSleep() {
+      postConfig('/sleep', {
+        sleepInterval: document.getElementById('si').value,
         battFullMv: document.getElementById('bfmv').value,
         battLowMv: document.getElementById('blmv').value,
         battSleepMult: document.getElementById('bsm').value,
         battRecoveryN: document.getElementById('brn').value
-      }, 'st-batt');
+      }, 'st-sleep');
+    }
+
+    function saveMeasure() {
+      postConfig('/measure', {
+        measureDurationMs: document.getElementById('md').value,
+        fenceCalPercent: document.getElementById('fc').value
+      }, 'st-measure');
+    }
+
+    function saveRadio() {
+      postConfig('/radio', {
+        rxLnaEnabled: document.getElementById('rx-lna').checked ? '1' : '0',
+        txPower: document.getElementById('tp').value,
+        spreadingFactor: document.getElementById('sf').value,
+        adrEnabled: document.getElementById('adr').checked ? '1' : '0',
+        syncwordPublic: document.getElementById('sync').checked ? '1' : '0'
+      }, 'st-radio');
     }
 
     function flashFirmware() {
