@@ -288,7 +288,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           if (sendResult > 0) {
             lastSignalInfo = signalInfo;
             loraTestState = LoraTestState::Received;
-            comms.processDownlink(downlink, &display);
+            for (int i = 0; downlink.type != DownlinkType::None && i < kMaxDownlinkChain; i++) {
+              downlink = comms.processDownlink(downlink, &display);
+            }
           } else {
             loraTestState = LoraTestState::NoDownlink;
           }

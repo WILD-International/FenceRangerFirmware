@@ -469,55 +469,57 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
   return send(fport, payload, len, display, downlink);
 }
 
-void Comms::processDownlink(Downlink& downlink, Display* display) {
-  while (isQuery(downlink.type)) {
-    delay(3000);
-    display->message("SEND CFG");
-    uint8_t fport = responseFPort(downlink.type);
-    downlink = {};
-    sendConfigReport(fport, display, &downlink);
-    display->message("SENT", 1000);
-  }
+Downlink Comms::processDownlink(Downlink downlink, Display* display) {
   switch (downlink.type) {
     case DownlinkType::EnableOTA:
       state->setMode(ModeConfig);
-      break;
+      return {};
     case DownlinkType::SetAlertThresholds:
       config->setAlertThresholds(downlink.alertThresholds.alertV,
                                  downlink.alertThresholds.recoverV);
-      break;
+      return {};
     case DownlinkType::SetAlertCycles:
       config->setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
                              downlink.alertCycles.alertHbCycles,
                              downlink.alertCycles.recoveryCycles);
-      break;
+      return {};
     case DownlinkType::SetSleepConfig:
       config->setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
       config->setBattAdaptiveSleep(config->getBattFullMv(), config->getBattLowMv(),
                                    downlink.sleepConfig.sleepMult, downlink.sleepConfig.recoveryN);
-      break;
+      return {};
     case DownlinkType::SetSleepAdjRange:
       config->setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,
                                    downlink.sleepAdjRange.battLowMv, config->getBattSleepMult(),
                                    config->getBattRecoveryN());
-      break;
+      return {};
     case DownlinkType::SetMeasureConfig:
       config->setMeasureDurationMs(downlink.measureConfig.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
-      break;
+      return {};
     case DownlinkType::SetRadioConfig:
       config->setRxLnaEnabled(downlink.radioConfig.rxLnaEnabled != 0);
       config->setTxPower(downlink.radioConfig.txPower);
       config->setSpreadingFactor(downlink.radioConfig.spreadingFactor);
       config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
       config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
-      break;
+      return {};
     case DownlinkType::SetDevName:
       config->setDevName(downlink.devNameData.name);
-      break;
+      return {};
     default:
       break;
   }
+  if (isQuery(downlink.type)) {
+    delay(3000);
+    display->message("SEND CFG");
+    uint8_t fport = responseFPort(downlink.type);
+    Downlink next{};
+    sendConfigReport(fport, display, &next);
+    display->message("SENT", 1000);
+    return next;
+  }
+  return {};
 }
 
 void Comms::saveSession() {

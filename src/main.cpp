@@ -46,7 +46,12 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
   }
   display.message("DATA SENT", 1000);
 
-  comms.processDownlink(downlink, &display);
+  for (int i = 0; downlink.type != DownlinkType::None && i < kMaxDownlinkChain; i++) {
+    downlink = comms.processDownlink(downlink, &display);
+  }
+  if (downlink.type != DownlinkType::None) {
+    LOG("Downlink chain limit reached, remaining downlinks lost\n");
+  }
 }
 
 void setup() {

@@ -14,6 +14,10 @@
 // regional choices: EU868, US915, AU915, AS923, AS923_2, AS923_3, AS923_4, IN865, KR920, CN470
 const LoRaWANBand_t Region = EU868;
 
+// Maximum number of consecutive downlinks processed in one wake cycle.
+// Additional downlinks queued on the server will be lost.
+const int kMaxDownlinkChain = 20;
+
 // subband choice: for US915/AU915 set to 2, for CN470 set to 1, otherwise leave on 0
 const uint8_t subBand = 0;
 
@@ -86,7 +90,7 @@ class Comms {
   int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink,
                           bool confirmed = false, SignalInfo* signalInfo = nullptr);
   int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);
-  void processDownlink(Downlink& downlink, Display* display);
+  Downlink processDownlink(Downlink downlink, Display* display);
   void saveSession();
   bool hasJoined();
   void sleep();
