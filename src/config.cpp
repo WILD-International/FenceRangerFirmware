@@ -24,6 +24,10 @@ void Config::loadDevEUI() {
 
 void Config::load() {
   prefs.begin(PREFS_NAMESPACE, true);  // read-only
+  if (prefs.isKey("devEUI")) {
+    prefs.getBytes("devEUI", devEUI, DEVEUI_LEN);
+    devEUIOverride = true;
+  }
   if (prefs.isKey("appKey")) {
     prefs.getBytes("appKey", appKey, APPKEY_LEN);
     appKeySet = true;
@@ -98,6 +102,24 @@ void Config::clearAppKey() {
   memset(appKey, 0, APPKEY_LEN);
   appKeySet = false;
   prefs.end();
+}
+
+void Config::setDevEUI(const uint8_t* eui) {
+  memcpy(devEUI, eui, DEVEUI_LEN);
+  devEUIOverride = true;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putBytes("devEUI", devEUI, DEVEUI_LEN);
+  prefs.end();
+}
+
+void Config::clearDevEUI() {
+  devEUIOverride = false;
+  prefs.begin(PREFS_NAMESPACE, false);
+  if (prefs.isKey("devEUI")) {
+    prefs.remove("devEUI");
+  }
+  prefs.end();
+  loadDevEUI();
 }
 
 void Config::setDevName(const char* name) {

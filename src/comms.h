@@ -28,12 +28,14 @@ enum class DownlinkType : uint8_t {
   SetSleepAdjRange,
   SetMeasureConfig,
   SetRadioConfig,
+  SetDevName,
   QueryAlertThresholds,
   QueryAlertCycles,
   QuerySleepConfig,
   QuerySleepAdjRange,
   QueryMeasureConfig,
   QueryRadioConfig,
+  QueryDevName,
   QueryVersion,
 };
 
@@ -70,6 +72,9 @@ struct Downlink {
       uint8_t adrEnabled;
       uint8_t syncwordPublic;
     } radioConfig;
+    struct {
+      char name[DEVNAME_MAX];
+    } devNameData;
   };
 };
 

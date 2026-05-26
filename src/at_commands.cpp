@@ -32,13 +32,27 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
 
   const ATCmd commands[] = {
       {"VERSION", "Firmware version", [&]() -> String { return String(GIT_TAG); }, nullptr},
-      {"DEVEUI", "Device EUI (read-only)",
+      {"DEVEUI", "Device EUI (16 hex chars, empty to restore chip default)",
        [&]() -> String {
          char hex[DEVEUI_LEN * 2 + 1] = {};
          bytesToHex(config.getDevEUI(), DEVEUI_LEN, hex);
          return String(hex);
        },
-       nullptr},
+       [&](const String& v) -> bool {
+         if (v.length() == 0) {
+           config.clearDevEUI();
+           return true;
+         }
+         if (v.length() != DEVEUI_LEN * 2) {
+           return false;
+         }
+         uint8_t tmp[DEVEUI_LEN];
+         if (!hexToBytes(v.c_str(), tmp, DEVEUI_LEN)) {
+           return false;
+         }
+         config.setDevEUI(tmp);
+         return true;
+       }},
       {"APPKEY", "AppKey (32 hex chars, empty to clear)",
        [&]() -> String {
          char hex[APPKEY_LEN * 2 + 1] = {};

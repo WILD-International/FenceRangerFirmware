@@ -20,6 +20,10 @@ class Config {
     return devEUI;
   }
 
+  bool hasCustomDevEUI() const {
+    return devEUIOverride;
+  }
+
   const uint64_t getDevEUIAsUint64() const {
     uint64_t id = 0;
     for (int i = 0; i < DEVEUI_LEN; i++) {
@@ -129,6 +133,8 @@ class Config {
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
+  void setDevEUI(const uint8_t* eui);
+  void clearDevEUI();
   void setDevName(const char* name);
   void setSleepIntervalS(uint16_t s);
   void setAlertThresholds(uint16_t alert, uint16_t recover);
@@ -173,7 +179,8 @@ class Config {
 
   Preferences prefs;
 
-  uint8_t devEUI[DEVEUI_LEN];  // Read-only, from chip
+  uint8_t devEUI[DEVEUI_LEN];
+  bool devEUIOverride = false;
   bool appKeySet = false;
   uint8_t appKey[APPKEY_LEN];
   bool devNameSet = false;

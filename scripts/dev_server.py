@@ -14,6 +14,7 @@ HTML_PATH = os.path.join(os.path.dirname(__file__), "../src/ota.html")
 # Fake device state
 state = {
     "eui": "AABBCCDDEEFF0011",
+    "euiOverride": False,
     "name": "test-fence",
     "appkey": "00112233445566778899aabbccddeeff",
     "alertV": 3000,
@@ -68,6 +69,13 @@ class Handler(BaseHTTPRequestHandler):
             time.sleep(DELAY)
             data = parse_qs(body.decode())
             state["name"] = data.get("name", [state["name"]])[0]
+            eui = data.get("eui", [""])[0]
+            if eui == "":
+                state["eui"] = "AABBCCDDEEFF0011"
+                state["euiOverride"] = False
+            elif len(eui) == 16:
+                state["eui"] = eui.upper()
+                state["euiOverride"] = True
             state["appkey"] = data.get("appkey", [state["appkey"]])[0]
             print(f"Device updated: {state}")
             self.send_response(200)

@@ -34,7 +34,9 @@ void WebUi::start() {
 
     String json = "{\"eui\":\"";
     json += eui;
-    json += "\",\"name\":\"";
+    json += "\",\"euiOverride\":";
+    json += config->hasCustomDevEUI() ? "true" : "false";
+    json += ",\"name\":\"";
     json += config->getDevName();
     json += "\",\"appkey\":\"";
     json += appkey;
@@ -82,6 +84,21 @@ void WebUi::start() {
 
   server->on("/device", HTTP_POST, [this]() {
     config->setDevName(server->arg("name").c_str());
+
+    String hexEui = server->arg("eui");
+    if (hexEui.length() == DEVEUI_LEN * 2) {
+      uint8_t eui[DEVEUI_LEN];
+      if (!hexToBytes(hexEui.c_str(), eui, DEVEUI_LEN)) {
+        server->send(400, "text/plain", "Invalid EUI");
+        return;
+      }
+      config->setDevEUI(eui);
+    } else if (hexEui.length() == 0) {
+      config->clearDevEUI();
+    } else {
+      server->send(400, "text/plain", "EUI must be 16 hex chars");
+      return;
+    }
 
     String hexKey = server->arg("appkey");
     if (hexKey.length() == APPKEY_LEN * 2) {

@@ -138,7 +138,12 @@
   <div class="card">
     <h3>Device Info</h3>
     <label>Device EUI</label>
-    <span class="mono" id="eui">-</span>
+    <span class="mono" id="eui-display">-</span>
+    <div class="toggle-row">
+      <label>Override chip default</label>
+      <input type="checkbox" id="eui-override" onchange="toggleEuiOverride()">
+    </div>
+    <input type="text" id="eui" class="mono" maxlength="16" placeholder="16 hex chars" style="display:none">
     <label>Device Name</label>
     <input type="text" id="dn" maxlength="31" placeholder="my-fence">
     <label>App Key (32 hex chars)</label>
@@ -228,15 +233,31 @@
 
   <script>
     var overlay = document.getElementById('overlay');
+    var currentEui = '';
 
     function showSpinner() { overlay.classList.add('active'); }
     function hideSpinner() { overlay.classList.remove('active'); }
+
+    function toggleEuiOverride() {
+      var override = document.getElementById('eui-override').checked;
+      var input = document.getElementById('eui');
+      input.style.display = override ? '' : 'none';
+      if (override && !input.value) {
+        input.value = currentEui;
+      }
+    }
 
     showSpinner();
     fetch('/api/config')
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        document.getElementById('eui').textContent = d.eui;
+        currentEui = d.eui;
+        document.getElementById('eui-display').textContent = d.eui;
+        if (d.euiOverride) {
+          document.getElementById('eui-override').checked = true;
+          document.getElementById('eui').value = d.eui;
+          document.getElementById('eui').style.display = '';
+        }
         document.getElementById('ver').textContent = d.version;
         document.getElementById('dn').value = d.name;
         document.getElementById('ak').value = d.appkey;
@@ -277,8 +298,10 @@
     }
 
     function saveDevice() {
+      var euiOverride = document.getElementById('eui-override').checked;
       postConfig('/device', {
         name: document.getElementById('dn').value,
+        eui: euiOverride ? document.getElementById('eui').value : '',
         appkey: document.getElementById('ak').value
       }, 'st-device');
     }

@@ -43,6 +43,8 @@ static uint8_t responseFPort(DownlinkType t) {
       return 15;
     case DownlinkType::QueryRadioConfig:
       return 16;
+    case DownlinkType::QueryDevName:
+      return 21;
     case DownlinkType::QueryVersion:
       return 20;
     default:
@@ -368,6 +370,19 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             LOG("Downlink: fPort 20 ignored (unexpected size %d)\n", downlinkSize);
           }
           break;
+        case 21:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryDevName");
+            downlink->type = DownlinkType::QueryDevName;
+          } else if (downlinkSize < DEVNAME_MAX) {
+            LOGLN("Downlink: SetDevName");
+            memcpy(downlink->devNameData.name, downlinkPayload, downlinkSize);
+            downlink->devNameData.name[downlinkSize] = '\0';
+            downlink->type = DownlinkType::SetDevName;
+          } else {
+            LOG("Downlink: fPort 21 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
         default:
           LOG("Downlink: unknown fPort %d\n", downlinkDetails.fPort);
           break;
@@ -390,6 +405,16 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
     }
     uint8_t buf[52];
     memcpy(buf, tag, len);
+    return send(fport, buf, len, display, downlink);
+  }
+  if (fport == 21) {
+    const char* name = config->getDevName();
+    size_t len = strlen(name);
+    if (len > 51) {
+      len = 51;
+    }
+    uint8_t buf[52];
+    memcpy(buf, name, len);
     return send(fport, buf, len, display, downlink);
   }
 
@@ -486,6 +511,9 @@ void Comms::processDownlink(Downlink& downlink, Display* display) {
       config->setSpreadingFactor(downlink.radioConfig.spreadingFactor);
       config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
       config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
+      break;
+    case DownlinkType::SetDevName:
+      config->setDevName(downlink.devNameData.name);
       break;
     default:
       break;
