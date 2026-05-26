@@ -33,21 +33,41 @@ To avoid overshooting in the other direction — waking up too frequently the mo
 
 ## Configuration
 
-Parameters can be configured via the web UI (connect to the device's WiFi AP in config mode) or via the OLED menu (single-button interface). Config mode is entered by pressing the boot button on startup, or via a downlink message.
+Parameters can be configured via four interfaces:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Cycle Sleep | 60 s | Deep sleep duration between measurements |
-| Alert V | 3000 V | Fence voltage below which an alert is triggered |
-| Recover V | 3500 V | Fence voltage above which recovery begins |
-| Burst Sends | 3 | Uplinks sent in quick succession on alert trigger |
-| Idle Heartbeat | 60 cycles | Cycles between uplinks when fence is healthy |
-| Alert Heartbeat | 15 cycles | Cycles between uplinks while fence is in alert |
-| Recovery Confirm | 30 cycles | Consecutive above-threshold cycles to confirm recovery |
-| Batt Full mV | 4000 mV | Battery voltage above which no sleep throttling applies |
-| Batt Low mV | 3300 mV | Battery voltage at which maximum sleep throttling applies |
-| Sleep Mult | 30 | Maximum sleep interval multiplier at low battery |
-| Recovery N | 50 | Slow-filter N for returning to normal sleep speed |
+- **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu)
+- **Web UI** — connect to the device's WiFi AP in config mode and open `http://192.168.4.1`
+- **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort
+- **AT commands** — serial interface over USB in config mode (115200 baud, `AT+HELP` for a command list)
+
+Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10 (no payload).
+
+### Parameter reference
+
+| Group | Parameter | Default | OLED | Web UI | LoRaWAN | AT command |
+|-------|-----------|---------|:----:|:------:|---------|------------|
+| Credentials | Device name | "no name" | — | ✓ | fPort 21 | `AT+DEVNAME` |
+| | App Key | — | — | ✓ | — | `AT+APPKEY` |
+| | Device EUI | (chip) | — | ✓ | — | `AT+DEVEUI` |
+| Alert | Alert V | 3000 V | ✓ | ✓ | fPort 11 | `AT+ALERTV` |
+| | Recover V | 3500 V | ✓ | ✓ | fPort 11 | `AT+RECOVERV` |
+| | Burst Sends | 3 | ✓ | ✓ | fPort 12 | `AT+BURSTSENDS` |
+| | Idle Heartbeat | 60 cycles | ✓ | ✓ | fPort 12 | `AT+IDLEHBCYCLES` |
+| | Alert Heartbeat | 15 cycles | ✓ | ✓ | fPort 12 | `AT+ALERTHBCYCLES` |
+| | Recovery Confirm | 30 cycles | ✓ | ✓ | fPort 12 | `AT+RECOVERCYCLES` |
+| Sleep | Cycle Sleep | 60 s | ✓ | ✓ | fPort 13 | `AT+SLEEPINTERVAL` |
+| | Batt Full mV | 4000 mV | ✓ | ✓ | fPort 14 | `AT+BATTFULLMV` |
+| | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |
+| | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
+| | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
+| Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 15 | `AT+MEASUREDURATION` |
+| | Fence Cal % | 100 | ✓ | ✓ | fPort 15 | `AT+FENCECAL` |
+| Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
+| | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
+| | Spreading Factor | 12 | ✓ | ✓ | fPort 16 | `AT+SF` |
+| | ADR | enabled | ✓ | ✓ | fPort 16 | `AT+ADR` |
+| | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
+| Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
 
 ---
 
