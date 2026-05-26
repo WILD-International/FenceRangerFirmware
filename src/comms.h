@@ -28,12 +28,17 @@ enum class DownlinkType : uint8_t {
   SetSleepAdjRange,
   SetMeasureConfig,
   SetRadioConfig,
-  QueryConfig,
+  QueryAlertThresholds,
+  QueryAlertCycles,
+  QuerySleepConfig,
+  QuerySleepAdjRange,
+  QueryMeasureConfig,
+  QueryRadioConfig,
+  QueryVersion,
 };
 
 struct Downlink {
   DownlinkType type = DownlinkType::None;
-  uint8_t fport = 0;
   union {
     struct {
       uint16_t alertV;

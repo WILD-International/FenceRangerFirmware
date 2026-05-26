@@ -29,6 +29,23 @@ static Module::RfSwitchMode_t rfswitch_table[] = {
 };
 #endif
 
+static uint8_t responseFPort(DownlinkType t) {
+  switch (t) {
+    case DownlinkType::QueryAlertThresholds: return 11;
+    case DownlinkType::QueryAlertCycles:     return 12;
+    case DownlinkType::QuerySleepConfig:     return 13;
+    case DownlinkType::QuerySleepAdjRange:   return 14;
+    case DownlinkType::QueryMeasureConfig:   return 15;
+    case DownlinkType::QueryRadioConfig:     return 16;
+    case DownlinkType::QueryVersion:         return 20;
+    default:                                 return 0;
+  }
+}
+
+static bool isQuery(DownlinkType t) {
+  return responseFPort(t) != 0;
+}
+
 // Helper function to display any issues
 void radioDebug(bool isFail, const __FlashStringHelper* message, int state, bool Freeze) {
   if (isFail) {
@@ -251,9 +268,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 11:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 11");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 11;
+            LOGLN("Downlink: QueryAlertThresholds");
+            downlink->type = DownlinkType::QueryAlertThresholds;
           } else if (downlinkSize == 4) {
             LOGLN("Downlink: SetAlertThresholds");
             downlink->type = DownlinkType::SetAlertThresholds;
@@ -265,9 +281,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 12:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 12");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 12;
+            LOGLN("Downlink: QueryAlertCycles");
+            downlink->type = DownlinkType::QueryAlertCycles;
           } else if (downlinkSize == 4) {
             LOGLN("Downlink: SetAlertCycles");
             downlink->type = DownlinkType::SetAlertCycles;
@@ -281,9 +296,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 13:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 13");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 13;
+            LOGLN("Downlink: QuerySleepConfig");
+            downlink->type = DownlinkType::QuerySleepConfig;
           } else if (downlinkSize == 5) {
             LOGLN("Downlink: SetSleepConfig");
             downlink->type = DownlinkType::SetSleepConfig;
@@ -296,9 +310,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 14:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 14");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 14;
+            LOGLN("Downlink: QuerySleepAdjRange");
+            downlink->type = DownlinkType::QuerySleepAdjRange;
           } else if (downlinkSize == 2) {
             LOGLN("Downlink: SetSleepAdjRange");
             downlink->type = DownlinkType::SetSleepAdjRange;
@@ -310,9 +323,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 15:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 15");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 15;
+            LOGLN("Downlink: QueryMeasureConfig");
+            downlink->type = DownlinkType::QueryMeasureConfig;
           } else if (downlinkSize == 4) {
             LOGLN("Downlink: SetMeasureConfig");
             downlink->type = DownlinkType::SetMeasureConfig;
@@ -326,9 +338,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 16:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryConfig fPort 16");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 16;
+            LOGLN("Downlink: QueryRadioConfig");
+            downlink->type = DownlinkType::QueryRadioConfig;
           } else if (downlinkSize == 5) {
             LOGLN("Downlink: SetRadioConfig");
             downlink->type = DownlinkType::SetRadioConfig;
@@ -343,9 +354,8 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           break;
         case 20:
           if (downlinkSize == 0) {
-            LOGLN("Downlink: QueryVersion fPort 20");
-            downlink->type = DownlinkType::QueryConfig;
-            downlink->fport = 20;
+            LOGLN("Downlink: QueryVersion");
+            downlink->type = DownlinkType::QueryVersion;
           } else {
             LOG("Downlink: fPort 20 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -427,10 +437,10 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
 }
 
 void Comms::processDownlink(Downlink& downlink, Display* display) {
-  while (downlink.type == DownlinkType::QueryConfig) {
+  while (isQuery(downlink.type)) {
     delay(3000);
     display->message("SEND CFG");
-    uint8_t fport = downlink.fport;
+    uint8_t fport = responseFPort(downlink.type);
     downlink = {};
     sendConfigReport(fport, display, &downlink);
     display->message("SENT", 1000);
