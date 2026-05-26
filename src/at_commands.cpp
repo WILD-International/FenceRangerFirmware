@@ -66,6 +66,158 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setDevName(v.c_str());
          return true;
        }},
+
+      // Alert config
+      {"ALERTV", "Alert threshold (V)",
+       [&]() -> String { return String(config.getAlertThresholdV()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 65535, n)) return false;
+         config.setAlertThresholdV(n);
+         return true;
+       }},
+      {"RECOVERV", "Recovery threshold (V)",
+       [&]() -> String { return String(config.getRecoverThresholdV()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 65535, n)) return false;
+         config.setRecoverThresholdV(n);
+         return true;
+       }},
+      {"BURSTSENDS", "Alert burst sends",
+       [&]() -> String { return String(config.getAlertBurstSends()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n)) return false;
+         config.setAlertBurstSends(n);
+         return true;
+       }},
+      {"IDLEHBCYCLES", "Idle heartbeat (cycles)",
+       [&]() -> String { return String(config.getIdleHeartbeatCycles()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n)) return false;
+         config.setIdleHeartbeatCycles(n);
+         return true;
+       }},
+      {"ALERTHBCYCLES", "Alert heartbeat (cycles)",
+       [&]() -> String { return String(config.getAlertHeartbeatCycles()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n)) return false;
+         config.setAlertHeartbeatCycles(n);
+         return true;
+       }},
+      {"RECOVERCYCLES", "Recovery confirm (cycles)",
+       [&]() -> String { return String(config.getRecoveryConfirmCycles()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n)) return false;
+         config.setRecoveryConfirmCycles(n);
+         return true;
+       }},
+
+      // Sleep config
+      {"SLEEPINTERVAL", "Cycle sleep (s)",
+       [&]() -> String { return String(config.getSleepIntervalS()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 65535, n)) return false;
+         config.setSleepIntervalS(n);
+         return true;
+       }},
+      {"BATTFULLMV", "Battery full (mV)",
+       [&]() -> String { return String(config.getBattFullMv()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 65535, n)) return false;
+         config.setBattFullMv(n);
+         return true;
+       }},
+      {"BATTLOWMV", "Battery low (mV)",
+       [&]() -> String { return String(config.getBattLowMv()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 65535, n)) return false;
+         config.setBattLowMv(n);
+         return true;
+       }},
+      {"BATTSLEEPMULT", "Sleep multiplier",
+       [&]() -> String { return String(config.getBattSleepMult()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n)) return false;
+         config.setBattSleepMult(n);
+         return true;
+       }},
+      {"BATTRECOVERYN", "Slow filter N (batt recovery)",
+       [&]() -> String { return String(config.getBattRecoveryN()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 65535, n)) return false;
+         config.setBattRecoveryN(n);
+         return true;
+       }},
+
+      // Measure config
+      {"MEASUREDURATION", "Measure duration (ms)",
+       [&]() -> String { return String(config.getMeasureDurationMs()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 100, 60000, n)) return false;
+         config.setMeasureDurationMs(n);
+         return true;
+       }},
+      {"FENCECAL", "Fence calibration (%)",
+       [&]() -> String { return String(config.getFenceCalPercent()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 1000, n)) return false;
+         config.setFenceCalPercent(n);
+         return true;
+       }},
+
+      // Radio config
+      {"RXLNA", "RX LNA enabled (0/1)",
+       [&]() -> String { return String(config.getRxLnaEnabled() ? 1 : 0); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 1, n)) return false;
+         config.setRxLnaEnabled(n != 0);
+         return true;
+       }},
+      {"TXPOWER", "TX power (dBm)",
+       [&]() -> String { return String(config.getTxPower()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 22, n)) return false;
+         config.setTxPower(n);
+         return true;
+       }},
+      {"SF", "Spreading factor (7-12)",
+       [&]() -> String { return String(config.getSpreadingFactor()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 7, 12, n)) return false;
+         config.setSpreadingFactor(n);
+         return true;
+       }},
+      {"ADR", "Adaptive data rate (0/1)",
+       [&]() -> String { return String(config.getAdrEnabled() ? 1 : 0); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 1, n)) return false;
+         config.setAdrEnabled(n != 0);
+         return true;
+       }},
+      {"SYNCWORD", "Sync word public (0/1)",
+       [&]() -> String { return String(config.getSyncwordPublic() ? 1 : 0); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 1, n)) return false;
+         config.setSyncwordPublic(n != 0);
+         return true;
+       }},
   };
   const size_t count = sizeof(commands) / sizeof(commands[0]);
 
@@ -142,7 +294,7 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
   for (size_t i = 0; i < count; i++) {
     if (cmdName == commands[i].name) {
       if (isGet) {
-        Serial.printf("+%s:%s\r\nOK\r\n", commands[i].name, commands[i].get().c_str());
+        Serial.printf("+%s:%s\nOK\n", commands[i].name, commands[i].get().c_str());
       } else {
         if (commands[i].set) {
           if (commands[i].set(value)) {
