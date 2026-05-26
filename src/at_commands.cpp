@@ -2,7 +2,6 @@
 
 #include "config.h"
 #include "helpers.h"
-
 #include "version.h"
 
 String serialBuffer;
@@ -32,9 +31,7 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
   trimmed.trim();
 
   const ATCmd commands[] = {
-      {"VERSION", "Firmware version",
-       [&]() -> String { return String(GIT_TAG); },
-       nullptr},
+      {"VERSION", "Firmware version", [&]() -> String { return String(GIT_TAG); }, nullptr},
       {"DEVEUI", "Device EUI (read-only)",
        [&]() -> String {
          char hex[DEVEUI_LEN * 2 + 1] = {};
@@ -77,7 +74,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getAlertThresholdV()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 65535, n)) return false;
+         if (!parseIntArg(v, 0, 65535, n))
+           return false;
          config.setAlertThresholdV(n);
          return true;
        }},
@@ -85,7 +83,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getRecoverThresholdV()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 65535, n)) return false;
+         if (!parseIntArg(v, 0, 65535, n))
+           return false;
          config.setRecoverThresholdV(n);
          return true;
        }},
@@ -93,7 +92,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getAlertBurstSends()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 255, n)) return false;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
          config.setAlertBurstSends(n);
          return true;
        }},
@@ -101,7 +101,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getIdleHeartbeatCycles()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 255, n)) return false;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
          config.setIdleHeartbeatCycles(n);
          return true;
        }},
@@ -109,7 +110,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getAlertHeartbeatCycles()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 255, n)) return false;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
          config.setAlertHeartbeatCycles(n);
          return true;
        }},
@@ -117,7 +119,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getRecoveryConfirmCycles()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 255, n)) return false;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
          config.setRecoveryConfirmCycles(n);
          return true;
        }},
@@ -127,7 +130,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getSleepIntervalS()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 65535, n)) return false;
+         if (!parseIntArg(v, 1, 65535, n))
+           return false;
          config.setSleepIntervalS(n);
          return true;
        }},
@@ -135,15 +139,16 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getBattFullMv()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 65535, n)) return false;
+         if (!parseIntArg(v, 1, 65535, n))
+           return false;
          config.setBattFullMv(n);
          return true;
        }},
-      {"BATTLOWMV", "Battery low (mV)",
-       [&]() -> String { return String(config.getBattLowMv()); },
+      {"BATTLOWMV", "Battery low (mV)", [&]() -> String { return String(config.getBattLowMv()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 65535, n)) return false;
+         if (!parseIntArg(v, 1, 65535, n))
+           return false;
          config.setBattLowMv(n);
          return true;
        }},
@@ -151,7 +156,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getBattSleepMult()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 255, n)) return false;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
          config.setBattSleepMult(n);
          return true;
        }},
@@ -159,7 +165,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getBattRecoveryN()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 65535, n)) return false;
+         if (!parseIntArg(v, 1, 65535, n))
+           return false;
          config.setBattRecoveryN(n);
          return true;
        }},
@@ -169,7 +176,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getMeasureDurationMs()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 100, 60000, n)) return false;
+         if (!parseIntArg(v, 100, 60000, n))
+           return false;
          config.setMeasureDurationMs(n);
          return true;
        }},
@@ -177,7 +185,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getFenceCalPercent()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 1, 1000, n)) return false;
+         if (!parseIntArg(v, 1, 1000, n))
+           return false;
          config.setFenceCalPercent(n);
          return true;
        }},
@@ -187,15 +196,16 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getRxLnaEnabled() ? 1 : 0); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 1, n)) return false;
+         if (!parseIntArg(v, 0, 1, n))
+           return false;
          config.setRxLnaEnabled(n != 0);
          return true;
        }},
-      {"TXPOWER", "TX power (dBm)",
-       [&]() -> String { return String(config.getTxPower()); },
+      {"TXPOWER", "TX power (dBm)", [&]() -> String { return String(config.getTxPower()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 22, n)) return false;
+         if (!parseIntArg(v, 0, 22, n))
+           return false;
          config.setTxPower(n);
          return true;
        }},
@@ -203,7 +213,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getSpreadingFactor()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 7, 12, n)) return false;
+         if (!parseIntArg(v, 7, 12, n))
+           return false;
          config.setSpreadingFactor(n);
          return true;
        }},
@@ -211,7 +222,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getAdrEnabled() ? 1 : 0); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 1, n)) return false;
+         if (!parseIntArg(v, 0, 1, n))
+           return false;
          config.setAdrEnabled(n != 0);
          return true;
        }},
@@ -219,7 +231,8 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
        [&]() -> String { return String(config.getSyncwordPublic() ? 1 : 0); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 0, 1, n)) return false;
+         if (!parseIntArg(v, 0, 1, n))
+           return false;
          config.setSyncwordPublic(n != 0);
          return true;
        }},

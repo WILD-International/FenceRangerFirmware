@@ -1,10 +1,9 @@
 
 #include "web_ui.h"
 
-#include "logging.h"
 #include "helpers.h"
+#include "logging.h"
 #include "ota_html.h"
-
 #include "version.h"
 
 WebUi::WebUi(Config* config) : config(config), running(false) {}

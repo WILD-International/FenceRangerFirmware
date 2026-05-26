@@ -31,14 +31,22 @@ static Module::RfSwitchMode_t rfswitch_table[] = {
 
 static uint8_t responseFPort(DownlinkType t) {
   switch (t) {
-    case DownlinkType::QueryAlertThresholds: return 11;
-    case DownlinkType::QueryAlertCycles:     return 12;
-    case DownlinkType::QuerySleepConfig:     return 13;
-    case DownlinkType::QuerySleepAdjRange:   return 14;
-    case DownlinkType::QueryMeasureConfig:   return 15;
-    case DownlinkType::QueryRadioConfig:     return 16;
-    case DownlinkType::QueryVersion:         return 20;
-    default:                                 return 0;
+    case DownlinkType::QueryAlertThresholds:
+      return 11;
+    case DownlinkType::QueryAlertCycles:
+      return 12;
+    case DownlinkType::QuerySleepConfig:
+      return 13;
+    case DownlinkType::QuerySleepAdjRange:
+      return 14;
+    case DownlinkType::QueryMeasureConfig:
+      return 15;
+    case DownlinkType::QueryRadioConfig:
+      return 16;
+    case DownlinkType::QueryVersion:
+      return 20;
+    default:
+      return 0;
   }
 }
 
