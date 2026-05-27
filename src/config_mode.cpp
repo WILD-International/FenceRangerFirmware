@@ -29,7 +29,7 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const uint16_t FENCE_CAL_OPTIONS[] = {86,  88,  90,  92,  94,  96,  98, 100,
                                         102, 104, 106, 108, 110, 112, 114};
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
-  const uint16_t SPREADING_FACTOR_OPTIONS[] = {7, 8, 9, 10, 11, 12};
+  const uint16_t DATA_RATE_OPTIONS[] = {0, 1, 2, 3, 4, 5};
   const uint16_t ADR_OPTIONS[] = {0, 1};
   const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
 
@@ -101,10 +101,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       {"TX Power dBm", TX_POWER_OPTIONS, sizeof(TX_POWER_OPTIONS) / sizeof(TX_POWER_OPTIONS[0]),
        [&] { return (uint16_t)config.getTxPower(); },
        [&](uint16_t power) { config.setTxPower((int8_t)power); }},
-      {"Spread Factor", SPREADING_FACTOR_OPTIONS,
-       sizeof(SPREADING_FACTOR_OPTIONS) / sizeof(SPREADING_FACTOR_OPTIONS[0]),
-       [&] { return (uint16_t)config.getSpreadingFactor(); },
-       [&](uint16_t sf) { config.setSpreadingFactor((uint8_t)sf); }},
+      {"Data Rate", DATA_RATE_OPTIONS, sizeof(DATA_RATE_OPTIONS) / sizeof(DATA_RATE_OPTIONS[0]),
+       [&] { return (uint16_t)config.getDataRate(); },
+       [&](uint16_t dr) { config.setDataRate((uint8_t)dr); }},
       {"ADR", ADR_OPTIONS, sizeof(ADR_OPTIONS) / sizeof(ADR_OPTIONS[0]),
        [&] { return (uint16_t)config.getAdrEnabled(); },
        [&](uint16_t value) { config.setAdrEnabled(value != 0); }},

@@ -204,8 +204,8 @@
     </div>
     <label>TX Power (dBm)</label>
     <input type="text" id="tp" maxlength="2" placeholder="10">
-    <label>Spreading Factor</label>
-    <input type="text" id="sf" maxlength="2" placeholder="12">
+    <label>Data Rate</label>
+    <input type="text" id="dr" maxlength="1" placeholder="3">
     <div class="toggle-row">
       <label>ADR</label>
       <input type="checkbox" id="adr">
@@ -276,7 +276,7 @@
         document.getElementById('fc').value = d.fenceCalPercent;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
         document.getElementById('tp').value = d.txPower;
-        document.getElementById('sf').value = d.spreadingFactor;
+        document.getElementById('dr').value = d.dataRate;
         document.getElementById('adr').checked = d.adrEnabled == 1;
         document.getElementById('sync').checked = d.syncwordPublic == 1;
       })
@@ -338,7 +338,7 @@
       postConfig('/radio', {
         rxLnaEnabled: document.getElementById('rx-lna').checked ? '1' : '0',
         txPower: document.getElementById('tp').value,
-        spreadingFactor: document.getElementById('sf').value,
+        dataRate: document.getElementById('dr').value,
         adrEnabled: document.getElementById('adr').checked ? '1' : '0',
         syncwordPublic: document.getElementById('sync').checked ? '1' : '0'
       }, 'st-radio');

@@ -138,6 +138,8 @@ bool Comms::lwActivate(Display* display) {
   }
 
   // if we got here, there was no session to restore, so start trying to join
+  node.setDatarate(config->getDataRate());
+  // node.scanGuard = 50;
   radiolib_state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
   while (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
     LOGLN(F("Join ('login') to the LoRaWAN Network"));
@@ -204,7 +206,7 @@ int16_t Comms::begin(Display* display) {
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   // TODO! I still put the power back to 10dBm because it's not clear how
   // TODO! this combines with the amplifiers
-  int radiolib_state = radio.begin(868.1, 125.0, config->getSpreadingFactor(), 7,
+  int radiolib_state = radio.begin(868.1, 125.0, 9, 7,
                                    config->getSyncwordPublic() ? RADIOLIB_SX126X_SYNC_WORD_PUBLIC
                                                                : RADIOLIB_SX126X_SYNC_WORD_PRIVATE,
                                    config->getTxPower(), 8, 1.8, false);
@@ -228,6 +230,9 @@ int16_t Comms::begin(Display* display) {
     rtc.joined = lwActivate(display);
     if (rtc.joined) {
       node.setADR(config->getAdrEnabled());
+      if (!config->getAdrEnabled()) {
+        node.setDatarate(config->getDataRate());
+      }
     }
     digitalWrite(LORA_PA_POWER, LOW);
   }
@@ -355,7 +360,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->type = DownlinkType::SetRadioConfig;
             downlink->radioConfig.rxLnaEnabled = downlinkPayload[0];
             downlink->radioConfig.txPower = downlinkPayload[1];
-            downlink->radioConfig.spreadingFactor = downlinkPayload[2];
+            downlink->radioConfig.dataRate = downlinkPayload[2];
             downlink->radioConfig.adrEnabled = downlinkPayload[3];
             downlink->radioConfig.syncwordPublic = downlinkPayload[4];
           } else {
@@ -458,7 +463,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
     case 16:
       payload[0] = config->getRxLnaEnabled() ? 1 : 0;
       payload[1] = (uint8_t)config->getTxPower();
-      payload[2] = config->getSpreadingFactor();
+      payload[2] = config->getDataRate();
       payload[3] = config->getAdrEnabled() ? 1 : 0;
       payload[4] = config->getSyncwordPublic() ? 1 : 0;
       len = 5;
@@ -500,7 +505,7 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
     case DownlinkType::SetRadioConfig:
       config->setRxLnaEnabled(downlink.radioConfig.rxLnaEnabled != 0);
       config->setTxPower(downlink.radioConfig.txPower);
-      config->setSpreadingFactor(downlink.radioConfig.spreadingFactor);
+      config->setDataRate(downlink.radioConfig.dataRate);
       config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
       config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
       return {};

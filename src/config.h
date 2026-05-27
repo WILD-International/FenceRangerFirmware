@@ -115,10 +115,10 @@ class Config {
   }
   void setTxPower(int8_t power);
 
-  uint8_t getSpreadingFactor() const {
-    return spreadingFactor;
+  uint8_t getDataRate() const {
+    return dataRate;
   }
-  void setSpreadingFactor(uint8_t sf);
+  void setDataRate(uint8_t dr);
 
   bool getAdrEnabled() const {
     return adrEnabled;
@@ -200,7 +200,7 @@ class Config {
   uint16_t measureDurationMs = 3000;
   uint16_t fenceCalPercent = 100;
   int8_t txPower = 10;
-  uint8_t spreadingFactor = 12;
+  uint8_t dataRate = 3;
   bool adrEnabled = true;
   bool syncwordPublic = true;
   int32_t display_timeout_ms = 5 * 60 * 1000;

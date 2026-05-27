@@ -223,13 +223,12 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setTxPower(n);
          return true;
        }},
-      {"SF", "Spreading factor (7-12)",
-       [&]() -> String { return String(config.getSpreadingFactor()); },
+      {"DR", "Data rate (0-5)", [&]() -> String { return String(config.getDataRate()); },
        [&](const String& v) -> bool {
          int32_t n;
-         if (!parseIntArg(v, 7, 12, n))
+         if (!parseIntArg(v, 0, 5, n))
            return false;
-         config.setSpreadingFactor(n);
+         config.setDataRate(n);
          return true;
        }},
       {"ADR", "Adaptive data rate (0/1)",

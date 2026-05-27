@@ -72,7 +72,7 @@ struct Downlink {
     struct {
       uint8_t rxLnaEnabled;
       uint8_t txPower;
-      uint8_t spreadingFactor;
+      uint8_t dataRate;
       uint8_t adrEnabled;
       uint8_t syncwordPublic;
     } radioConfig;

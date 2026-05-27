@@ -70,8 +70,8 @@ void WebUi::start() {
     json += config->getFenceCalPercent();
     json += ",\"txPower\":";
     json += config->getTxPower();
-    json += ",\"spreadingFactor\":";
-    json += config->getSpreadingFactor();
+    json += ",\"dataRate\":";
+    json += config->getDataRate();
     json += ",\"adrEnabled\":";
     json += (int)config->getAdrEnabled();
     json += ",\"syncwordPublic\":";
@@ -200,20 +200,20 @@ void WebUi::start() {
 
   server->on("/radio", HTTP_POST, [this]() {
     String txPowerArg = server->arg("txPower");
-    String sfArg = server->arg("spreadingFactor");
-    if (txPowerArg.length() == 0 || sfArg.length() == 0) {
+    String drArg = server->arg("dataRate");
+    if (txPowerArg.length() == 0 || drArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
     int32_t txPow = txPowerArg.toInt();
-    int32_t sf = sfArg.toInt();
-    if (txPow < 0 || txPow > 22 || sf < 7 || sf > 12) {
+    int32_t dr = drArg.toInt();
+    if (txPow < 0 || txPow > 22 || dr < 0 || dr > 5) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
     config->setRxLnaEnabled(server->arg("rxLnaEnabled") == "1");
     config->setTxPower((int8_t)txPow);
-    config->setSpreadingFactor((uint8_t)sf);
+    config->setDataRate((uint8_t)dr);
     config->setAdrEnabled(server->arg("adrEnabled") == "1");
     config->setSyncwordPublic(server->arg("syncwordPublic") == "1");
     server->send(200, "text/plain", "Saved");

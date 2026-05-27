@@ -57,7 +57,7 @@ void Config::load() {
   measureDurationMs = prefs.getUShort("measureMs", 3000);
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
   txPower = (int8_t)prefs.getChar("txPower", 10);
-  spreadingFactor = prefs.getUChar("spreadFactor", 12);
+  dataRate = prefs.getUChar("dataRate", 3);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
   prefs.end();
@@ -170,10 +170,10 @@ void Config::setTxPower(int8_t power) {
   prefs.end();
 }
 
-void Config::setSpreadingFactor(uint8_t sf) {
-  spreadingFactor = sf;
+void Config::setDataRate(uint8_t dr) {
+  dataRate = dr;
   prefs.begin(PREFS_NAMESPACE, false);
-  prefs.putUChar("spreadFactor", spreadingFactor);
+  prefs.putUChar("dataRate", dataRate);
   prefs.end();
 }
 

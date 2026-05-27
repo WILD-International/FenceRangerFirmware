@@ -32,7 +32,7 @@ state = {
     "fenceCalPercent": 100,
     "rxLnaEnabled": 1,
     "txPower": 10,
-    "spreadingFactor": 12,
+    "dataRate": 3,
     "adrEnabled": 1,
     "syncwordPublic": 1,
     "version": "v1.2.3-dev",
@@ -128,7 +128,7 @@ class Handler(BaseHTTPRequestHandler):
             data = parse_qs(body.decode())
             state["rxLnaEnabled"] = int(data.get("rxLnaEnabled", [state["rxLnaEnabled"]])[0])
             state["txPower"] = int(data.get("txPower", [state["txPower"]])[0])
-            state["spreadingFactor"] = int(data.get("spreadingFactor", [state["spreadingFactor"]])[0])
+            state["dataRate"] = int(data.get("dataRate", [state["dataRate"]])[0])
             state["adrEnabled"] = int(data.get("adrEnabled", [state["adrEnabled"]])[0])
             state["syncwordPublic"] = int(data.get("syncwordPublic", [state["syncwordPublic"]])[0])
             print(f"Radio config updated: {state}")
