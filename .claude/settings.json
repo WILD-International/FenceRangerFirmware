@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/bart/git/wild/FenceRangerFirmware/scripts/clang-format-hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
