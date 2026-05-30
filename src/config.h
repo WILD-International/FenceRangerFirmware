@@ -120,6 +120,12 @@ class Config {
   }
   void setDataRate(uint8_t dr);
 
+  // Deep-sleep state for the PA-enable pin (GPIO 2): 0=LOW, 1=HIGH, 2=FLOAT
+  uint8_t getPaSleepMode() const {
+    return paSleepMode;
+  }
+  void setPaSleepMode(uint8_t mode);
+
   bool getAdrEnabled() const {
     return adrEnabled;
   }
@@ -201,6 +207,7 @@ class Config {
   uint16_t fenceCalPercent = 100;
   int8_t txPower = 10;
   uint8_t dataRate = 3;
+  uint8_t paSleepMode = 0;  // 0=LOW 1=HIGH 2=FLOAT
   bool adrEnabled = true;
   bool syncwordPublic = true;
   int32_t display_timeout_ms = 5 * 60 * 1000;

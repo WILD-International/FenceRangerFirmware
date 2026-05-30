@@ -58,6 +58,7 @@ void Config::load() {
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
   txPower = (int8_t)prefs.getChar("txPower", 10);
   dataRate = prefs.getUChar("dataRate", 3);
+  paSleepMode = prefs.getUChar("paSleepMode", 0);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
   prefs.end();
@@ -174,6 +175,13 @@ void Config::setDataRate(uint8_t dr) {
   dataRate = dr;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUChar("dataRate", dataRate);
+  prefs.end();
+}
+
+void Config::setPaSleepMode(uint8_t mode) {
+  paSleepMode = mode;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUChar("paSleepMode", paSleepMode);
   prefs.end();
 }
 

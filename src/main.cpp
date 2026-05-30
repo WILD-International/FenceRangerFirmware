@@ -70,6 +70,7 @@ void setup() {
   }
 
   config.load();
+  configurePaSleepPin(config.getPaSleepMode());
 
   if (!config.hasAppKey()) {
     state.setMode(ModeConfig);
@@ -83,9 +84,10 @@ void setup() {
 
   if (state.getMode() == ModeConfig) {
     digitalWrite(LED, LOW);
-    runConfigMode(config, state, display, webUi, comms);
+    bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
-    gotoSleep(100);
+    configurePaSleepPin(config.getPaSleepMode());  // pick up a change made in the submenu
+    gotoSleep(longSleep ? config.getSleepIntervalMs() : 100);
   }
 
   digitalWrite(LED, LOW);

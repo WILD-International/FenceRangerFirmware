@@ -5,10 +5,12 @@
 #include <soc/rtc.h>
 
 #include "board.h"
-#include "logging.h"
 #include "esp32-hal-gpio.h"
 #include "hal/gpio_types.h"
+#include "logging.h"
 #include "rtc_state.h"
+
+static uint8_t sPaSleepMode = 0;  // 0=LOW 1=HIGH 2=FLOAT
 
 int64_t rtcTimeNowUs() {
   uint32_t cal = esp_clk_slowclk_cal_get();
@@ -17,6 +19,38 @@ int64_t rtcTimeNowUs() {
 
 int64_t getTimeSleptMs() {
   return (rtcTimeNowUs() - rtc.sleepEnterUs) / 1000;
+}
+
+void configurePaSleepPin(uint8_t mode) {
+  sPaSleepMode = mode;
+}
+
+// Drive the PA-enable pin to its configured deep-sleep state and latch it.
+static void latchPaSleepPin(gpio_num_t pin) {
+  switch (sPaSleepMode) {
+    case 1:  // HIGH: drive high + hold
+      pinMode(pin, OUTPUT);
+      digitalWrite(pin, HIGH);
+      rtc_gpio_hold_en(pin);
+      break;
+    case 2:  // FLOAT: isolate pad (no drive, no pull)
+      rtc_gpio_hold_dis(pin);
+      rtc_gpio_isolate(pin);
+      break;
+    default:  // 0 LOW: drive low + hold (original behaviour)
+      pinMode(pin, OUTPUT);
+      digitalWrite(pin, LOW);
+      rtc_gpio_hold_en(pin);
+      break;
+  }
+}
+
+// Release any hold/isolation and return the pad to a defined output-low state on wake.
+static void wakePaPin(gpio_num_t pin) {
+  rtc_gpio_hold_dis(pin);
+  rtc_gpio_deinit(pin);
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, LOW);
 }
 
 // On wake: release the GPIO holds that kept pin states stable during deep sleep,
@@ -35,14 +69,10 @@ void gpioWakeInit() {
   digitalWrite(LORA_PA_POWER, LOW);
 
 #if defined(USE_GC1109_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_EN);
-  pinMode(LORA_PA_EN, OUTPUT);
-  digitalWrite(LORA_PA_EN, LOW);
+  wakePaPin((gpio_num_t)LORA_PA_EN);
 #endif
 #if defined(USE_KCT8103L_PA)
-  rtc_gpio_hold_dis((gpio_num_t)LORA_PA_CSD);
-  pinMode(LORA_PA_CSD, OUTPUT);
-  digitalWrite(LORA_PA_CSD, LOW);
+  wakePaPin((gpio_num_t)LORA_PA_CSD);
 #endif
 }
 
@@ -62,14 +92,10 @@ void gpioSleepLatch() {
   rtc_gpio_hold_en(gpio_num_t(RADIO_NSS));
 
 #if defined(USE_GC1109_PA)
-  pinMode(LORA_PA_EN, OUTPUT);
-  digitalWrite(LORA_PA_EN, LOW);
-  rtc_gpio_hold_en((gpio_num_t)LORA_PA_EN);
+  latchPaSleepPin((gpio_num_t)LORA_PA_EN);
 #endif
 #if defined(USE_KCT8103L_PA)
-  pinMode(LORA_PA_CSD, OUTPUT);
-  digitalWrite(LORA_PA_CSD, LOW);
-  rtc_gpio_hold_en((gpio_num_t)LORA_PA_CSD);
+  latchPaSleepPin((gpio_num_t)LORA_PA_CSD);
   delay(1);
 #endif
 

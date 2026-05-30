@@ -8,9 +8,10 @@
 #include "esp32-hal-gpio.h"
 #include "measure_program.h"
 
-void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
+bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
   uint64_t configModeStartTime = millis();
   bool exitConfigMode = false;
+  bool longSleepRequested = false;
   display.message("CONFIG", 1000);
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
@@ -30,10 +31,13 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
                                         102, 104, 106, 108, 110, 112, 114};
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
   const uint16_t DATA_RATE_OPTIONS[] = {0, 1, 2, 3, 4, 5};
+  const uint16_t PA_SLEEP_OPTIONS[] = {0, 1, 2};  // 0=LOW 1=HIGH 2=FLOAT
   const uint16_t ADR_OPTIONS[] = {0, 1};
   const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
 
   // To add a parameter: add one entry to the relevant group below.
+  // An item with optCount == 0 is an "action" item: it shows no value, and a long
+  // press runs its set() callback (the argument is unused) instead of editing.
   struct MenuItem {
     const char* label;
     const uint16_t* options;
@@ -76,6 +80,14 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
        [&](uint16_t v) { config.setBattSleepMult(v); }},
       {"Recovery N", RECOVERY_N_OPTIONS, sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0]),
        [&] { return config.getBattRecoveryN(); }, [&](uint16_t v) { config.setBattRecoveryN(v); }},
+      {"PA Sleep Mode", PA_SLEEP_OPTIONS, sizeof(PA_SLEEP_OPTIONS) / sizeof(PA_SLEEP_OPTIONS[0]),
+       [&] { return (uint16_t)config.getPaSleepMode(); },
+       [&](uint16_t v) { config.setPaSleepMode((uint8_t)v); }},
+      {"Sleep now", nullptr, 0, nullptr,
+       [&](uint16_t) {
+         longSleepRequested = true;
+         exitConfigMode = true;
+       }},
   };
 
   struct MenuGroup {
@@ -155,6 +167,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     return item.optCount == 2 && item.options[0] == 0 && item.options[1] == 1;
   };
 
+  // Action items (optCount == 0) show no value; a long press runs their set() callback.
+  auto isActionItem = [](const MenuItem& item) { return item.optCount == 0; };
+
   auto updateSubmenuScrollOffset = [&]() {
     if (submenuIndex < submenuScrollOffset) {
       submenuScrollOffset = submenuIndex;
@@ -175,7 +190,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   auto refreshSubMenu = [&]() {
     const MenuGroup& group = GROUPS[activeGroup];
     for (int i = 0; i < group.count; i++) {
-      if (isToggleItem(group.items[i])) {
+      if (isActionItem(group.items[i])) {
+        snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%s", group.items[i].label);
+      } else if (isToggleItem(group.items[i])) {
         snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5s", group.items[i].label,
                  group.items[i].get() ? "ON" : "OFF");
       } else {
@@ -221,7 +238,9 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         display.showMenu(browseIndex);
       } else {
         const MenuItem& selectedItem = GROUPS[activeGroup].items[submenuIndex];
-        if (isToggleItem(selectedItem)) {
+        if (isActionItem(selectedItem)) {
+          selectedItem.set(0);
+        } else if (isToggleItem(selectedItem)) {
           selectedItem.set(selectedItem.get() ? 0 : 1);
           refreshSubMenu();
         } else {
@@ -368,5 +387,19 @@ void runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   webUi.stop();
   state.setMode(ModeNormal);
   state.startDisplayInNormalMode();
+  if (longSleepRequested) {
+    display.message("SLEEP");
+  }
+
+  // Wait for the button to be released before returning. Otherwise a long-press
+  // exit (e.g. "Sleep now") leaves GPIO0 held LOW when the following deep sleep
+  // arms the EXT0 button wake, which fires immediately and bounces straight back
+  // into config mode.
+  while (digitalRead(USER_BUTTON) == 0) {
+    delay(10);
+  }
+  delay(50);  // debounce
+
   Serial.println("EXIT");
+  return longSleepRequested;
 }
