@@ -184,6 +184,15 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setBattRecoveryN(n);
          return true;
        }},
+      {"PASLEEPMODE", "PA pin deep-sleep state (0=LOW 1=HIGH 2=FLOAT)",
+       [&]() -> String { return String(config.getPaSleepMode()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 2, n))
+           return false;
+         config.setPaSleepMode(n);
+         return true;
+       }},
 
       // Measure config
       {"MEASUREDURATION", "Measure duration (ms)",

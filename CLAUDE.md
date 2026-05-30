@@ -120,7 +120,7 @@ The menu uses four states: **INFO → BROWSE → SUBMENU → EDIT**.
 | Batt Low mV | 3300 mV | Battery voltage at which maximum sleep throttling applies |
 | Sleep Mult | 30 | Maximum sleep interval multiplier at low battery |
 | Recovery N | 50 | Slow-filter N; slow voltage rises 1/N of gap per cycle |
-| PA Sleep Mode | 0 (LOW) | Deep-sleep state of the PA-enable pin (GPIO 2): 0=LOW (drive low+hold), 1=HIGH (drive high+hold), 2=FLOAT (isolate). Bench knob for sleep-current tuning of the mis-routed pin. Applied in `gpioSleepLatch()` (`src/sleep.cpp`) via `configurePaSleepPin()`. OLED only. |
+| PA Sleep Mode | 0 (LOW) | Deep-sleep state of the PA-enable pin (GPIO 2): 0=LOW (drive low+hold), 1=HIGH (drive high+hold), 2=FLOAT (isolate). Bench knob for sleep-current tuning of the mis-routed pin. Applied in `gpioSleepLatch()` (`src/sleep.cpp`) via `configurePaSleepPin()`. Configurable via OLED, AT command (`PASLEEPMODE`), web UI (`/sleep`), and LoRaWAN downlink (fPort 13, as the 6th byte of SetSleepConfig). |
 
 The Sleep submenu also has a **Sleep now** *action* item (not a stored parameter): long-pressing it exits config mode and makes that one post-config sleep last the full Cycle Sleep interval instead of the usual 100 ms — used to measure deep-sleep current on an un-provisioned device (which otherwise re-enters config mode immediately). It is carried by the `bool` returned from `runConfigMode()`; action items are `MenuItem`s with `optCount == 0` whose `set()` callback runs on long press.
 

@@ -313,12 +313,13 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QuerySleepConfig");
             downlink->type = DownlinkType::QuerySleepConfig;
-          } else if (downlinkSize == 5) {
+          } else if (downlinkSize == 6) {
             LOGLN("Downlink: SetSleepConfig");
             downlink->type = DownlinkType::SetSleepConfig;
             downlink->sleepConfig.sleepIntervalS = (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->sleepConfig.sleepMult = downlinkPayload[2];
             downlink->sleepConfig.recoveryN = (downlinkPayload[3] << 8) | downlinkPayload[4];
+            downlink->sleepConfig.paSleepMode = downlinkPayload[5];
           } else {
             LOG("Downlink: fPort 13 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -423,7 +424,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
     return send(fport, buf, len, display, downlink);
   }
 
-  uint8_t payload[5];
+  uint8_t payload[6];
   size_t len = 0;
   switch (fport) {
     case 11:
@@ -446,7 +447,8 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[2] = config->getBattSleepMult();
       payload[3] = (config->getBattRecoveryN() >> 8) & 0xFF;
       payload[4] = config->getBattRecoveryN() & 0xFF;
-      len = 5;
+      payload[5] = config->getPaSleepMode();
+      len = 6;
       break;
     case 14:
       payload[0] = (uint8_t)((config->getBattFullMv() - 1950) / 10);
@@ -492,6 +494,7 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);
       config->setBattAdaptiveSleep(config->getBattFullMv(), config->getBattLowMv(),
                                    downlink.sleepConfig.sleepMult, downlink.sleepConfig.recoveryN);
+      config->setPaSleepMode(downlink.sleepConfig.paSleepMode);
       return {};
     case DownlinkType::SetSleepAdjRange:
       config->setBattAdaptiveSleep(downlink.sleepAdjRange.battFullMv,

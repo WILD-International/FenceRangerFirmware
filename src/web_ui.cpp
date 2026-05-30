@@ -62,6 +62,8 @@ void WebUi::start() {
     json += config->getBattSleepMult();
     json += ",\"battRecoveryN\":";
     json += config->getBattRecoveryN();
+    json += ",\"paSleepMode\":";
+    json += config->getPaSleepMode();
     json += ",\"rxLnaEnabled\":";
     json += (int)config->getRxLnaEnabled();
     json += ",\"measureDurationMs\":";
@@ -160,8 +162,9 @@ void WebUi::start() {
     String battLowArg = server->arg("battLowMv");
     String battMultArg = server->arg("battSleepMult");
     String battNArg = server->arg("battRecoveryN");
+    String paSleepArg = server->arg("paSleepMode");
     if (sleepArg.length() == 0 || battFullArg.length() == 0 || battLowArg.length() == 0 ||
-        battMultArg.length() == 0 || battNArg.length() == 0) {
+        battMultArg.length() == 0 || battNArg.length() == 0 || paSleepArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
@@ -170,13 +173,16 @@ void WebUi::start() {
     int32_t lowMv = battLowArg.toInt();
     int32_t sleepMult = battMultArg.toInt();
     int32_t recoveryN = battNArg.toInt();
+    int32_t paSleepMode = paSleepArg.toInt();
     if (sleepS < 1 || sleepS > 65535 || fullMv < 1 || fullMv > 65535 || lowMv < 1 ||
-        lowMv > 65535 || sleepMult < 1 || sleepMult > 255 || recoveryN < 1 || recoveryN > 65535) {
+        lowMv > 65535 || sleepMult < 1 || sleepMult > 255 || recoveryN < 1 || recoveryN > 65535 ||
+        paSleepMode < 0 || paSleepMode > 2) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
     config->setSleepIntervalS(sleepS);
     config->setBattAdaptiveSleep(fullMv, lowMv, sleepMult, recoveryN);
+    config->setPaSleepMode(paSleepMode);
     server->send(200, "text/plain", "Saved");
   });
 
