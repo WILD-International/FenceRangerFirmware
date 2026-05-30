@@ -76,6 +76,7 @@ struct Downlink {
       uint8_t dataRate;
       uint8_t adrEnabled;
       uint8_t syncwordPublic;
+      uint16_t scanGuardMs;
     } radioConfig;
     struct {
       char name[DEVNAME_MAX];

@@ -258,6 +258,15 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setSyncwordPublic(n != 0);
          return true;
        }},
+      {"SCANGUARD", "RX window guard (ms)",
+       [&]() -> String { return String(config.getScanGuardMs()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 500, n))
+           return false;
+         config.setScanGuardMs(n);
+         return true;
+       }},
   };
   const size_t count = sizeof(commands) / sizeof(commands[0]);
 

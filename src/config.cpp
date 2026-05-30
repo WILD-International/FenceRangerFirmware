@@ -61,6 +61,7 @@ void Config::load() {
   paSleepMode = prefs.getUChar("paSleepMode", 0);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
+  scanGuardMs = prefs.getUShort("scanGuard", 10);
   prefs.end();
 }
 
@@ -189,6 +190,13 @@ void Config::setSyncwordPublic(bool isPublic) {
   syncwordPublic = isPublic;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putBool("syncwordPublic", syncwordPublic);
+  prefs.end();
+}
+
+void Config::setScanGuardMs(uint16_t ms) {
+  scanGuardMs = ms;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("scanGuard", scanGuardMs);
   prefs.end();
 }
 

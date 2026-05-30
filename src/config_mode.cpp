@@ -34,6 +34,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const uint16_t PA_SLEEP_OPTIONS[] = {0, 1, 2};  // 0=LOW 1=HIGH 2=FLOAT
   const uint16_t ADR_OPTIONS[] = {0, 1};
   const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
+  const uint16_t SCAN_GUARD_OPTIONS[] = {10, 15, 20, 30, 50, 75, 100, 150, 200};
 
   // To add a parameter: add one entry to the relevant group below.
   // An item with optCount == 0 is an "action" item: it shows no value, and a long
@@ -123,6 +124,9 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
        sizeof(SYNCWORD_PUBLIC_OPTIONS) / sizeof(SYNCWORD_PUBLIC_OPTIONS[0]),
        [&] { return (uint16_t)config.getSyncwordPublic(); },
        [&](uint16_t value) { config.setSyncwordPublic(value != 0); }},
+      {"Scan Guard ms", SCAN_GUARD_OPTIONS,
+       sizeof(SCAN_GUARD_OPTIONS) / sizeof(SCAN_GUARD_OPTIONS[0]),
+       [&] { return config.getScanGuardMs(); }, [&](uint16_t ms) { config.setScanGuardMs(ms); }},
   };
 
   const MenuGroup GROUPS[] = {

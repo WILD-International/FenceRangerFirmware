@@ -220,6 +220,8 @@
       <label>Syncword Public</label>
       <input type="checkbox" id="sync">
     </div>
+    <label>Scan Guard (ms)</label>
+    <input type="text" id="sg" maxlength="4" placeholder="10">
     <button onclick="saveRadio()">Save</button>
     <div class="status" id="st-radio"></div>
   </div>
@@ -286,6 +288,7 @@
         document.getElementById('dr').value = d.dataRate;
         document.getElementById('adr').checked = d.adrEnabled == 1;
         document.getElementById('sync').checked = d.syncwordPublic == 1;
+        document.getElementById('sg').value = d.scanGuardMs;
       })
       .finally(hideSpinner);
 
@@ -348,7 +351,8 @@
         txPower: document.getElementById('tp').value,
         dataRate: document.getElementById('dr').value,
         adrEnabled: document.getElementById('adr').checked ? '1' : '0',
-        syncwordPublic: document.getElementById('sync').checked ? '1' : '0'
+        syncwordPublic: document.getElementById('sync').checked ? '1' : '0',
+        scanGuardMs: document.getElementById('sg').value
       }, 'st-radio');
     }
 

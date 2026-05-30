@@ -36,6 +36,7 @@ state = {
     "dataRate": 3,
     "adrEnabled": 1,
     "syncwordPublic": 1,
+    "scanGuardMs": 10,
     "version": "v1.2.3-dev",
 }
 
@@ -133,6 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             state["dataRate"] = int(data.get("dataRate", [state["dataRate"]])[0])
             state["adrEnabled"] = int(data.get("adrEnabled", [state["adrEnabled"]])[0])
             state["syncwordPublic"] = int(data.get("syncwordPublic", [state["syncwordPublic"]])[0])
+            state["scanGuardMs"] = int(data.get("scanGuardMs", [state["scanGuardMs"]])[0])
             print(f"Radio config updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")

@@ -136,6 +136,12 @@ class Config {
   }
   void setSyncwordPublic(bool isPublic);
 
+  // RX-window guard padding in ms (RadioLib LoRaWANNode::scanGuard, default 10)
+  uint16_t getScanGuardMs() const {
+    return scanGuardMs;
+  }
+  void setScanGuardMs(uint16_t ms);
+
   // Grouped setters (used by LoRaWAN downlinks and web UI)
   void setAppKey(const uint8_t* key);
   void clearAppKey();
@@ -210,6 +216,7 @@ class Config {
   uint8_t paSleepMode = 0;  // 0=LOW 1=HIGH 2=FLOAT
   bool adrEnabled = true;
   bool syncwordPublic = true;
+  uint16_t scanGuardMs = 10;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

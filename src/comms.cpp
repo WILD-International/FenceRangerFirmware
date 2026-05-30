@@ -84,6 +84,9 @@ bool Comms::lwActivate(Display* display) {
   // setup the OTAA session information
   node.beginOTAA(joinEUI, config->getDevEUIAsUint64(), NULL, config->getAppKey());
 
+  // pad the RX windows to absorb timing inaccuracy (covers join and all uplink RX)
+  node.scanGuard = config->getScanGuardMs();
+
   LOGLN(F("Recalling LoRaWAN nonces & session"));
   // ##### setup the flash storage
   store.begin("radiolib");
@@ -139,7 +142,6 @@ bool Comms::lwActivate(Display* display) {
 
   // if we got here, there was no session to restore, so start trying to join
   node.setDatarate(config->getDataRate());
-  // node.scanGuard = 50;
   radiolib_state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
   while (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
     LOGLN(F("Join ('login') to the LoRaWAN Network"));
@@ -356,7 +358,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryRadioConfig");
             downlink->type = DownlinkType::QueryRadioConfig;
-          } else if (downlinkSize == 5) {
+          } else if (downlinkSize == 7) {
             LOGLN("Downlink: SetRadioConfig");
             downlink->type = DownlinkType::SetRadioConfig;
             downlink->radioConfig.rxLnaEnabled = downlinkPayload[0];
@@ -364,6 +366,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->radioConfig.dataRate = downlinkPayload[2];
             downlink->radioConfig.adrEnabled = downlinkPayload[3];
             downlink->radioConfig.syncwordPublic = downlinkPayload[4];
+            downlink->radioConfig.scanGuardMs = (downlinkPayload[5] << 8) | downlinkPayload[6];
           } else {
             LOG("Downlink: fPort 16 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -424,7 +427,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
     return send(fport, buf, len, display, downlink);
   }
 
-  uint8_t payload[6];
+  uint8_t payload[7];
   size_t len = 0;
   switch (fport) {
     case 11:
@@ -468,7 +471,9 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[2] = config->getDataRate();
       payload[3] = config->getAdrEnabled() ? 1 : 0;
       payload[4] = config->getSyncwordPublic() ? 1 : 0;
-      len = 5;
+      payload[5] = (config->getScanGuardMs() >> 8) & 0xFF;
+      payload[6] = config->getScanGuardMs() & 0xFF;
+      len = 7;
       break;
     default:
       return RADIOLIB_ERR_NONE;
@@ -511,6 +516,7 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setDataRate(downlink.radioConfig.dataRate);
       config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
       config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
+      config->setScanGuardMs(downlink.radioConfig.scanGuardMs);
       return {};
     case DownlinkType::SetDevName:
       config->setDevName(downlink.devNameData.name);

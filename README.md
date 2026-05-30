@@ -60,13 +60,15 @@ Config mode is entered by pressing the boot button on startup, or via a LoRaWAN 
 | | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |
 | | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
+| | PA Sleep Mode | 0 (LOW) | ✓ | ✓ | fPort 13 | `AT+PASLEEPMODE` |
 | Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 15 | `AT+MEASUREDURATION` |
 | | Fence Cal % | 100 | ✓ | ✓ | fPort 15 | `AT+FENCECAL` |
 | Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
 | | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
-| | Spreading Factor | 12 | ✓ | ✓ | fPort 16 | `AT+SF` |
+| | Data Rate | 3 | ✓ | ✓ | fPort 16 | `AT+DR` |
 | | ADR | enabled | ✓ | ✓ | fPort 16 | `AT+ADR` |
 | | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
+| | Scan Guard | 10 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
 
 ---

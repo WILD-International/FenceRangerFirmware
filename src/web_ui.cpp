@@ -78,6 +78,8 @@ void WebUi::start() {
     json += (int)config->getAdrEnabled();
     json += ",\"syncwordPublic\":";
     json += (int)config->getSyncwordPublic();
+    json += ",\"scanGuardMs\":";
+    json += config->getScanGuardMs();
     json += ",\"version\":\"";
     json += GIT_TAG;
     json += "\"}";
@@ -211,9 +213,15 @@ void WebUi::start() {
       server->send(400, "text/plain", "All fields required");
       return;
     }
+    String scanGuardArg = server->arg("scanGuardMs");
+    if (scanGuardArg.length() == 0) {
+      server->send(400, "text/plain", "All fields required");
+      return;
+    }
     int32_t txPow = txPowerArg.toInt();
     int32_t dr = drArg.toInt();
-    if (txPow < 0 || txPow > 22 || dr < 0 || dr > 5) {
+    int32_t scanGuard = scanGuardArg.toInt();
+    if (txPow < 0 || txPow > 22 || dr < 0 || dr > 5 || scanGuard < 0 || scanGuard > 500) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
@@ -222,6 +230,7 @@ void WebUi::start() {
     config->setDataRate((uint8_t)dr);
     config->setAdrEnabled(server->arg("adrEnabled") == "1");
     config->setSyncwordPublic(server->arg("syncwordPublic") == "1");
+    config->setScanGuardMs((uint16_t)scanGuard);
     server->send(200, "text/plain", "Saved");
   });
 
