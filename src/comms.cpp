@@ -30,22 +30,47 @@ static Module::RfSwitchMode_t rfswitch_table[] = {
 #endif
 
 // --- Radio-config trial helpers ------------------------------------------
-// Confirmed-uplink attempts per DR phase before that phase is declared failed.
+// Consecutive missed ACKs allowed within a phase before it reverts (a success refills
+// this budget, so only a sustained run of misses fails the phase).
 static constexpr uint8_t RADIO_TRIAL_ATTEMPTS = 3;
 
-// Number of DR-probe phases for the staged candidate: an ADR-on candidate tests
-// DR0 then DR1 (the reachable worst cases); an ADR-off candidate tests only its
-// fixed data rate.
+// Successful confirmed round-trips the ADR phase must collect before it passes. More
+// than one guards against a fluke ACK on a marginal link (it does not exercise ADR's
+// own rate loop — that needs far more frames than a trial can run).
+static constexpr uint8_t ADR_PHASE_CONFIRMS = 3;
+
+// Number of probe phases for the staged candidate. An ADR-on candidate runs two:
+// first at DR0, then with ADR actually enabled (the real configured mode). DR0 is
+// singled out because in testing it needed a larger scanGuard than the higher data
+// rates (DR2–DR5) — a scanGuard that's fine at those can silently drop DR0 downlinks.
+// Since ADR
+// can push the device down to DR0 (and the climb-back commands are themselves
+// downlinks we'd then miss), we confirm DR0 works under the candidate before
+// committing. An ADR-off candidate runs a single probe at its fixed data rate.
 static uint8_t trialPhaseCount() {
   return rtc.radioTrial.adrEnabled ? 2 : 1;
 }
 
-// DR to force for a given trial phase.
+// True when the given phase should probe with ADR enabled rather than a forced DR.
+// Only the final phase of an ADR candidate does this.
+static bool trialPhaseIsAdr(uint8_t phase) {
+  return rtc.radioTrial.adrEnabled && phase == 1;
+}
+
+// Successful confirmed round-trips a phase must collect before it passes. The ADR
+// phase wants several; a forced-DR phase passes on the first success.
+static uint8_t trialPhaseConfirms(uint8_t phase) {
+  return trialPhaseIsAdr(phase) ? ADR_PHASE_CONFIRMS : 1;
+}
+
+// DR for a given trial phase. An ADR candidate's first phase forces DR0 (the rate
+// found to need the most scanGuard); every other phase uses the candidate's own data
+// rate (in the ADR phase that is just the ADR start rate).
 static uint8_t trialDrForPhase(uint8_t phase) {
-  if (rtc.radioTrial.adrEnabled) {
-    return phase == 0 ? 0 : 1;  // DR0 then DR1
+  if (rtc.radioTrial.adrEnabled && phase == 0) {
+    return 0;  // DR0: the finicky low rate ADR can drop to
   }
-  return rtc.radioTrial.dataRate;  // fixed DR
+  return rtc.radioTrial.dataRate;
 }
 
 static uint8_t responseFPort(DownlinkType t) {
@@ -252,7 +277,9 @@ int16_t Comms::begin(Display* display) {
     rtc.joined = lwActivate(display);
     if (rtc.joined) {
       node.setADR(er.adrEnabled);
-      if (!er.adrEnabled) {
+      // Normally we only pin the DR when ADR is off; during a trial we also pin it in the
+      // ADR phase to give that probe a known start rate before ADR takes over.
+      if (!er.adrEnabled || rtc.radioTrial.active) {
         node.setDatarate(er.dataRate);
       }
     }
@@ -263,14 +290,16 @@ int16_t Comms::begin(Display* display) {
 
 Comms::EffectiveRadioConfig Comms::effectiveRadioConfig() {
   if (rtc.radioTrial.active) {
-    // During a trial probe, use the candidate settings but force ADR off and pin the
-    // data rate to the phase under test so we control which DR the downlink is tested at.
+    // During a trial probe, use the candidate settings. Forced-DR phases pin the DR with
+    // ADR off so we control which rate the downlink is tested at; the final ADR phase
+    // enables ADR (testDr is then the ADR start DR) to prove the real configured mode.
+    bool adrPhase = trialPhaseIsAdr(rtc.radioTrial.phase);
     return {
         rtc.radioTrial.rxLnaEnabled != 0,
         rtc.radioTrial.txPower,
         rtc.radioTrial.syncwordPublic != 0,
         rtc.radioTrial.scanGuardMs,
-        false,  // ADR forced off
+        adrPhase,
         rtc.radioTrial.testDr,
     };
   }
@@ -289,10 +318,11 @@ void Comms::stageRadioTrial(const Downlink& downlink) {
   rtc.radioTrial.scanGuardMs = downlink.radioConfig.scanGuardMs;
   rtc.radioTrial.phase = 0;
   rtc.radioTrial.testDr = trialDrForPhase(0);
+  rtc.radioTrial.confirmsLeft = trialPhaseConfirms(0);
   rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
   rtc.radioTrial.active = true;
   LOG("Radio trial staged: %s, phases=%d, first probe DR%d\n",
-      rtc.radioTrial.adrEnabled ? "ADR on (test DR0+DR1)" : "ADR off", trialPhaseCount(),
+      rtc.radioTrial.adrEnabled ? "ADR on (test DR0 then ADR)" : "ADR off", trialPhaseCount(),
       rtc.radioTrial.testDr);
 }
 
@@ -325,8 +355,13 @@ void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* displa
     return;
   }
 
-  LOG("Radio trial probe: phase %d, DR%d, %d attempts left\n", rtc.radioTrial.phase,
-      rtc.radioTrial.testDr, rtc.radioTrial.attemptsLeft);
+  if (trialPhaseIsAdr(rtc.radioTrial.phase)) {
+    LOG("Radio trial probe: ADR enabled (start DR%d), %d confirm(s) left, %d attempts\n",
+        rtc.radioTrial.testDr, rtc.radioTrial.confirmsLeft, rtc.radioTrial.attemptsLeft);
+  } else {
+    LOG("Radio trial probe: forced DR%d, %d attempts left\n", rtc.radioTrial.testDr,
+        rtc.radioTrial.attemptsLeft);
+  }
   display->message("RADIO TEST");
 
   Downlink downlink;
@@ -334,13 +369,29 @@ void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* displa
   bool ackReceived = (result > 0);
 
   if (ackReceived) {
-    rtc.radioTrial.phase++;
-    if (rtc.radioTrial.phase >= trialPhaseCount()) {
-      commitRadioTrial();
+    // A success refills the miss budget and counts toward this phase's required confirms.
+    rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
+    if (rtc.radioTrial.confirmsLeft > 0) {
+      rtc.radioTrial.confirmsLeft--;
+    }
+    if (rtc.radioTrial.confirmsLeft > 0) {
+      LOG("Radio trial: ACK ok, %d more confirm(s) needed this phase\n",
+          rtc.radioTrial.confirmsLeft);
     } else {
-      rtc.radioTrial.testDr = trialDrForPhase(rtc.radioTrial.phase);
-      rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
-      LOG("Radio trial: phase passed, next probe DR%d\n", rtc.radioTrial.testDr);
+      rtc.radioTrial.phase++;
+      if (rtc.radioTrial.phase >= trialPhaseCount()) {
+        commitRadioTrial();
+      } else {
+        rtc.radioTrial.testDr = trialDrForPhase(rtc.radioTrial.phase);
+        rtc.radioTrial.confirmsLeft = trialPhaseConfirms(rtc.radioTrial.phase);
+        rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
+        if (trialPhaseIsAdr(rtc.radioTrial.phase)) {
+          LOG("Radio trial: DR0 passed, next probe with ADR enabled (%d confirms)\n",
+              rtc.radioTrial.confirmsLeft);
+        } else {
+          LOG("Radio trial: phase passed, next probe DR%d\n", rtc.radioTrial.testDr);
+        }
+      }
     }
   } else {
     if (rtc.radioTrial.attemptsLeft > 0) {

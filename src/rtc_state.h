@@ -23,7 +23,8 @@ struct RadioTrial {
   // state machine
   uint8_t phase = 0;         // index into the DR-test sequence
   uint8_t testDr = 0;        // DR forced for this phase's confirmed-uplink probe
-  uint8_t attemptsLeft = 0;  // confirmed-uplink attempts remaining for this phase
+  uint8_t confirmsLeft = 0;  // successful ACKs still needed before this phase passes
+  uint8_t attemptsLeft = 0;  // consecutive missed ACKs left before this phase reverts
 };
 
 struct RtcState {
