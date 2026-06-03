@@ -29,6 +29,25 @@ static Module::RfSwitchMode_t rfswitch_table[] = {
 };
 #endif
 
+// --- Radio-config trial helpers ------------------------------------------
+// Confirmed-uplink attempts per DR phase before that phase is declared failed.
+static constexpr uint8_t RADIO_TRIAL_ATTEMPTS = 3;
+
+// Number of DR-probe phases for the staged candidate: an ADR-on candidate tests
+// DR0 then DR1 (the reachable worst cases); an ADR-off candidate tests only its
+// fixed data rate.
+static uint8_t trialPhaseCount() {
+  return rtc.radioTrial.adrEnabled ? 2 : 1;
+}
+
+// DR to force for a given trial phase.
+static uint8_t trialDrForPhase(uint8_t phase) {
+  if (rtc.radioTrial.adrEnabled) {
+    return phase == 0 ? 0 : 1;  // DR0 then DR1
+  }
+  return rtc.radioTrial.dataRate;  // fixed DR
+}
+
 static uint8_t responseFPort(DownlinkType t) {
   switch (t) {
     case DownlinkType::QueryAlertThresholds:
@@ -85,7 +104,7 @@ bool Comms::lwActivate(Display* display) {
   node.beginOTAA(joinEUI, config->getDevEUIAsUint64(), NULL, config->getAppKey());
 
   // pad the RX windows to absorb timing inaccuracy (covers join and all uplink RX)
-  node.scanGuard = config->getScanGuardMs();
+  node.scanGuard = effectiveRadioConfig().scanGuardMs;
 
   LOGLN(F("Recalling LoRaWAN nonces & session"));
   // ##### setup the flash storage
@@ -141,7 +160,7 @@ bool Comms::lwActivate(Display* display) {
   }
 
   // if we got here, there was no session to restore, so start trying to join
-  node.setDatarate(config->getDataRate());
+  node.setDatarate(effectiveRadioConfig().dataRate);
   radiolib_state = RADIOLIB_ERR_NETWORK_NOT_JOINED;
   while (radiolib_state != RADIOLIB_LORAWAN_NEW_SESSION) {
     LOGLN(F("Join ('login') to the LoRaWAN Network"));
@@ -204,14 +223,15 @@ int16_t Comms::begin(Display* display) {
   if (radioInitialized) {
     return RADIOLIB_ERR_NONE;
   }
+  EffectiveRadioConfig er = effectiveRadioConfig();
   LOGLN("[SX1262] Initializing ... ");
   // Heltec library uses 1.8V for TCXO, instead of RadioLib default of 1.6V
   // TODO! I still put the power back to 10dBm because it's not clear how
   // TODO! this combines with the amplifiers
-  int radiolib_state = radio.begin(868.1, 125.0, 9, 7,
-                                   config->getSyncwordPublic() ? RADIOLIB_SX126X_SYNC_WORD_PUBLIC
-                                                               : RADIOLIB_SX126X_SYNC_WORD_PRIVATE,
-                                   config->getTxPower(), 8, 1.8, false);
+  int radiolib_state = radio.begin(
+      868.1, 125.0, 9, 7,
+      er.syncwordPublic ? RADIOLIB_SX126X_SYNC_WORD_PUBLIC : RADIOLIB_SX126X_SYNC_WORD_PRIVATE,
+      er.txPower, 8, 1.8, false);
   if (radiolib_state == RADIOLIB_ERR_NONE) {
     radioInitialized = true;
     LOGLN(F("radiolib begin success!"));
@@ -220,7 +240,7 @@ int16_t Comms::begin(Display* display) {
     return radiolib_state;
   }
 #if defined(USE_KCT8103L_PA)
-  rfswitch_table[1].values[1] = config->getRxLnaEnabled() ? LOW : HIGH;
+  rfswitch_table[1].values[1] = er.rxLnaEnabled ? LOW : HIGH;
 #endif
   radio.setRfSwitchTable(rfswitch_pins, rfswitch_table);
 
@@ -231,14 +251,116 @@ int16_t Comms::begin(Display* display) {
     delay(1);
     rtc.joined = lwActivate(display);
     if (rtc.joined) {
-      node.setADR(config->getAdrEnabled());
-      if (!config->getAdrEnabled()) {
-        node.setDatarate(config->getDataRate());
+      node.setADR(er.adrEnabled);
+      if (!er.adrEnabled) {
+        node.setDatarate(er.dataRate);
       }
     }
     digitalWrite(LORA_PA_POWER, LOW);
   }
   return radiolib_state;
+}
+
+Comms::EffectiveRadioConfig Comms::effectiveRadioConfig() {
+  if (rtc.radioTrial.active) {
+    // During a trial probe, use the candidate settings but force ADR off and pin the
+    // data rate to the phase under test so we control which DR the downlink is tested at.
+    return {
+        rtc.radioTrial.rxLnaEnabled != 0,
+        rtc.radioTrial.txPower,
+        rtc.radioTrial.syncwordPublic != 0,
+        rtc.radioTrial.scanGuardMs,
+        false,  // ADR forced off
+        rtc.radioTrial.testDr,
+    };
+  }
+  return {
+      config->getRxLnaEnabled(), config->getTxPower(),    config->getSyncwordPublic(),
+      config->getScanGuardMs(),  config->getAdrEnabled(), config->getDataRate(),
+  };
+}
+
+void Comms::stageRadioTrial(const Downlink& downlink) {
+  rtc.radioTrial.rxLnaEnabled = downlink.radioConfig.rxLnaEnabled;
+  rtc.radioTrial.txPower = downlink.radioConfig.txPower;
+  rtc.radioTrial.dataRate = downlink.radioConfig.dataRate;
+  rtc.radioTrial.adrEnabled = downlink.radioConfig.adrEnabled;
+  rtc.radioTrial.syncwordPublic = downlink.radioConfig.syncwordPublic;
+  rtc.radioTrial.scanGuardMs = downlink.radioConfig.scanGuardMs;
+  rtc.radioTrial.phase = 0;
+  rtc.radioTrial.testDr = trialDrForPhase(0);
+  rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
+  rtc.radioTrial.active = true;
+  LOG("Radio trial staged: %s, phases=%d, first probe DR%d\n",
+      rtc.radioTrial.adrEnabled ? "ADR on (test DR0+DR1)" : "ADR off", trialPhaseCount(),
+      rtc.radioTrial.testDr);
+}
+
+void Comms::commitRadioTrial() {
+  config->setRxLnaEnabled(rtc.radioTrial.rxLnaEnabled != 0);
+  config->setTxPower(rtc.radioTrial.txPower);
+  config->setDataRate(rtc.radioTrial.dataRate);
+  config->setAdrEnabled(rtc.radioTrial.adrEnabled != 0);
+  config->setSyncwordPublic(rtc.radioTrial.syncwordPublic != 0);
+  config->setScanGuardMs(rtc.radioTrial.scanGuardMs);
+  rtc.radioTrial.active = false;
+  rtc.trialResultPending = true;
+  LOGLN("Radio trial committed to NVS");
+}
+
+void Comms::revertRadioTrial() {
+  rtc.radioTrial.active = false;
+  rtc.trialResultPending = true;
+  LOGLN("Radio trial reverted (candidate discarded; NVS config unchanged)");
+}
+
+void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* display) {
+  if (begin(display) != RADIOLIB_ERR_NONE || !hasJoined()) {
+    // The radio failing to init / not being joined while a config trial is pending
+    // should never happen — the trial only exists because a downlink got through.
+    // If it does, something is badly wrong: revert to the known-good config rather
+    // than risk lingering on the unproven candidate. The operator can re-send.
+    LOGLN("Radio trial: radio/join not ready — reverting to known-good config");
+    revertRadioTrial();
+    return;
+  }
+
+  LOG("Radio trial probe: phase %d, DR%d, %d attempts left\n", rtc.radioTrial.phase,
+      rtc.radioTrial.testDr, rtc.radioTrial.attemptsLeft);
+  display->message("RADIO TEST");
+
+  Downlink downlink;
+  int16_t result = sendMeasurement(battMv, fenceV, display, &downlink, /*confirmed=*/true);
+  bool ackReceived = (result > 0);
+
+  if (ackReceived) {
+    rtc.radioTrial.phase++;
+    if (rtc.radioTrial.phase >= trialPhaseCount()) {
+      commitRadioTrial();
+    } else {
+      rtc.radioTrial.testDr = trialDrForPhase(rtc.radioTrial.phase);
+      rtc.radioTrial.attemptsLeft = RADIO_TRIAL_ATTEMPTS;
+      LOG("Radio trial: phase passed, next probe DR%d\n", rtc.radioTrial.testDr);
+    }
+  } else {
+    if (rtc.radioTrial.attemptsLeft > 0) {
+      rtc.radioTrial.attemptsLeft--;
+    }
+    if (rtc.radioTrial.attemptsLeft == 0) {
+      revertRadioTrial();
+    } else {
+      LOG("Radio trial: no ACK, %d attempts left for this DR\n", rtc.radioTrial.attemptsLeft);
+    }
+  }
+
+  // Handle anything the server piggybacked on the ACK frame. This runs *after* the ACK
+  // evaluation above so that a new SetRadioConfig restages the trial (latest wins),
+  // cleanly superseding this probe's result, and other commands (EnableOTA, alert/sleep
+  // config, queries) still take effect during a trial. A no-ACK probe carries no
+  // downlink, so this loop is a no-op there.
+  for (int i = 0; downlink.type != DownlinkType::None && i < kMaxDownlinkChain; i++) {
+    downlink = processDownlink(downlink, display);
+  }
 }
 
 int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display,
@@ -511,12 +633,9 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
       return {};
     case DownlinkType::SetRadioConfig:
-      config->setRxLnaEnabled(downlink.radioConfig.rxLnaEnabled != 0);
-      config->setTxPower(downlink.radioConfig.txPower);
-      config->setDataRate(downlink.radioConfig.dataRate);
-      config->setAdrEnabled(downlink.radioConfig.adrEnabled != 0);
-      config->setSyncwordPublic(downlink.radioConfig.syncwordPublic != 0);
-      config->setScanGuardMs(downlink.radioConfig.scanGuardMs);
+      // Don't persist remote radio changes directly — stage a trial that auto-reverts
+      // unless a confirmed-uplink ACK proves the link still works (see runRadioTrialCycle).
+      stageRadioTrial(downlink);
       return {};
     case DownlinkType::SetDevName:
       config->setDevName(downlink.devNameData.name);

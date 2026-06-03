@@ -67,9 +67,15 @@ Two methods on `State` implement battery-based sleep throttling:
 
 ### LoRaWAN (`src/comms.cpp`)
 
-Uses RadioLib with OTAA. The session is persisted in `RTC_DATA_ATTR LWsession[]` and nonces in NVS (`Preferences`). Join is attempted with backoff: every 5th boot for the first 30 boots, then every 10th boot. Uplinks are unconfirmed (no ACK). Downlinks are handled on fPorts 10 (trigger OTA) and 11 (update sleep interval and alert thresholds).
+Uses RadioLib with OTAA. The session is persisted in `RTC_DATA_ATTR LWsession[]` and nonces in NVS (`Preferences`). Join is attempted with backoff: every 5th boot for the first 30 boots, then every 10th boot. Normal uplinks are unconfirmed (no ACK). Downlinks are handled on fPorts 10 (trigger OTA), 11–16 (set/query alert, sleep, measure, and radio config), and 20–21 (query version / dev name).
 
 The public send API is `comms.sendMeasurement(battMv, fenceV, display, downlink)` — it encodes the 3-byte payload internally and calls the private `send()`. The raw `send()` method is private.
+
+#### Radio-config trial-and-rollback (commit-on-confirm)
+
+A `SetRadioConfig` downlink (fPort 16) does **not** write NVS directly — that could lock the device out of downlinks (e.g. RX LNA off, scanGuard too small, or a low DR) with no way to send a fix. Instead the candidate is **staged in volatile RTC** (`rtc.radioTrial`, see `src/rtc_state.h`) and only **committed to NVS once a confirmed-uplink ACK proves the link still works both ways**. Timeout, crash, or power loss all fall back to the last confirmed-good NVS config automatically.
+
+Each trial wake (`Comms::runRadioTrialCycle`, driven from `main.cpp` when `rtc.radioTrial.active`) sends one **confirmed** uplink at a forced DR; an ACK (`sendReceive() > 0`) advances the trial, no ACK after `RADIO_TRIAL_ATTEMPTS` (3) reverts it. If the candidate **enables ADR**, the trial first probes **DR0 then DR1** (one per wake, to respect EU868 duty cycle) — the reachable worst cases — so a single committed `scanGuard` is proven adequate across the whole ADR range. `Comms::effectiveRadioConfig()` resolves which settings `begin()`/`lwActivate()` apply: the NVS config normally, or the staged candidate (ADR forced off, DR pinned to the phase) during a trial. After a trial concludes, the device re-sends the fPort 16 radio-config report once (`rtc.trialResultPending`) so the server can tell commit (new settings) from revert (old). Only the LoRaWAN path is trial-gated; OLED/Web/AT radio changes still commit immediately, and entering config mode cancels any active trial.
 
 ### Uplink payload (3 bytes)
 

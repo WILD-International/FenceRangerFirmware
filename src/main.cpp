@@ -83,6 +83,10 @@ void setup() {
   Serial.begin(115200);
 
   if (state.getMode() == ModeConfig) {
+    // The operator is physically present and asserting control — abandon any radio
+    // trial in flight rather than letting it commit/revert under them.
+    rtc.radioTrial.active = false;
+    rtc.trialResultPending = false;
     digitalWrite(LED, LOW);
     bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
@@ -107,6 +111,16 @@ void setup() {
 
   if (wasButtonPressed()) {
     gotoSleep(100);
+  }
+
+  // A radio-config trial is in progress: this wake is a confirmed-uplink probe at the
+  // phase's forced DR, not a normal send. runRadioTrialCycle commits or reverts the
+  // candidate based on whether an ACK arrives; either way we just sleep afterwards.
+  if (rtc.radioTrial.active) {
+    comms.runRadioTrialCycle(measurement.battMaxMv,
+                             max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display);
+    comms.sleep();
+    gotoSleep(adaptedSleepMs);
   }
 
   // Try joining if not joined yet, even if there's nothing to send
@@ -137,6 +151,15 @@ void setup() {
   bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
   if (shouldSend) {
     runComms(comms, state, config, display, measurement);
+  }
+  // After a radio trial concludes, report the now-active radio config once (fPort 16)
+  // so the server can tell commit (new settings) from revert (old settings).
+  if (rtc.trialResultPending) {
+    if (comms.begin(&display) == RADIOLIB_ERR_NONE && comms.hasJoined()) {
+      Downlink next;
+      comms.sendConfigReport(16, &display, &next);
+      rtc.trialResultPending = false;
+    }
   }
   comms.sleep();
   if (wasButtonPressed() || state.getMode() == ModeConfig) {

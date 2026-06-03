@@ -72,7 +72,7 @@ struct Downlink {
     } measureConfig;
     struct {
       uint8_t rxLnaEnabled;
-      uint8_t txPower;
+      int8_t txPower;
       uint8_t dataRate;
       uint8_t adrEnabled;
       uint8_t syncwordPublic;
@@ -98,10 +98,30 @@ class Comms {
   void sleep();
   void resetJoinSchedule();
 
+  // Run one wake of an active radio-config trial: a confirmed-uplink probe at the
+  // phase's forced DR, then advance / commit / revert based on whether an ACK arrived.
+  void runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* display);
+
  private:
   bool lwActivate(Display* display);
   int16_t send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink,
                bool confirmed = false, SignalInfo* signalInfo = nullptr);
+
+  // Radio settings actually applied this wake: the NVS config normally, or the
+  // staged trial candidate (with ADR forced off / DR forced to testDr) during a trial.
+  struct EffectiveRadioConfig {
+    bool rxLnaEnabled;
+    int8_t txPower;
+    bool syncwordPublic;
+    uint16_t scanGuardMs;
+    bool adrEnabled;
+    uint8_t dataRate;
+  };
+  EffectiveRadioConfig effectiveRadioConfig();
+
+  void stageRadioTrial(const Downlink& downlink);
+  void commitRadioTrial();
+  void revertRadioTrial();
 
   bool radioInitialized = false;
   Config* config;

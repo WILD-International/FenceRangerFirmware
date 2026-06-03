@@ -7,6 +7,25 @@
 
 enum Mode { ModeNormal, ModeConfig };
 
+// Radio-config trial (commit-on-confirm). A SetRadioConfig downlink stages its
+// candidate settings here (volatile RTC) instead of writing NVS; they are only
+// committed to NVS once a confirmed-uplink ACK proves the link still works both
+// ways. Timeout, crash, or power loss all fall back to the last good NVS config.
+struct RadioTrial {
+  bool active = false;
+  // candidate radio settings under test (mirror of the Config radio fields)
+  uint8_t rxLnaEnabled = 0;
+  int8_t txPower = 0;
+  uint8_t dataRate = 0;
+  uint8_t adrEnabled = 0;
+  uint8_t syncwordPublic = 0;
+  uint16_t scanGuardMs = 0;
+  // state machine
+  uint8_t phase = 0;         // index into the DR-test sequence
+  uint8_t testDr = 0;        // DR forced for this phase's confirmed-uplink probe
+  uint8_t attemptsLeft = 0;  // confirmed-uplink attempts remaining for this phase
+};
+
 struct RtcState {
   // Sleep tracking
   int64_t sleepEnterUs = 0;
@@ -34,6 +53,10 @@ struct RtcState {
 
   // Device mode
   Mode mode = ModeNormal;
+
+  // Radio-config trial-and-rollback
+  RadioTrial radioTrial = {};
+  bool trialResultPending = false;  // a trial just concluded; send one fPort-16 report, then clear
 };
 
 extern RTC_DATA_ATTR RtcState rtc;
