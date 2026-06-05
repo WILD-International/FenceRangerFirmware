@@ -184,7 +184,7 @@ void Display::showMenu(int selectedIndex) {
     return;
   }
 
-  const int TOTAL_ITEMS = 7;
+  const int TOTAL_ITEMS = 8;
   const int VISIBLE_ITEMS = 6;
   const int SCROLLBAR_X = 124;
   const int SCROLLBAR_W = 4;
@@ -200,7 +200,8 @@ void Display::showMenu(int selectedIndex) {
   snprintf(labels[3], 22, "%-14s%5s", "Radio config", ">");
   snprintf(labels[4], 22, "%-14s%5s", "Voltage Test", ">");
   snprintf(labels[5], 22, "%-14s%5s", "LoRa Test", ">");
-  snprintf(labels[6], 22, "Back");
+  snprintf(labels[6], 22, "%-14s%5s", "WiFi AP", ">");
+  snprintf(labels[7], 22, "Back");
 
   display.clearDisplay();
   displayHeader("Menu");
@@ -359,6 +360,30 @@ void Display::showLoraTest(bool joined, LoraTestState state, const SignalInfo* s
   display.setTextColor(SSD1306_BLACK);
   display.setCursor(2, 56);
   display.print(joined ? "tap=send  hold=back" : "tap=join  hold=back");
+  display.setTextColor(SSD1306_WHITE);
+  display.display();
+}
+
+void Display::showWifiAp(const char* ssid, const char* password) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayHeader("WiFi AP");
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 13);
+  display.print("SSID:");
+  display.setCursor(2, 23);
+  printTruncated(display, ssid, 21);
+  display.setCursor(2, 36);
+  display.print("Pass:");
+  display.setCursor(2, 46);
+  printTruncated(display, password, 21);
+  display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 56);
+  display.print("hold=back");
   display.setTextColor(SSD1306_WHITE);
   display.display();
 }

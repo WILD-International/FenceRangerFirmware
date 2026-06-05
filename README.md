@@ -35,12 +35,12 @@ To avoid overshooting in the other direction — waking up too frequently the mo
 
 Parameters can be configured via four interfaces:
 
-- **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu). Besides the config groups, the menu has two on-device bench tests: **Voltage Test** (live fence and battery readings) and **LoRa Test** (sends a confirmed uplink and shows join status plus signal quality — RSSI/SNR)
-- **Web UI** — connect to the device's WiFi AP in config mode and open `http://192.168.4.1`
+- **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu). Besides the config groups, the menu has two on-device bench tests — **Voltage Test** (live fence and battery readings) and **LoRa Test** (sends a confirmed uplink and shows join status plus signal quality — RSSI/SNR) — and a **WiFi AP** screen that turns the access point on
+- **Web UI** — the WiFi AP is off by default in config mode; open the **WiFi AP** menu screen to switch it on (the AP runs only while that screen is shown), then connect to the device's AP and open `http://192.168.4.1`
 - **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort
 - **AT commands** — serial interface over USB in config mode (115200 baud, `AT+HELP` for a command list)
 
-Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10 (no payload).
+Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10 (no payload). The fPort-10 path opens directly on the WiFi AP screen with the access point already on, so a remotely-triggered session is ready for a web update.
 
 **Radio config over LoRaWAN is trial-gated.** A radio-config downlink (fPort 16) is not applied permanently right away — it is staged and tested first, so a bad combination (e.g. RX LNA off, scanGuard too small, or a low data rate) can't lock the device out of downlinks. The device sends **confirmed uplinks** at the relevant data rate(s) and only keeps the new settings if it gets an ACK; otherwise it automatically reverts to the previous working settings. If the new settings enable ADR, it first proves DR0 works — DR0 needs a larger scan guard than higher rates, and ADR could drop the device down to it with no way back — and then proves the link a few times with ADR actually enabled. After the trial it re-sends the fPort 16 report, so the server can see whether the change stuck (new values) or reverted (old values). Changes made locally (OLED/Web UI/AT) apply immediately.
 

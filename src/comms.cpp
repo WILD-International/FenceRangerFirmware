@@ -658,6 +658,7 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
   switch (downlink.type) {
     case DownlinkType::EnableOTA:
       state->setMode(ModeConfig);
+      rtc.otaConfigRequested = true;
       return {};
     case DownlinkType::SetAlertThresholds:
       config->setAlertThresholds(downlink.alertThresholds.alertV,

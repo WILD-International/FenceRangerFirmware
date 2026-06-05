@@ -14,6 +14,17 @@ class WebUi {
   void stop();
   void update();
 
+  bool isRunning() const {
+    return running;
+  }
+
+  // The fixed AP password. Acceptable because the AP is only ever up while an operator is
+  // physically present at the device's WiFi AP screen.
+  static constexpr const char* AP_PASSWORD = "wildinternational";
+
+  // Writes the AP SSID ("FR-<DevEUI>") into out.
+  void apSsid(char* out, size_t len) const;
+
  private:
   Config* config;
   WebServer* server;

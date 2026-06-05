@@ -30,6 +30,7 @@ class Display {
   void showVoltageTest(const Measurement& measurement);
   void showLoraTest(bool joined, LoraTestState state = LoraTestState::Idle,
                     const SignalInfo* signalInfo = nullptr);
+  void showWifiAp(const char* ssid, const char* password);
 
  private:
   void displayTitle();

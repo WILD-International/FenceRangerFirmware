@@ -55,6 +55,10 @@ struct RtcState {
   // Device mode
   Mode mode = ModeNormal;
 
+  // Set when an EnableOTA downlink requested config mode; consumed once on the next wake to
+  // open config mode directly on the WiFi AP screen (with the AP started).
+  bool otaConfigRequested = false;
+
   // Radio-config trial-and-rollback
   RadioTrial radioTrial = {};
   bool trialResultPending = false;  // a trial just concluded; send one fPort-16 report, then clear

@@ -92,16 +92,16 @@ Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max rea
 
 ### Config mode (`src/config_mode.cpp`)
 
-Entered on button press, when no AppKey is stored, or via the fPort-10 `EnableOTA` downlink. `runConfigMode(config, state, display, webUi, comms)` is a free function that owns the entire config mode event loop — all dependencies are passed explicitly rather than accessed as globals (`comms` is needed for the on-device LoRa Test).
+Entered on button press, when no AppKey is stored, or via the fPort-10 `EnableOTA` downlink. `runConfigMode(config, state, display, webUi, comms, openWifiAp)` is a free function that owns the entire config mode event loop — all dependencies are passed explicitly rather than accessed as globals (`comms` is needed for the on-device LoRa Test). `openWifiAp` (set when the fPort-10 downlink requested config mode, carried across the wake by `rtc.otaConfigRequested`) makes config mode open straight onto the WiFi AP screen.
 
-Runs a WiFi AP + HTTP server (`WebUi`) and accepts AT commands over Serial (`src/at_commands.cpp` — a table-driven dispatcher; `AT+HELP` lists every command). The loop exits when its local `exitConfigMode` flag is set — a short tap at the info screen, `AT+EXIT`, the "Sleep now" action, or the 1-hour timeout. Config is stored in NVS via `Preferences`.
+The WiFi AP + HTTP server (`WebUi`) is **off by default** — it runs only while the **WiFi AP** menu screen is active (`webUi.start()`/`stop()` on entering/leaving that screen), so most config sessions never bring WiFi up. AT commands over Serial (`src/at_commands.cpp` — a table-driven dispatcher; `AT+HELP` lists every command) are always available. The loop exits when its local `exitConfigMode` flag is set — a short tap at the info screen, `AT+EXIT`, the "Sleep now" action, or the 1-hour timeout. Config is stored in NVS via `Preferences`.
 
 #### OLED menu UX (single-button)
 
-A single-button state machine (`MenuState` in `src/config_mode.cpp`): **INFO → BROWSE → SUBMENU → EDIT**, plus two bench screens **VOLT_TEST** and **LORA_TEST**. Throughout, a short tap advances/cycles and a long press (≥500 ms) activates/saves.
+A single-button state machine (`MenuState` in `src/config_mode.cpp`): **INFO → BROWSE → SUBMENU → EDIT**, plus two bench screens **VOLT_TEST** and **LORA_TEST** and the **WIFI_AP_SCREEN**. Throughout, a short tap advances/cycles and a long press (≥500 ms) activates/saves.
 
 - **INFO** (home): device name, DevEUI, version. Short tap exits config mode; long press enters BROWSE.
-- **BROWSE**: top-level list of the config groups followed by the two bench tests and a Back item; longer than the screen, so it scrolls. Long press opens a group's SUBMENU, starts a bench test, or returns to INFO.
+- **BROWSE**: top-level list of the config groups followed by the two bench tests, the WiFi AP screen, and a Back item; longer than the screen, so it scrolls. Long press opens a group's SUBMENU, starts a bench test/WiFi AP, or returns to INFO.
 - **SUBMENU**: the active group's items plus a trailing Back; long press edits an item or returns to BROWSE.
 - **EDIT**: cycles a parameter through predefined options (plus a CANCEL slot); long press commits.
 
@@ -111,7 +111,7 @@ The menu is **data-driven** — do not hardcode the item list from this doc. The
 - **Toggle** (`options == {0,1}`): rendered ON/OFF; a long press flips it directly, no EDIT screen.
 - **Action** (`optCount == 0`, e.g. "Sleep now"): shows no value; a long press runs its `set()` callback. "Sleep now" exits config mode and makes that one post-config sleep last the full Cycle Sleep interval (vs the usual 100 ms) so deep-sleep current can be measured on an un-provisioned device — carried by the `bool` return of `runConfigMode()`.
 
-**VOLT_TEST** shows live fence/battery readings (re-measuring continuously); **LORA_TEST** sends a *confirmed* uplink and shows join state plus RSSI/SNR/freq/DR/RX-window (`SignalInfo`, `src/signal_info.h`).
+**VOLT_TEST** shows live fence/battery readings (re-measuring continuously); **LORA_TEST** sends a *confirmed* uplink and shows join state plus RSSI/SNR/freq/DR/RX-window (`SignalInfo`, `src/signal_info.h`). **WIFI_AP_SCREEN** starts the WiFi AP on entry and shows the SSID + password; the AP runs only while this screen is shown, and a long press stops it and returns to BROWSE (a tap is ignored so a stray press can't drop the AP mid-OTA).
 
 #### Configurable parameters
 

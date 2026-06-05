@@ -8,16 +8,22 @@
 
 WebUi::WebUi(Config* config) : config(config), running(false) {}
 
+void WebUi::apSsid(char* out, size_t len) const {
+  char ssid[32] = "FR-";
+  bytesToHex(config->getDevEUI(), DEVEUI_LEN, ssid + 3);
+  snprintf(out, len, "%s", ssid);
+}
+
 void WebUi::start() {
   if (running) {
     LOGLN("WebUi already active");
     return;
   }
   running = true;
-  char ssid[32] = "FenceRanger-";
-  bytesToHex(config->getDevEUI(), DEVEUI_LEN, ssid + 12);
+  char ssid[32];
+  apSsid(ssid, sizeof(ssid));
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, "wildinternational");
+  WiFi.softAP(ssid, AP_PASSWORD);
 
   server = new WebServer(80);
 

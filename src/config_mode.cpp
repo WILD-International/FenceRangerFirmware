@@ -8,7 +8,8 @@
 #include "esp32-hal-gpio.h"
 #include "measure_program.h"
 
-bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
+bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms,
+                   bool openWifiAp) {
   uint64_t configModeStartTime = millis();
   bool exitConfigMode = false;
   bool longSleepRequested = false;
@@ -138,12 +139,13 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
 
   const int BROWSE_VOLT_TEST = 4;
   const int BROWSE_LORA_TEST = 5;
-  const int BROWSE_BACK = 6;
-  const int NUM_BROWSE_ITEMS = 7;
+  const int BROWSE_WIFI_AP = 6;
+  const int BROWSE_BACK = 7;
+  const int NUM_BROWSE_ITEMS = 8;
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
-  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST, LORA_TEST };
+  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST, LORA_TEST, WIFI_AP_SCREEN };
   MenuState menuState = INFO;
   int browseIndex = 0;
   int activeGroup = 0;
@@ -209,6 +211,12 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
                         submenuScrollOffset);
   };
 
+  auto showWifiApScreen = [&]() {
+    char ssid[32];
+    webUi.apSsid(ssid, sizeof(ssid));
+    display.showWifiAp(ssid, WebUi::AP_PASSWORD);
+  };
+
   auto handleLongPress = [&]() {
     if (menuState == INFO) {
       browseIndex = 0;
@@ -228,6 +236,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         menuState = LORA_TEST;
         loraTestState = LoraTestState::Idle;
         display.showLoraTest(comms.hasJoined());
+      } else if (browseIndex == BROWSE_WIFI_AP) {
+        webUi.start();
+        menuState = WIFI_AP_SCREEN;
+        showWifiApScreen();
       } else {
         activeGroup = browseIndex;
         submenuIndex = 0;
@@ -262,6 +274,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         menuState = BROWSE;
         display.showMenu(browseIndex);
       }
+    } else if (menuState == WIFI_AP_SCREEN) {
+      webUi.stop();
+      menuState = BROWSE;
+      display.showMenu(browseIndex);
     } else {
       // EDIT state
       if (editOptionIndex == editItem->optCount) {
@@ -276,17 +292,25 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     }
   };
 
-  webUi.start();
-  display.showConfig(state);
+  // WiFi is off by default; it runs only while the WiFi AP screen is active. An EnableOTA
+  // downlink (openWifiAp) jumps straight to that screen with the AP started.
+  if (openWifiAp) {
+    webUi.start();
+    menuState = WIFI_AP_SCREEN;
+    browseIndex = BROWSE_WIFI_AP;
+    showWifiApScreen();
+  } else {
+    display.showConfig(state);
+  }
 
   uint64_t buttonPressStartTime = 0;
   bool buttonPressedState = false;
   bool longPressTriggered = false;
 
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    // Skip webUi during active measurement: webUi can block 10-20ms, long enough
-    // to overflow the DMA pool (~4ms capacity) before update() drains it.
-    if (measureProgram.isFinished()) {
+    // The AP is only up on the WiFi AP screen, where no measurement runs, so there's no
+    // contention with the measurement DMA pool here.
+    if (webUi.isRunning()) {
       webUi.update();
     }
     while (Serial.available()) {
@@ -371,6 +395,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             display.message("MEASURE");
             measureProgram.begin(config.getMeasureDurationMs());
           }
+        } else if (menuState == WIFI_AP_SCREEN) {
+          // tap ignored — long press exits so a stray tap can't drop the AP mid-OTA
         } else {
           // EDIT
           uint8_t slots = editItem->optCount + 1;
