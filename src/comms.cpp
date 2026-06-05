@@ -452,10 +452,20 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
     LOGLN("Received a message from server");
     if (downlink != nullptr) {
       switch (downlinkDetails.fPort) {
-        case 10:
+        case 10: {
           LOGLN("Downlink: EnableOTA");
           downlink->type = DownlinkType::EnableOTA;
+          // Optional payload: byte 0 = AP active minutes (0 = default timeout),
+          // bytes 1.. = per-activation AP password (empty/short -> fixed AP_PASSWORD).
+          downlink->enableOta.timeoutMin = (downlinkSize >= 1) ? downlinkPayload[0] : 0;
+          size_t passLen = (downlinkSize >= 2) ? downlinkSize - 1 : 0;
+          if (passLen >= WIFI_AP_PASS_MAX) {
+            passLen = WIFI_AP_PASS_MAX - 1;
+          }
+          memcpy(downlink->enableOta.password, downlinkPayload + 1, passLen);
+          downlink->enableOta.password[passLen] = '\0';
           break;
+        }
         case 11:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertThresholds");
@@ -659,6 +669,8 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
     case DownlinkType::EnableOTA:
       state->setMode(ModeConfig);
       rtc.otaConfigRequested = true;
+      rtc.otaApTimeoutMin = downlink.enableOta.timeoutMin;
+      strlcpy(rtc.otaApPassword, downlink.enableOta.password, sizeof(rtc.otaApPassword));
       return {};
     case DownlinkType::SetAlertThresholds:
       config->setAlertThresholds(downlink.alertThresholds.alertV,

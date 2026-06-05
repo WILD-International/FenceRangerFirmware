@@ -10,12 +10,18 @@ class WebUi {
  public:
   WebUi(Config* config);
 
-  void start();
+  void start(const char* password = AP_PASSWORD);
   void stop();
   void update();
 
   bool isRunning() const {
     return running;
+  }
+
+  // True once the web UI's "resume monitoring" button has been pressed. The config-mode loop
+  // polls this to stop the AP and return the device to its normal measurement cycle.
+  bool resumeRequested() const {
+    return resumeRequested_;
   }
 
   // The fixed AP password. Acceptable because the AP is only ever up while an operator is
@@ -29,6 +35,7 @@ class WebUi {
   Config* config;
   WebServer* server;
   bool running;
+  bool resumeRequested_ = false;
 };
 
 #endif  // WEB_UI_H

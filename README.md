@@ -40,7 +40,16 @@ Parameters can be configured via four interfaces:
 - **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort
 - **AT commands** — serial interface over USB in config mode (115200 baud, `AT+HELP` for a command list)
 
-Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10 (no payload). The fPort-10 path opens directly on the WiFi AP screen with the access point already on, so a remotely-triggered session is ready for a web update.
+Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10. The fPort-10 path opens directly on the WiFi AP screen with the access point already on, so a remotely-triggered session is ready for a web update.
+
+The fPort-10 payload is optional and lets each remote activation pick its own AP password and how long the AP stays up — so a leaked password can't be reused on another activation, and a remotely-woken device returns to monitoring on its own:
+
+| Byte | Meaning |
+|------|---------|
+| 0 | AP active timeout in minutes — after this the device stops the AP and resumes normal monitoring (`0` or omitted = the default 1-hour config-mode timeout) |
+| 1..N | AP password, ASCII — must be ≥8 chars (WPA2 minimum); empty or shorter falls back to the fixed default password |
+
+An empty payload behaves exactly as before: fixed default password, 1-hour timeout. A button/menu-launched AP always uses the fixed default password.
 
 **Radio config over LoRaWAN is trial-gated.** A radio-config downlink (fPort 16) is not applied permanently right away — it is staged and tested first, so a bad combination (e.g. RX LNA off, scanGuard too small, or a low data rate) can't lock the device out of downlinks. The device sends **confirmed uplinks** at the relevant data rate(s) and only keeps the new settings if it gets an ACK; otherwise it automatically reverts to the previous working settings. If the new settings enable ADR, it first proves DR0 works — DR0 needs a larger scan guard than higher rates, and ADR could drop the device down to it with no way back — and then proves the link a few times with ADR actually enabled. After the trial it re-sends the fPort 16 report, so the server can see whether the change stuck (new values) or reverted (old values). Changes made locally (OLED/Web UI/AT) apply immediately.
 

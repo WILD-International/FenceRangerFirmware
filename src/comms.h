@@ -9,6 +9,7 @@
 #include "board.h"
 #include "config.h"
 #include "display.h"
+#include "rtc_state.h"
 #include "signal_info.h"
 
 // regional choices: EU868, US915, AU915, AS923, AS923_2, AS923_3, AS923_4, IN865, KR920, CN470
@@ -46,6 +47,10 @@ enum class DownlinkType : uint8_t {
 struct Downlink {
   DownlinkType type = DownlinkType::None;
   union {
+    struct {
+      uint8_t timeoutMin;               // AP active minutes (0 = default config-mode timeout)
+      char password[WIFI_AP_PASS_MAX];  // per-activation AP password ("" = fixed AP_PASSWORD)
+    } enableOta;
     struct {
       uint16_t alertV;
       uint16_t recoverV;

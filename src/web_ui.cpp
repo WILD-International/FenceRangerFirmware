@@ -14,16 +14,17 @@ void WebUi::apSsid(char* out, size_t len) const {
   snprintf(out, len, "%s", ssid);
 }
 
-void WebUi::start() {
+void WebUi::start(const char* password) {
   if (running) {
     LOGLN("WebUi already active");
     return;
   }
   running = true;
+  resumeRequested_ = false;
   char ssid[32];
   apSsid(ssid, sizeof(ssid));
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, AP_PASSWORD);
+  WiFi.softAP(ssid, password);
 
   server = new WebServer(80);
 
@@ -238,6 +239,13 @@ void WebUi::start() {
     config->setSyncwordPublic(server->arg("syncwordPublic") == "1");
     config->setScanGuardMs((uint16_t)scanGuard);
     server->send(200, "text/plain", "Saved");
+  });
+
+  server->on("/resume", HTTP_POST, [this]() {
+    // Just flag it: the config-mode loop polls resumeRequested(), stops the AP, and exits to
+    // deep sleep. Tearing WiFi down here would kill the response before it reached the client.
+    resumeRequested_ = true;
+    server->send(200, "text/plain", "Resuming normal operation");
   });
 
   server->on(

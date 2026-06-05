@@ -239,6 +239,15 @@
     <button onclick="flashFirmware()">Flash firmware</button>
   </div>
 
+  <div class="card">
+    <h3>Done</h3>
+    <p style="font-size:0.8em;color:#666;margin:0">
+      Turn off the access point and return the device to normal monitoring.
+    </p>
+    <button onclick="resumeMonitoring()" style="background:#dc3545">Disable AP &amp; resume monitoring</button>
+    <div class="status" id="st-resume"></div>
+  </div>
+
   <script>
     var overlay = document.getElementById('overlay');
     var currentEui = '';
@@ -354,6 +363,14 @@
         syncwordPublic: document.getElementById('sync').checked ? '1' : '0',
         scanGuardMs: document.getElementById('sg').value
       }, 'st-radio');
+    }
+
+    function resumeMonitoring() {
+      if (!confirm('Turn off the access point and resume normal monitoring? This connection will drop.')) { return; }
+      var s = document.getElementById('st-resume');
+      s.textContent = 'Resuming... the AP is shutting down.';
+      // The AP drops right after this responds, so a network error here is expected and fine.
+      fetch('/resume', { method: 'POST' }).catch(function() {});
     }
 
     function flashFirmware() {

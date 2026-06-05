@@ -87,10 +87,8 @@ void setup() {
     // trial in flight rather than letting it commit/revert under them.
     rtc.radioTrial.active = false;
     rtc.trialResultPending = false;
-    bool openWifiAp = rtc.otaConfigRequested;
-    rtc.otaConfigRequested = false;
     digitalWrite(LED, LOW);
-    bool longSleep = runConfigMode(config, state, display, webUi, comms, openWifiAp);
+    bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
     configurePaSleepPin(config.getPaSleepMode());  // pick up a change made in the submenu
     gotoSleep(longSleep ? config.getSleepIntervalMs() : 100);

@@ -8,12 +8,30 @@
 #include "esp32-hal-gpio.h"
 #include "measure_program.h"
 
-bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms,
-                   bool openWifiAp) {
+bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
   uint64_t configModeStartTime = millis();
   bool exitConfigMode = false;
   bool longSleepRequested = false;
   display.message("CONFIG", 1000);
+
+  // Consume the one-shot OTA-activation request staged in RTC by an EnableOTA downlink (set in
+  // Comms::processDownlink): whether to open straight onto the WiFi AP screen, the per-activation
+  // AP password, and how long to keep the AP up. Cleared here so it fires exactly once.
+  bool openWifiAp = rtc.otaConfigRequested;
+  char apPassword[WIFI_AP_PASS_MAX];
+  strlcpy(apPassword, rtc.otaApPassword, sizeof(apPassword));
+  uint8_t apTimeoutMin = rtc.otaApTimeoutMin;
+  rtc.otaConfigRequested = false;
+  rtc.otaApPassword[0] = '\0';
+  rtc.otaApTimeoutMin = 0;
+
+  // Password the AP comes up with: the downlink-carried one if it meets the WPA2 minimum,
+  // otherwise the fixed default. Tracked separately so the AP screen shows the live value.
+  const char* downlinkApPassword = (strlen(apPassword) >= 8) ? apPassword : WebUi::AP_PASSWORD;
+  const char* activeApPassword = WebUi::AP_PASSWORD;
+  // Auto-sleep timer for a remotely-activated AP (0 = rely on the global config-mode timeout).
+  uint64_t apStartTime = 0;
+  bool apTimeoutActive = false;
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
   const uint16_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
@@ -214,7 +232,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   auto showWifiApScreen = [&]() {
     char ssid[32];
     webUi.apSsid(ssid, sizeof(ssid));
-    display.showWifiAp(ssid, WebUi::AP_PASSWORD);
+    // A password sent over LoRa is a per-activation secret — mask it so a bystander can't
+    // read it off the screen. The fixed default is public, so it's shown as-is.
+    bool secret = strcmp(activeApPassword, WebUi::AP_PASSWORD) != 0;
+    display.showWifiAp(ssid, secret ? "********" : activeApPassword);
   };
 
   auto handleLongPress = [&]() {
@@ -237,6 +258,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         loraTestState = LoraTestState::Idle;
         display.showLoraTest(comms.hasJoined());
       } else if (browseIndex == BROWSE_WIFI_AP) {
+        // Operator-initiated from the menu: fixed password, no AP-specific timeout.
+        activeApPassword = WebUi::AP_PASSWORD;
         webUi.start();
         menuState = WIFI_AP_SCREEN;
         showWifiApScreen();
@@ -295,7 +318,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   // WiFi is off by default; it runs only while the WiFi AP screen is active. An EnableOTA
   // downlink (openWifiAp) jumps straight to that screen with the AP started.
   if (openWifiAp) {
-    webUi.start();
+    activeApPassword = downlinkApPassword;
+    webUi.start(downlinkApPassword);
+    apStartTime = millis();
+    apTimeoutActive = (apTimeoutMin > 0);
     menuState = WIFI_AP_SCREEN;
     browseIndex = BROWSE_WIFI_AP;
     showWifiApScreen();
@@ -308,6 +334,20 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   bool longPressTriggered = false;
 
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
+    // A remotely-activated AP sleeps the device once its requested duration elapses, so it
+    // doesn't idle with WiFi up waiting for a crew that never came.
+    if (apTimeoutActive && webUi.isRunning() &&
+        millis() - apStartTime >= (uint64_t)apTimeoutMin * 60 * 1000) {
+      webUi.stop();
+      exitConfigMode = true;
+      break;
+    }
+    // The web UI's "resume monitoring" button stops the AP and returns to normal operation.
+    if (webUi.isRunning() && webUi.resumeRequested()) {
+      webUi.stop();
+      exitConfigMode = true;
+      break;
+    }
     // The AP is only up on the WiFi AP screen, where no measurement runs, so there's no
     // contention with the measurement DMA pool here.
     if (webUi.isRunning()) {

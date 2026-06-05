@@ -8,9 +8,8 @@
 #include "web_ui.h"
 
 // Returns true if the user requested an immediate deep sleep ("Sleep now").
-// When openWifiAp is true (config mode was requested by an EnableOTA downlink), config mode
-// opens directly on the WiFi AP screen with the AP already started.
-bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms,
-                   bool openWifiAp = false);
+// The one-shot OTA-activation request staged in RTC by an EnableOTA downlink (open directly on
+// the WiFi AP screen, with a per-activation password and AP timeout) is consumed inside.
+bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms);
 
 #endif  // CONFIG_MODE_H

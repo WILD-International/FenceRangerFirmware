@@ -141,6 +141,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Saved")
 
+        elif self.path == "/resume":
+            time.sleep(DELAY)
+            print("Resume monitoring requested (AP would shut down on device)")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Resuming normal operation")
+
         elif self.path == "/update":
             chunk_size = 4096
             received = 0

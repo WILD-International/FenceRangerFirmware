@@ -7,6 +7,11 @@
 
 enum Mode { ModeNormal, ModeConfig };
 
+// Size of the AP-password buffer carried by an EnableOTA downlink (and the RTC field that
+// holds it across the wake). The downlink payload buffer is 32 bytes with byte 0 used for the
+// timeout, so the password is at most 31 chars + NUL — well within WPA2's 8..63 range.
+constexpr size_t WIFI_AP_PASS_MAX = 32;
+
 // Radio-config trial (commit-on-confirm). A SetRadioConfig downlink stages its
 // candidate settings here (volatile RTC) instead of writing NVS; they are only
 // committed to NVS once a confirmed-uplink ACK proves the link still works both
@@ -58,6 +63,10 @@ struct RtcState {
   // Set when an EnableOTA downlink requested config mode; consumed once on the next wake to
   // open config mode directly on the WiFi AP screen (with the AP started).
   bool otaConfigRequested = false;
+  // Per-activation AP password carried by that downlink ("" = use the fixed AP_PASSWORD) and
+  // how long the AP should stay up (minutes; 0 = the default 1-hour config-mode timeout).
+  char otaApPassword[WIFI_AP_PASS_MAX] = {};
+  uint8_t otaApTimeoutMin = 0;
 
   // Radio-config trial-and-rollback
   RadioTrial radioTrial = {};
