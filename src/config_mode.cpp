@@ -73,20 +73,29 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
                                         102, 104, 106, 108, 110, 112, 114};
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
   const uint16_t DATA_RATE_OPTIONS[] = {0, 1, 2, 3, 4, 5};
+  const char* const DATA_RATE_LABELS[] = {"DR0", "DR1", "DR2", "DR3", "DR4", "DR5"};
   const uint16_t CARRIER_REV_OPTIONS[] = {0, 1};  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
+  const char* const CARRIER_REV_LABELS[] = {"v3.0", "v3.1"};
   const uint16_t ADR_OPTIONS[] = {0, 1};
-  const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
+  const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};  // 0=private 1=public
+  const char* const SYNCWORD_LABELS[] = {"PRIV", "PUB"};
   const uint16_t SCAN_GUARD_OPTIONS[] = {10, 15, 20, 30, 50, 75, 100, 150, 200};
 
-  // To add a parameter: add one entry to the relevant group below.
-  // An item with optCount == 0 is an "action" item: it shows no value, and a long
-  // press runs its set() callback (the argument is unused) instead of editing.
+  // To add a parameter: add one entry to the relevant group below. Each item declares its kind:
+  //   ITEM_NORMAL (default) — edited on the EDIT screen by cycling its options;
+  //   ITEM_TOGGLE — rendered ON/OFF, long press flips it directly (no EDIT screen);
+  //   ITEM_ACTION — shows no value, long press runs its set() callback (argument unused).
+  // A normal item may set optionLabels to show text per option (e.g. "v3.0") instead of the number.
+  enum MenuItemKind { ITEM_NORMAL, ITEM_TOGGLE, ITEM_ACTION };
   struct MenuItem {
     const char* label;
     const uint16_t* options;
     uint8_t optCount;
     std::function<uint16_t()> get;
     std::function<void(uint16_t)> set;
+    MenuItemKind kind;  // omitted in init ⇒ ITEM_NORMAL
+    const char* const*
+        optionLabels;  // optional text per option (parallel to options[]); null ⇒ numeric
   };
 
   const MenuItem alertItems[] = {
@@ -127,7 +136,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
        [&](uint16_t) {
          longSleepRequested = true;
          exitConfigMode = true;
-       }},
+       },
+       ITEM_ACTION},
   };
 
   struct MenuGroup {
@@ -147,26 +157,26 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       {"Carrier Rev", CARRIER_REV_OPTIONS,
        sizeof(CARRIER_REV_OPTIONS) / sizeof(CARRIER_REV_OPTIONS[0]),
        [&] { return (uint16_t)config.getCarrierRev(); },
-       [&](uint16_t v) { config.setCarrierRev((uint8_t)v); }},
+       [&](uint16_t v) { config.setCarrierRev((uint8_t)v); }, ITEM_NORMAL, CARRIER_REV_LABELS},
   };
 
   const MenuItem radioItems[] = {
       {"RX LNA", RX_LNA_OPTIONS, sizeof(RX_LNA_OPTIONS) / sizeof(RX_LNA_OPTIONS[0]),
        [&] { return (uint16_t)config.getRxLnaEnabled(); },
-       [&](uint16_t value) { config.setRxLnaEnabled(value != 0); }},
+       [&](uint16_t value) { config.setRxLnaEnabled(value != 0); }, ITEM_TOGGLE},
       {"TX Power dBm", TX_POWER_OPTIONS, sizeof(TX_POWER_OPTIONS) / sizeof(TX_POWER_OPTIONS[0]),
        [&] { return (uint16_t)config.getTxPower(); },
        [&](uint16_t power) { config.setTxPower((int8_t)power); }},
       {"Data Rate", DATA_RATE_OPTIONS, sizeof(DATA_RATE_OPTIONS) / sizeof(DATA_RATE_OPTIONS[0]),
        [&] { return (uint16_t)config.getDataRate(); },
-       [&](uint16_t dr) { config.setDataRate((uint8_t)dr); }},
+       [&](uint16_t dr) { config.setDataRate((uint8_t)dr); }, ITEM_NORMAL, DATA_RATE_LABELS},
       {"ADR", ADR_OPTIONS, sizeof(ADR_OPTIONS) / sizeof(ADR_OPTIONS[0]),
        [&] { return (uint16_t)config.getAdrEnabled(); },
-       [&](uint16_t value) { config.setAdrEnabled(value != 0); }},
-      {"Syncword Pub", SYNCWORD_PUBLIC_OPTIONS,
+       [&](uint16_t value) { config.setAdrEnabled(value != 0); }, ITEM_TOGGLE},
+      {"Syncword", SYNCWORD_PUBLIC_OPTIONS,
        sizeof(SYNCWORD_PUBLIC_OPTIONS) / sizeof(SYNCWORD_PUBLIC_OPTIONS[0]),
        [&] { return (uint16_t)config.getSyncwordPublic(); },
-       [&](uint16_t value) { config.setSyncwordPublic(value != 0); }},
+       [&](uint16_t value) { config.setSyncwordPublic(value != 0); }, ITEM_NORMAL, SYNCWORD_LABELS},
       {"Scan Guard ms", SCAN_GUARD_OPTIONS,
        sizeof(SCAN_GUARD_OPTIONS) / sizeof(SCAN_GUARD_OPTIONS[0]),
        [&] { return config.getScanGuardMs(); }, [&](uint16_t ms) { config.setScanGuardMs(ms); }},
@@ -218,15 +228,6 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     return 0;
   };
 
-  // Items with exactly the options {0, 1} are treated as toggles: shown as ON/OFF and
-  // long press flips the value directly without entering the edit screen.
-  auto isToggleItem = [](const MenuItem& item) {
-    return item.optCount == 2 && item.options[0] == 0 && item.options[1] == 1;
-  };
-
-  // Action items (optCount == 0) show no value; a long press runs their set() callback.
-  auto isActionItem = [](const MenuItem& item) { return item.optCount == 0; };
-
   auto updateSubmenuScrollOffset = [&]() {
     if (submenuIndex < submenuScrollOffset) {
       submenuScrollOffset = submenuIndex;
@@ -247,11 +248,16 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   auto refreshSubMenu = [&]() {
     const MenuGroup& group = GROUPS[activeGroup];
     for (int i = 0; i < group.count; i++) {
-      if (isActionItem(group.items[i])) {
+      if (group.items[i].kind == ITEM_ACTION) {
         snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%s", group.items[i].label);
-      } else if (isToggleItem(group.items[i])) {
+      } else if (group.items[i].kind == ITEM_TOGGLE) {
         snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5s", group.items[i].label,
                  group.items[i].get() ? "ON" : "OFF");
+      } else if (group.items[i].optionLabels != nullptr) {
+        int idx =
+            findOptionIndex(group.items[i].options, group.items[i].optCount, group.items[i].get());
+        snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5s", group.items[i].label,
+                 group.items[i].optionLabels[idx]);
       } else {
         snprintf(submenuLabels[i], SUBMENU_LABEL_LEN, "%-14.14s%5d", group.items[i].label,
                  (int)group.items[i].get());
@@ -319,9 +325,9 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         display.showMenu(browseIndex);
       } else {
         const MenuItem& selectedItem = GROUPS[activeGroup].items[submenuIndex];
-        if (isActionItem(selectedItem)) {
+        if (selectedItem.kind == ITEM_ACTION) {
           selectedItem.set(0);
-        } else if (isToggleItem(selectedItem)) {
+        } else if (selectedItem.kind == ITEM_TOGGLE) {
           selectedItem.set(selectedItem.get() ? 0 : 1);
           refreshSubMenu();
         } else {
@@ -329,7 +335,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           uint16_t currentVal = editItem->get();
           editOptionIndex = findOptionIndex(editItem->options, editItem->optCount, currentVal);
           menuState = EDIT;
-          display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal);
+          const char* label =
+              editItem->optionLabels ? editItem->optionLabels[editOptionIndex] : nullptr;
+          display.showMenuEdit(editItem->label, editItem->options[editOptionIndex], currentVal,
+                               label, label);
         }
       }
     } else if (menuState == VOLT_TEST) {
@@ -516,11 +525,17 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           // EDIT
           uint8_t slots = editItem->optCount + 1;
           editOptionIndex = (editOptionIndex + 1) % slots;
+          const char* const* labels = editItem->optionLabels;
+          const char* currentLabel =
+              labels
+                  ? labels[findOptionIndex(editItem->options, editItem->optCount, editItem->get())]
+                  : nullptr;
           if (editOptionIndex == editItem->optCount) {
-            display.showMenuCancel(editItem->label, editItem->get());
+            display.showMenuCancel(editItem->label, editItem->get(), currentLabel);
           } else {
             display.showMenuEdit(editItem->label, editItem->options[editOptionIndex],
-                                 editItem->get());
+                                 editItem->get(), labels ? labels[editOptionIndex] : nullptr,
+                                 currentLabel);
           }
         }
       }

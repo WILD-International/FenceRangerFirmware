@@ -273,7 +273,8 @@ void Display::showSubMenu(const char* header, const char labels[][SUBMENU_LABEL_
   display.display();
 }
 
-void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentValue) {
+void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentValue,
+                           const char* valueLabel, const char* currentLabel) {
   if (!enabled) {
     return;
   }
@@ -285,8 +286,12 @@ void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentVal
   display.setCursor(2, 4);
   display.print(name);
 
-  char valStr[6];
-  snprintf(valStr, sizeof(valStr), "%d", value);
+  char valStr[8];
+  if (valueLabel != nullptr) {
+    snprintf(valStr, sizeof(valStr), "%s", valueLabel);
+  } else {
+    snprintf(valStr, sizeof(valStr), "%d", value);
+  }
   display.setTextSize(3);
   int valWidth = strlen(valStr) * 18;
   display.setCursor((SCREEN_WIDTH - valWidth) / 2, 18);
@@ -294,7 +299,11 @@ void Display::showMenuEdit(const char* name, uint16_t value, uint16_t currentVal
 
   const char* action = (value == currentValue) ? "back" : "save";
   char hint[22];
-  snprintf(hint, sizeof(hint), "now:%-3d  hold=%s", currentValue, action);
+  if (currentLabel != nullptr) {
+    snprintf(hint, sizeof(hint), "now:%-4s hold=%s", currentLabel, action);
+  } else {
+    snprintf(hint, sizeof(hint), "now:%-3d  hold=%s", currentValue, action);
+  }
   display.setTextSize(1);
   display.setCursor(4, 56);
   display.print(hint);
@@ -412,7 +421,7 @@ void Display::showWifiStation(const char* ssid, const char* status, const char* 
   display.display();
 }
 
-void Display::showMenuCancel(const char* name, uint16_t currentValue) {
+void Display::showMenuCancel(const char* name, uint16_t currentValue, const char* currentLabel) {
   if (!enabled) {
     return;
   }
@@ -430,7 +439,11 @@ void Display::showMenuCancel(const char* name, uint16_t currentValue) {
   display.print("CANCEL");
 
   char hint[22];
-  snprintf(hint, sizeof(hint), "now:%-3d  hold=back", currentValue);
+  if (currentLabel != nullptr) {
+    snprintf(hint, sizeof(hint), "now:%-4s hold=back", currentLabel);
+  } else {
+    snprintf(hint, sizeof(hint), "now:%-3d  hold=back", currentValue);
+  }
   display.setTextSize(1);
   display.setCursor(4, 56);
   display.print(hint);
