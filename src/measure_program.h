@@ -30,7 +30,7 @@ class MeasureProgram {
   MeasureProgram();
   ~MeasureProgram();
   Measurement run(Config& config);
-  void begin(uint32_t durationMs);
+  void begin(Config& config);
   void update(Config& config, Measurement& msr);
   void stop();
   bool isFinished() const;
@@ -47,6 +47,8 @@ class MeasureProgram {
   esp_adc_cal_characteristics_t adc_chars;
   const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
                                                 ADC_CHANNEL_FENCE_POS};
+  gpio_num_t opampEnablePin =
+      GPIO_NUM_2;  // resolved from carrier rev in begin(); see carrier_board.h
   uint8_t dma_buf[CONV_FRAME_SIZE];
 
   uint32_t min_val[NUM_CHANNELS] = {4095, 4095, 4095};

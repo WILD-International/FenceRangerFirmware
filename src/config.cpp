@@ -58,7 +58,7 @@ void Config::load() {
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
   txPower = (int8_t)prefs.getChar("txPower", 10);
   dataRate = prefs.getUChar("dataRate", 3);
-  paSleepMode = prefs.getUChar("paSleepMode", 0);
+  carrierRev = prefs.getUChar("carrierRev", 0);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
   scanGuardMs = prefs.getUShort("scanGuard", 10);
@@ -179,10 +179,10 @@ void Config::setDataRate(uint8_t dr) {
   prefs.end();
 }
 
-void Config::setPaSleepMode(uint8_t mode) {
-  paSleepMode = mode;
+void Config::setCarrierRev(uint8_t rev) {
+  carrierRev = rev;
   prefs.begin(PREFS_NAMESPACE, false);
-  prefs.putUChar("paSleepMode", paSleepMode);
+  prefs.putUChar("carrierRev", carrierRev);
   prefs.end();
 }
 

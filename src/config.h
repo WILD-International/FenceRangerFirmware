@@ -120,11 +120,12 @@ class Config {
   }
   void setDataRate(uint8_t dr);
 
-  // Deep-sleep state for the PA-enable pin (GPIO 2): 0=LOW, 1=HIGH, 2=FLOAT
-  uint8_t getPaSleepMode() const {
-    return paSleepMode;
+  // Carrier-board revision: 0=v3.0 (opamp GPIO 2), 1=v3.1 (opamp GPIO 6).
+  // Picks the runtime opamp pin mapping (see carrier_board.h). Never settable over LoRa.
+  uint8_t getCarrierRev() const {
+    return carrierRev;
   }
-  void setPaSleepMode(uint8_t mode);
+  void setCarrierRev(uint8_t rev);
 
   bool getAdrEnabled() const {
     return adrEnabled;
@@ -213,7 +214,7 @@ class Config {
   uint16_t fenceCalPercent = 100;
   int8_t txPower = 10;
   uint8_t dataRate = 3;
-  uint8_t paSleepMode = 0;  // 0=LOW 1=HIGH 2=FLOAT
+  uint8_t carrierRev = 0;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
   bool adrEnabled = true;
   bool syncwordPublic = true;
   uint16_t scanGuardMs = 10;

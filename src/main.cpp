@@ -92,19 +92,18 @@ static void runStaAcquire() {
     }
     bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
-    configurePaSleepPin(config.getPaSleepMode());
-    gotoSleep(longSleep ? config.getSleepIntervalMs() : 100);
+    gotoSleep(config, longSleep ? config.getSleepIntervalMs() : 100);
   }
 
   // Not in range yet — sleep and retry. gotoSleep arms EXT0, so a button press still interrupts.
-  gotoSleep(STA_RETRY_MS);
+  gotoSleep(config, STA_RETRY_MS);
 }
 
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
 
-  gpioWakeInit();
+  gpioWakeInit(config);
   pinMode(USER_BUTTON, INPUT);
 
   esp_sleep_wakeup_cause_t wakeup_reason;
@@ -116,7 +115,6 @@ void setup() {
   }
 
   config.load();
-  configurePaSleepPin(config.getPaSleepMode());
 
   if (!config.hasAppKey()) {
     state.setMode(ModeConfig);
@@ -144,8 +142,7 @@ void setup() {
     digitalWrite(LED, LOW);
     bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
-    configurePaSleepPin(config.getPaSleepMode());  // pick up a change made in the submenu
-    gotoSleep(longSleep ? config.getSleepIntervalMs() : 100);
+    gotoSleep(config, longSleep ? config.getSleepIntervalMs() : 100);
   }
 
   digitalWrite(LED, LOW);
@@ -164,7 +161,7 @@ void setup() {
   LOG("RTC time now: %lld ms\n", now_us / 1000);
 
   if (wasButtonPressed()) {
-    gotoSleep(100);
+    gotoSleep(config, 100);
   }
 
   // A radio-config trial is in progress: this wake is a confirmed-uplink probe at the
@@ -174,7 +171,7 @@ void setup() {
     comms.runRadioTrialCycle(measurement.battMaxMv,
                              max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display);
     comms.sleep();
-    gotoSleep(adaptedSleepMs);
+    gotoSleep(config, adaptedSleepMs);
   }
 
   // Try joining if not joined yet, even if there's nothing to send
@@ -186,11 +183,11 @@ void setup() {
     }
   }
   if (!comms.hasJoined()) {
-    gotoSleep(adaptedSleepMs);
+    gotoSleep(config, adaptedSleepMs);
   }
 
   if (wasButtonPressed()) {
-    gotoSleep(100);
+    gotoSleep(config, 100);
   }
 
   uint16_t fenceVoltage = max(measurement.fencePosMaxV, measurement.fenceNegMaxV);
@@ -217,14 +214,14 @@ void setup() {
   }
   comms.sleep();
   if (wasButtonPressed() || state.getMode() == ModeConfig || rtc.staConnectRequested) {
-    gotoSleep(100);
+    gotoSleep(config, 100);
   } else {
     display.message("SLEEP", 500);
-    gotoSleep(adaptedSleepMs);
+    gotoSleep(config, adaptedSleepMs);
   }
 }
 
 void loop() {
   Serial.println("Should not have ended up in loop, going to sleep");
-  gotoSleep(3600 * 1000);
+  gotoSleep(config, 3600 * 1000);
 }

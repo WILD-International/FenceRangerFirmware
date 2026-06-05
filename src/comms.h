@@ -71,7 +71,6 @@ struct Downlink {
       uint16_t sleepIntervalS;
       uint8_t sleepMult;
       uint16_t recoveryN;
-      uint8_t paSleepMode;
     } sleepConfig;
     struct {
       uint16_t battFullMv;

@@ -73,7 +73,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
                                         102, 104, 106, 108, 110, 112, 114};
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
   const uint16_t DATA_RATE_OPTIONS[] = {0, 1, 2, 3, 4, 5};
-  const uint16_t PA_SLEEP_OPTIONS[] = {0, 1, 2};  // 0=LOW 1=HIGH 2=FLOAT
+  const uint16_t CARRIER_REV_OPTIONS[] = {0, 1};  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
   const uint16_t ADR_OPTIONS[] = {0, 1};
   const uint16_t SYNCWORD_PUBLIC_OPTIONS[] = {0, 1};
   const uint16_t SCAN_GUARD_OPTIONS[] = {10, 15, 20, 30, 50, 75, 100, 150, 200};
@@ -123,9 +123,6 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
        [&](uint16_t v) { config.setBattSleepMult(v); }},
       {"Recovery N", RECOVERY_N_OPTIONS, sizeof(RECOVERY_N_OPTIONS) / sizeof(RECOVERY_N_OPTIONS[0]),
        [&] { return config.getBattRecoveryN(); }, [&](uint16_t v) { config.setBattRecoveryN(v); }},
-      {"PA Sleep Mode", PA_SLEEP_OPTIONS, sizeof(PA_SLEEP_OPTIONS) / sizeof(PA_SLEEP_OPTIONS[0]),
-       [&] { return (uint16_t)config.getPaSleepMode(); },
-       [&](uint16_t v) { config.setPaSleepMode((uint8_t)v); }},
       {"Sleep now", nullptr, 0, nullptr,
        [&](uint16_t) {
          longSleepRequested = true;
@@ -147,6 +144,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       {"Fence Cal %", FENCE_CAL_OPTIONS, sizeof(FENCE_CAL_OPTIONS) / sizeof(FENCE_CAL_OPTIONS[0]),
        [&] { return config.getFenceCalPercent(); },
        [&](uint16_t percent) { config.setFenceCalPercent(percent); }},
+      {"Carrier Rev", CARRIER_REV_OPTIONS,
+       sizeof(CARRIER_REV_OPTIONS) / sizeof(CARRIER_REV_OPTIONS[0]),
+       [&] { return (uint16_t)config.getCarrierRev(); },
+       [&](uint16_t v) { config.setCarrierRev((uint8_t)v); }},
   };
 
   const MenuItem radioItems[] = {
@@ -292,7 +293,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         menuState = VOLT_TEST;
         liveMeasurement = Measurement{};
         display.showVoltageTest(liveMeasurement);
-        measureProgram.begin(config.getMeasureDurationMs());
+        measureProgram.begin(config);
       } else if (browseIndex == BROWSE_LORA_TEST) {
         comms.sleep();
         menuState = LORA_TEST;
@@ -437,7 +438,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       if (measureProgram.isFinished()) {
         if (menuState == VOLT_TEST) {
           display.showVoltageTest(liveMeasurement);
-          measureProgram.begin(config.getMeasureDurationMs());
+          measureProgram.begin(config);
         } else if (menuState == LORA_TEST) {
           uint16_t fenceVoltage = max(liveMeasurement.fencePosMaxV, liveMeasurement.fenceNegMaxV);
           Downlink downlink = {};
@@ -507,7 +508,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           } else {
             liveMeasurement = Measurement{};
             display.message("MEASURE");
-            measureProgram.begin(config.getMeasureDurationMs());
+            measureProgram.begin(config);
           }
         } else if (menuState == WIFI_AP_SCREEN || menuState == WIFI_STA_SCREEN) {
           // tap ignored — long press exits so a stray tap can't drop WiFi mid-update

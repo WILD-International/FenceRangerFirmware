@@ -5,12 +5,23 @@
 #include <soc/rtc.h>
 
 #include "board.h"
+#include "carrier_board.h"
+#include "config.h"
 #include "esp32-hal-gpio.h"
 #include "hal/gpio_types.h"
 #include "logging.h"
 #include "rtc_state.h"
 
-static uint8_t sPaSleepMode = 0;  // 0=LOW 1=HIGH 2=FLOAT
+// The pin that controls the PA: an enable pin on the GC1109, a CSD (chip-shutdown) pin on the
+// KCT8103L. They behave differently but both land on GPIO 2; this only resolves which GPIO the
+// PA occupies on this build, so the carrier-board logic can tell whether the opamp shares it.
+static gpio_num_t paControlPin() {
+#if defined(USE_GC1109_PA)
+  return (gpio_num_t)LORA_PA_EN;
+#else
+  return (gpio_num_t)LORA_PA_CSD;
+#endif
+}
 
 int64_t rtcTimeNowUs() {
   uint32_t cal = esp_clk_slowclk_cal_get();
@@ -19,30 +30,6 @@ int64_t rtcTimeNowUs() {
 
 int64_t getTimeSleptMs() {
   return (rtcTimeNowUs() - rtc.sleepEnterUs) / 1000;
-}
-
-void configurePaSleepPin(uint8_t mode) {
-  sPaSleepMode = mode;
-}
-
-// Drive the PA-enable pin to its configured deep-sleep state and latch it.
-static void latchPaSleepPin(gpio_num_t pin) {
-  switch (sPaSleepMode) {
-    case 1:  // HIGH: drive high + hold
-      pinMode(pin, OUTPUT);
-      digitalWrite(pin, HIGH);
-      rtc_gpio_hold_en(pin);
-      break;
-    case 2:  // FLOAT: isolate pad (no drive, no pull)
-      rtc_gpio_hold_dis(pin);
-      rtc_gpio_isolate(pin);
-      break;
-    default:  // 0 LOW: drive low + hold (original behaviour)
-      pinMode(pin, OUTPUT);
-      digitalWrite(pin, LOW);
-      rtc_gpio_hold_en(pin);
-      break;
-  }
 }
 
 // Release any hold/isolation and return the pad to a defined output-low state on wake.
@@ -55,7 +42,7 @@ static void wakePaPin(gpio_num_t pin) {
 
 // On wake: release the GPIO holds that kept pin states stable during deep sleep,
 // then set each pin to its initial state for this cycle.
-void gpioWakeInit() {
+void gpioWakeInit(Config& config) {
   gpio_deep_sleep_hold_dis();
 
   rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
@@ -68,17 +55,21 @@ void gpioWakeInit() {
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
 
-#if defined(USE_GC1109_PA)
-  wakePaPin((gpio_num_t)LORA_PA_EN);
-#endif
-#if defined(USE_KCT8103L_PA)
-  wakePaPin((gpio_num_t)LORA_PA_CSD);
-#endif
+  gpio_num_t paPin = paControlPin();
+  wakePaPin(paPin);
+
+  // Release the carrier-board opamp pin (floated during sleep) when it's a distinct GPIO (v3.1),
+  // so MeasureProgram can drive it. On v3.0 it's GPIO 2 and wakePaPin above already covers it.
+  gpio_num_t opampPin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
+  if (opampPin != paPin) {
+    rtc_gpio_hold_dis(opampPin);
+    rtc_gpio_deinit(opampPin);
+  }
 }
 
 // Before sleep: drive each pin to its safe sleep state, then latch the holds
 // so those states are preserved while the CPU is powered down.
-void gpioSleepLatch() {
+void gpioSleepLatch(Config& config) {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
   gpio_hold_en(gpio_num_t(LED));
@@ -91,18 +82,26 @@ void gpioSleepLatch() {
   digitalWrite(RADIO_NSS, HIGH);
   rtc_gpio_hold_en(gpio_num_t(RADIO_NSS));
 
-#if defined(USE_GC1109_PA)
-  latchPaSleepPin((gpio_num_t)LORA_PA_EN);
-#endif
+  // The carrier-board opamp-enable pin floats during deep sleep on both revs. On v3.1 the opamp
+  // moved off GPIO 2, so the PA pin is distinct and returns to its low+hold sleep state; on v3.0
+  // the opamp pin *is* GPIO 2, so the float governs it and the PA pin needs no separate latch.
+  gpio_num_t paPin = paControlPin();
+  gpio_num_t opampPin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
+  rtc_gpio_hold_dis(opampPin);
+  rtc_gpio_isolate(opampPin);
+  if (opampPin != paPin) {
+    pinMode(paPin, OUTPUT);
+    digitalWrite(paPin, LOW);
+    rtc_gpio_hold_en(paPin);
+  }
 #if defined(USE_KCT8103L_PA)
-  latchPaSleepPin((gpio_num_t)LORA_PA_CSD);
   delay(1);
 #endif
 
   gpio_deep_sleep_hold_en();
 }
 
-void gotoSleep(uint32_t ms, bool setSleepTime) {
+void gotoSleep(Config& config, uint32_t ms, bool setSleepTime) {
   if (setSleepTime) {
     rtc.sleepEnterUs = rtcTimeNowUs();
     rtc.sleepTimeMs = ms;
@@ -111,7 +110,7 @@ void gotoSleep(uint32_t ms, bool setSleepTime) {
   LOGLN(F("Sleeping\n"));
   Serial.flush();
 
-  gpioSleepLatch();
+  gpioSleepLatch(config);
 
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, LOW);
   esp_deep_sleep_start();

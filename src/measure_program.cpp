@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "board.h"
+#include "carrier_board.h"
 #include "logging.h"
 
 MeasureProgram::MeasureProgram() {
@@ -12,7 +13,7 @@ MeasureProgram::MeasureProgram() {
 MeasureProgram::~MeasureProgram() {}
 
 Measurement MeasureProgram::run(Config& config) {
-  begin(config.getMeasureDurationMs());
+  begin(config);
   Measurement measurement;
   while (!isFinished()) {
     update(config, measurement);
@@ -21,8 +22,9 @@ Measurement MeasureProgram::run(Config& config) {
   return measurement;
 }
 
-void MeasureProgram::begin(uint32_t durationMs) {
-  measureDurationMs = durationMs;
+void MeasureProgram::begin(Config& config) {
+  measureDurationMs = config.getMeasureDurationMs();
+  opampEnablePin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
   LOGLN("MeasureProgram::begin()");
   finished = false;
 
@@ -36,8 +38,8 @@ void MeasureProgram::begin(uint32_t durationMs) {
   // configure the ADC
   pinMode(ADC_CTRL_VBAT, OUTPUT);
   digitalWrite(ADC_CTRL_VBAT, HIGH);  // Enable mosfet for battery voltage measurement
-  pinMode(ADC_OPAMP, OUTPUT);
-  digitalWrite(ADC_OPAMP, LOW);  // power on the opamp
+  pinMode(opampEnablePin, OUTPUT);
+  digitalWrite(opampEnablePin, LOW);  // power on the opamp (active LOW)
   delay(1);
 
   adc_continuous_init();
@@ -113,7 +115,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
 
 void MeasureProgram::teardown() {
   finished = true;
-  digitalWrite(ADC_OPAMP, HIGH);
+  digitalWrite(opampEnablePin, HIGH);  // power off the opamp
   digitalWrite(ADC_CTRL_VBAT, LOW);
   ESP_ERROR_CHECK(adc_digi_stop());
   ESP_ERROR_CHECK(adc_digi_deinitialize());

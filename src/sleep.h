@@ -3,14 +3,13 @@
 
 #include <Arduino.h>
 
+#include "config.h"
+
 int64_t rtcTimeNowUs();
 int64_t getTimeSleptMs();
 
-void gpioWakeInit();
-void gpioSleepLatch();
-void gotoSleep(uint32_t ms, bool setSleepTime = true);
-
-// Selects the PA-enable pin (GPIO 2) deep-sleep state: 0=LOW, 1=HIGH, 2=FLOAT.
-void configurePaSleepPin(uint8_t mode);
+void gpioWakeInit(Config& config);
+void gpioSleepLatch(Config& config);
+void gotoSleep(Config& config, uint32_t ms, bool setSleepTime = true);
 
 #endif  // SLEEP_H

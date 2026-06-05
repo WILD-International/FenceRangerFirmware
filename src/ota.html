@@ -182,12 +182,6 @@
     <input type="text" id="bsm" maxlength="3" placeholder="30">
     <label>Recovery N</label>
     <input type="text" id="brn" maxlength="5" placeholder="50">
-    <label>PA Sleep Mode</label>
-    <select id="psm">
-      <option value="0">LOW</option>
-      <option value="1">HIGH</option>
-      <option value="2">FLOAT</option>
-    </select>
     <button onclick="saveSleep()">Save</button>
     <div class="status" id="st-sleep"></div>
   </div>
@@ -289,7 +283,6 @@
         document.getElementById('blmv').value = d.battLowMv;
         document.getElementById('bsm').value = d.battSleepMult;
         document.getElementById('brn').value = d.battRecoveryN;
-        document.getElementById('psm').value = d.paSleepMode;
         document.getElementById('md').value = d.measureDurationMs;
         document.getElementById('fc').value = d.fenceCalPercent;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
@@ -342,8 +335,7 @@
         battFullMv: document.getElementById('bfmv').value,
         battLowMv: document.getElementById('blmv').value,
         battSleepMult: document.getElementById('bsm').value,
-        battRecoveryN: document.getElementById('brn').value,
-        paSleepMode: document.getElementById('psm').value
+        battRecoveryN: document.getElementById('brn').value
       }, 'st-sleep');
     }
 

@@ -88,9 +88,9 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |
 | | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
-| | PA Sleep Mode | 0 (LOW) | ✓ | ✓ | fPort 13 | `AT+PASLEEPMODE` |
 | Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 15 | `AT+MEASUREDURATION` |
 | | Fence Cal % | 100 | ✓ | ✓ | fPort 15 | `AT+FENCECAL` |
+| | Carrier Rev | 0 (v3.0) | ✓ | — | — | — |
 | Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
 | | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
 | | Data Rate | 3 | ✓ | ✓ | fPort 16 | `AT+DR` |
@@ -98,6 +98,11 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
 | | Scan Guard | 10 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
+
+**Carrier Rev** selects the carrier-board revision (0 = v3.0, opamp on GPIO 2; 1 = v3.1, opamp on
+GPIO 6) so one firmware image runs on every revision. It is intentionally **never** settable over
+LoRa — it is a physical-hardware attribute and a wrong remote value would silently break
+measurements. Web UI and AT support are a planned next slice; for now it is OLED-only.
 
 ---
 

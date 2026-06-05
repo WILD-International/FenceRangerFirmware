@@ -28,7 +28,6 @@ state = {
     "battLowMv": 3300,
     "battSleepMult": 30,
     "battRecoveryN": 50,
-    "paSleepMode": 0,
     "measureDurationMs": 3000,
     "fenceCalPercent": 100,
     "rxLnaEnabled": 1,
@@ -108,7 +107,6 @@ class Handler(BaseHTTPRequestHandler):
             state["battLowMv"] = int(data.get("battLowMv", [state["battLowMv"]])[0])
             state["battSleepMult"] = int(data.get("battSleepMult", [state["battSleepMult"]])[0])
             state["battRecoveryN"] = int(data.get("battRecoveryN", [state["battRecoveryN"]])[0])
-            state["paSleepMode"] = int(data.get("paSleepMode", [state["paSleepMode"]])[0])
             print(f"Sleep config updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
