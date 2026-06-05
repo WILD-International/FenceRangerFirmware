@@ -121,7 +121,7 @@ One non-obvious entry worth flagging: **PA Sleep Mode** is the deep-sleep state 
 
 ### Web UI (`src/web_ui.cpp`, `src/ota.html`)
 
-`WebUi` (`src/web_ui.cpp`) serves the config/OTA web UI over HTTP; read that file for the current route set. The same server is served two ways: the device can bring up its **own** access point, or **join an existing** AP as a station (e.g. a provisioning gateway) — both reach the identical pages.
+`WebUi` (`src/web_ui.cpp`) serves the config/OTA web UI over HTTP; read that file for the current route set. The same server is served two ways: the device can bring up its **own** access point, or **join an existing** AP as a station (e.g. a provisioning gateway) — both reach the identical pages. The station case waits for the AP at low power, deep-sleeping between scan attempts (so the wait spans many wakes, unlike the awake AP path) and handing off to the serve path only once it's in range (`src/main.cpp`).
 
 `src/ota.html` is the source for the web UI — the pre-build script `scripts/embed_html.py` converts it to `src/ota_html.h` at compile time. Edit `ota.html`, not the generated header. A dev server for the web UI is in `scripts/dev_server.py`.
 

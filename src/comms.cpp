@@ -700,7 +700,9 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       strlcpy(rtc.otaApPassword, downlink.enableOta.password, sizeof(rtc.otaApPassword));
       return {};
     case DownlinkType::JoinWifiSta:
-      state->setMode(ModeConfig);
+      // Don't enter config mode here: the next wake runs the low-power sleepy acquire
+      // (runStaAcquire in main.cpp), which hands off to config mode only once the gateway is
+      // actually in range.
       rtc.staConnectRequested = true;
       rtc.staTimeoutMin = downlink.joinWifiSta.timeoutMin;
       strlcpy(rtc.staSsid, downlink.joinWifiSta.ssid, sizeof(rtc.staSsid));

@@ -25,6 +25,10 @@ class WebUi {
     return WiFi.status() == WL_CONNECTED;
   }
 
+  // Lean presence check (no association): returns true if an AP with the given SSID is currently
+  // in range. Leaves WiFi off. Used by the low-power station acquire to gate a connect attempt.
+  bool isStationInRange(const char* ssid);
+
   // Writes the station IP (e.g. "192.168.4.23") into out.
   void localIpStr(char* out, size_t len) const;
 

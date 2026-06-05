@@ -33,23 +33,28 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   strlcpy(staSsid, rtc.staSsid, sizeof(staSsid));
   char staPassword[WIFI_STA_PASS_MAX];
   strlcpy(staPassword, rtc.staPassword, sizeof(staPassword));
-  uint8_t staTimeoutMin = rtc.staTimeoutMin;
+  uint8_t staTimeoutMin = rtc.staTimeoutMin;  // kept only to re-arm the acquire on a long drop
   rtc.staConnectRequested = false;
   rtc.staSsid[0] = '\0';
   rtc.staPassword[0] = '\0';
-  rtc.staTimeoutMin = 0;
+  rtc.staTimeoutMin = 0;  // the acquire (runStaAcquire) owns the deadline; serving doesn't use it
+  rtc.staDeadlineUs = 0;
   const char* gatewaySsid = (strlen(staSsid) > 0) ? staSsid : WebUi::STA_GATEWAY_SSID;
 
   // Password the AP comes up with: the downlink-carried one if it meets the WPA2 minimum,
   // otherwise the fixed default. Tracked separately so the AP screen shows the live value.
   const char* downlinkApPassword = (strlen(apPassword) >= 8) ? apPassword : WebUi::AP_PASSWORD;
   const char* activeApPassword = WebUi::AP_PASSWORD;
-  // Auto-sleep timer for a remotely-activated WiFi session, AP or station (0 = rely on the
-  // global config-mode timeout).
-  uint64_t wifiSessionStart = 0;
-  bool wifiTimeoutActive = false;
-  uint8_t wifiTimeoutMin = 0;
+  // Auto-sleep timer for a remotely-activated AP (EnableOTA), so it doesn't idle with the AP up.
+  // Station mode doesn't use this — its acquire deadline lives in runStaAcquire (main.cpp).
+  uint64_t apSessionStart = 0;
+  bool apTimeoutActive = false;
   bool staShownConnected = false;  // tracks the station screen's connected/connecting state
+  // If the station link stays down this long while serving, bail back to the low-power acquire
+  // instead of idling awake.
+  const uint32_t STA_REACQUIRE_AFTER_MS = 5UL * 60 * 1000;
+  uint64_t staDownSince = 0;  // millis the station link went down while serving (0 = up / n/a)
+  bool staReacquire = false;  // set when the long-disconnect bail trips
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
   const uint16_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
@@ -357,9 +362,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   if (openWifiAp) {
     activeApPassword = downlinkApPassword;
     webUi.start(downlinkApPassword);
-    wifiSessionStart = millis();
-    wifiTimeoutActive = (apTimeoutMin > 0);
-    wifiTimeoutMin = apTimeoutMin;
+    apSessionStart = millis();
+    apTimeoutActive = (apTimeoutMin > 0);
     menuState = WIFI_AP_SCREEN;
     browseIndex = BROWSE_WIFI_AP;
     showWifiApScreen();
@@ -367,12 +371,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     menuState = WIFI_STA_SCREEN;
     browseIndex = BROWSE_WIFI_AP;
     if (strlen(staPassword) >= 8) {
-      // Non-blocking: keep retrying until the gateway comes in range; the session/1-hour
-      // timeout is the only bound. update() brings the server up once connected.
+      // We're only here once the updater is in range (runStaAcquire gated entry). Connect and
+      // serve; the session ends via the "resume monitoring" button or the global 1-hour cap.
+      // The downlink timeout governs the acquire deadline, not this serving session.
       webUi.startStation(gatewaySsid, staPassword);
-      wifiSessionStart = millis();
-      wifiTimeoutActive = (staTimeoutMin > 0);
-      wifiTimeoutMin = staTimeoutMin;
       showWifiStaScreen();
     } else {
       // A missing password can't be retried away — refuse and resume monitoring.
@@ -388,10 +390,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   bool longPressTriggered = false;
 
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    // A remotely-activated WiFi session (AP or station) sleeps the device once its requested
-    // duration elapses, so it doesn't idle with WiFi up waiting for a crew that never came.
-    if (wifiTimeoutActive && webUi.isRunning() &&
-        millis() - wifiSessionStart >= (uint64_t)wifiTimeoutMin * 60 * 1000) {
+    // A remotely-activated AP (EnableOTA) sleeps the device once its requested duration elapses,
+    // so it doesn't idle with the AP up waiting for a crew that never came.
+    if (apTimeoutActive && webUi.isRunning() &&
+        millis() - apSessionStart >= (uint64_t)apTimeoutMin * 60 * 1000) {
       webUi.stop();
       exitConfigMode = true;
       break;
@@ -411,6 +413,19 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     if (menuState == WIFI_STA_SCREEN && webUi.isStationConnected() != staShownConnected) {
       staShownConnected = webUi.isStationConnected();
       showWifiStaScreen();
+    }
+    // If the station link stays down too long while serving, stop idling awake — re-arm the
+    // low-power acquire and exit, so we go back to scan/deep-sleep retries.
+    if (menuState == WIFI_STA_SCREEN) {
+      if (webUi.isStationConnected()) {
+        staDownSince = 0;
+      } else if (staDownSince == 0) {
+        staDownSince = millis();
+      } else if (millis() - staDownSince > STA_REACQUIRE_AFTER_MS) {
+        staReacquire = true;
+        exitConfigMode = true;
+        break;
+      }
     }
     while (Serial.available()) {
       char c = Serial.read();
@@ -516,6 +531,17 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   webUi.stop();
   state.setMode(ModeNormal);
   state.startDisplayInNormalMode();
+
+  // Long station drop while serving: re-stage the join so the next wake resumes the low-power
+  // acquire (scan + deep-sleep retries) instead of leaving WiFi up awake.
+  if (staReacquire) {
+    rtc.staConnectRequested = true;
+    strlcpy(rtc.staSsid, staSsid, sizeof(rtc.staSsid));
+    strlcpy(rtc.staPassword, staPassword, sizeof(rtc.staPassword));
+    rtc.staTimeoutMin = staTimeoutMin;
+    rtc.staDeadlineUs = 0;  // runStaAcquire re-arms a fresh deadline
+  }
+
   if (longSleepRequested) {
     display.message("SLEEP");
   }

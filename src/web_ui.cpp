@@ -38,6 +38,14 @@ void WebUi::start(const char* password) {
   server->begin();
 }
 
+bool WebUi::isStationInRange(const char* ssid) {
+  WiFi.mode(WIFI_STA);
+  int16_t found = WiFi.scanNetworks(false, false, false, 300, 0, ssid);  // directed scan
+  WiFi.scanDelete();
+  WiFi.mode(WIFI_OFF);
+  return found > 0;
+}
+
 void WebUi::startStation(const char* ssid, const char* password) {
   if (running) {
     LOGLN("WebUi already active");

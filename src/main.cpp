@@ -54,6 +54,52 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
   }
 }
 
+// Low-power "acquire" for a JoinWifiSta downlink: each wake, scan once for the updater AP (display
+// off, no server). If it's in range, hand off to the config-mode station path (connect + serve);
+// otherwise deep-sleep STA_RETRY_MS and let the next wake retry, until the deadline. Never returns
+// unless the deadline has passed (then it clears the request and falls through to monitoring).
+static void runStaAcquire() {
+  const uint32_t STA_RETRY_MS = 20000;
+  const uint32_t DEFAULT_DEADLINE_MIN = 60;
+
+  if (rtc.staDeadlineUs == 0) {
+    uint32_t mins = rtc.staTimeoutMin ? rtc.staTimeoutMin : DEFAULT_DEADLINE_MIN;
+    rtc.staDeadlineUs = rtcTimeNowUs() + (int64_t)mins * 60 * 1000000;
+  }
+  if (rtcTimeNowUs() > rtc.staDeadlineUs) {
+    LOGLN("STA acquire: deadline reached, giving up");
+    rtc.staConnectRequested = false;
+    rtc.staDeadlineUs = 0;
+    return;  // resume normal monitoring
+  }
+
+  // Brief blink so it's visibly alive and in STA acquire each retry, without powering the display.
+  digitalWrite(LED, HIGH);
+  delay(30);
+  digitalWrite(LED, LOW);
+
+  const char* ssid = strlen(rtc.staSsid) ? rtc.staSsid : WebUi::STA_GATEWAY_SSID;
+  bool inRange = webUi.isStationInRange(ssid);
+  LOG("STA acquire: scan for %s -> %s\n", ssid, inRange ? "in range" : "absent");
+
+  if (inRange) {
+    // In range — hand off to the (awake) config-mode station serve path. It still sees
+    // staConnectRequested set and connects + serves; the deadline no longer applies.
+    rtc.staDeadlineUs = 0;
+    state.setMode(ModeConfig);
+    if (state.useDisplay()) {
+      display.turnOn();
+    }
+    bool longSleep = runConfigMode(config, state, display, webUi, comms);
+    buttonResetState();
+    configurePaSleepPin(config.getPaSleepMode());
+    gotoSleep(longSleep ? config.getSleepIntervalMs() : 100);
+  }
+
+  // Not in range yet — sleep and retry. gotoSleep arms EXT0, so a button press still interrupts.
+  gotoSleep(STA_RETRY_MS);
+}
+
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
@@ -76,17 +122,25 @@ void setup() {
     state.setMode(ModeConfig);
   }
 
+  Serial.begin(115200);
+
+  // A JoinWifiSta downlink: keep WiFi off and the screen dark while we scan-and-sleep for the
+  // updater AP. Skipped when the operator forced config mode (button / missing AppKey).
+  if (rtc.staConnectRequested && state.getMode() != ModeConfig) {
+    runStaAcquire();  // no return unless the deadline passed (then falls through to monitoring)
+  }
+
   if (state.useDisplay()) {
     display.turnOn();
   }
 
-  Serial.begin(115200);
-
   if (state.getMode() == ModeConfig) {
-    // The operator is physically present and asserting control — abandon any radio
-    // trial in flight rather than letting it commit/revert under them.
+    // The operator is physically present and asserting control — abandon any radio trial in
+    // flight, and cancel a pending STA acquire, rather than letting them run under the operator.
     rtc.radioTrial.active = false;
     rtc.trialResultPending = false;
+    rtc.staConnectRequested = false;
+    rtc.staDeadlineUs = 0;
     digitalWrite(LED, LOW);
     bool longSleep = runConfigMode(config, state, display, webUi, comms);
     buttonResetState();
@@ -162,7 +216,7 @@ void setup() {
     }
   }
   comms.sleep();
-  if (wasButtonPressed() || state.getMode() == ModeConfig) {
+  if (wasButtonPressed() || state.getMode() == ModeConfig || rtc.staConnectRequested) {
     gotoSleep(100);
   } else {
     display.message("SLEEP", 500);

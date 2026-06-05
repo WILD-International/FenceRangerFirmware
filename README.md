@@ -55,11 +55,13 @@ An empty payload behaves exactly as before: fixed default password, 1-hour timeo
 
 (Not to be confused with a LoRaWAN gateway — this is a plain WiFi access point.) Instead of becoming an AP, the device can be told to connect as a **station** to a **field-updater AP** — a box the crew brings into range that acts as the access point and pushes config/OTA to every monitor that joins it (far faster than walking up to each unit). The device connects, advertises itself (DHCP hostname **and** mDNS `FR-<DevEUI>` / `_http._tcp`, so the updater resolves `FR-<DevEUI>.local`), and serves the same web UI on its station IP. The OLED shows the SSID, connection status, and assigned IP.
 
+Because the updater may be up to an hour from arriving, the device **waits at low power**: each cycle it scans once for the updater then deep-sleeps ~20 s before retrying, instead of staying awake. Normal fence monitoring is paused for the duration of the wait. Once the updater is in range it connects and serves; if the retry deadline passes first, it gives up and resumes monitoring.
+
 The updater's SSID is baked into the firmware (default `FenceUpdater` — a network name, not a secret). The WPA2 **password is the per-activation secret carried in the downlink**: there is no fixed fallback, so firmware extracted from one device yields no reusable credentials. The operator sets the updater's password to match each activation.
 
 | Byte | Meaning |
 |------|---------|
-| 0 | session timeout in minutes — after this the device disconnects and resumes normal monitoring (`0` or omitted = the default 1-hour config-mode timeout) |
+| 0 | retry deadline in minutes — how long to keep scanning before giving up and resuming monitoring (`0` or omitted = 60 min) |
 | 1 | SSID length `L` (`0` = use the baked-in default SSID) |
 | 2 .. 1+L | SSID override (`L` bytes), if any |
 | 2+L .. N | WPA2 password, ASCII — required, must be ≥8 chars (absent/shorter → join refused, device resumes monitoring) |

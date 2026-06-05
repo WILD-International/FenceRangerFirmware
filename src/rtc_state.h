@@ -78,7 +78,8 @@ struct RtcState {
   bool staConnectRequested = false;
   char staSsid[WIFI_SSID_MAX] = {};          // "" = use fixed STA_GATEWAY_SSID
   char staPassword[WIFI_STA_PASS_MAX] = {};  // per-activation gateway WPA2 password
-  uint8_t staTimeoutMin = 0;                 // 0 = default config-mode timeout
+  uint8_t staTimeoutMin = 0;                 // acquire give-up deadline in minutes (0 = default)
+  int64_t staDeadlineUs = 0;                 // absolute RTC-time deadline for the sleepy acquire
 
   // Radio-config trial-and-rollback
   RadioTrial radioTrial = {};
