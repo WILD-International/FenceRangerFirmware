@@ -35,7 +35,7 @@ To avoid overshooting in the other direction — waking up too frequently the mo
 
 Parameters can be configured via four interfaces:
 
-- **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu)
+- **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu). Besides the config groups, the menu has two on-device bench tests: **Voltage Test** (live fence and battery readings) and **LoRa Test** (sends a confirmed uplink and shows join status plus signal quality — RSSI/SNR)
 - **Web UI** — connect to the device's WiFi AP in config mode and open `http://192.168.4.1`
 - **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort
 - **AT commands** — serial interface over USB in config mode (115200 baud, `AT+HELP` for a command list)
@@ -100,6 +100,8 @@ Compile the firmware:
 ```
 pio run -e heltec_wifi_lora_32_V4
 ```
+
+The default target `heltec_wifi_lora_32_V4` builds for the KCT8103L PA (module V4.3). For the older GC1109 PA (module V4.2), build the `heltec_wifi_lora_32_V4_GC1109` variant (adds `-DUSE_GC1109_PA`). The `heltec_wifi_lora_32_V3` environment is legacy.
 
 To generate compile_commands.json for other IDE support:
 
