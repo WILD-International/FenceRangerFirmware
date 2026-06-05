@@ -51,6 +51,21 @@ The fPort-10 payload is optional and lets each remote activation pick its own AP
 
 An empty payload behaves exactly as before: fixed default password, 1-hour timeout. A button/menu-launched AP always uses the fixed default password.
 
+### Joining a field-updater access point over LoRaWAN (fPort 9)
+
+(Not to be confused with a LoRaWAN gateway — this is a plain WiFi access point.) Instead of becoming an AP, the device can be told to connect as a **station** to a **field-updater AP** — a box the crew brings into range that acts as the access point and pushes config/OTA to every monitor that joins it (far faster than walking up to each unit). The device connects, advertises itself (DHCP hostname **and** mDNS `FR-<DevEUI>` / `_http._tcp`, so the updater resolves `FR-<DevEUI>.local`), and serves the same web UI on its station IP. The OLED shows the SSID, connection status, and assigned IP.
+
+The updater's SSID is baked into the firmware (default `FenceUpdater` — a network name, not a secret). The WPA2 **password is the per-activation secret carried in the downlink**: there is no fixed fallback, so firmware extracted from one device yields no reusable credentials. The operator sets the updater's password to match each activation.
+
+| Byte | Meaning |
+|------|---------|
+| 0 | session timeout in minutes — after this the device disconnects and resumes normal monitoring (`0` or omitted = the default 1-hour config-mode timeout) |
+| 1 | SSID length `L` (`0` = use the baked-in default SSID) |
+| 2 .. 1+L | SSID override (`L` bytes), if any |
+| 2+L .. N | WPA2 password, ASCII — required, must be ≥8 chars (absent/shorter → join refused, device resumes monitoring) |
+
+For example, to join the default updater AP with password `passw0rd`: `[10][0]['p','a','s','s','w','0','r','d']`.
+
 **Radio config over LoRaWAN is trial-gated.** A radio-config downlink (fPort 16) is not applied permanently right away — it is staged and tested first, so a bad combination (e.g. RX LNA off, scanGuard too small, or a low data rate) can't lock the device out of downlinks. The device sends **confirmed uplinks** at the relevant data rate(s) and only keeps the new settings if it gets an ACK; otherwise it automatically reverts to the previous working settings. If the new settings enable ADR, it first proves DR0 works — DR0 needs a larger scan guard than higher rates, and ADR could drop the device down to it with no way back — and then proves the link a few times with ADR actually enabled. After the trial it re-sends the fPort 16 report, so the server can see whether the change stuck (new values) or reverted (old values). Changes made locally (OLED/Web UI/AT) apply immediately.
 
 ### Parameter reference

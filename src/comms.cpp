@@ -429,7 +429,9 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
 
-  uint8_t downlinkPayload[32];
+  // Sized to hold the largest downlink we parse — a JoinWifiSta payload (fPort 9) carrying an
+  // SSID plus a WPA2 password can exceed 32 bytes.
+  uint8_t downlinkPayload[128];
   size_t downlinkSize;
 
   LoRaWANEvent_t uplinkDetails;
@@ -452,6 +454,31 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
     LOGLN("Received a message from server");
     if (downlink != nullptr) {
       switch (downlinkDetails.fPort) {
+        case 9: {
+          LOGLN("Downlink: JoinWifiSta");
+          downlink->type = DownlinkType::JoinWifiSta;
+          // Payload: [timeout][ssidLen L][ssid (L bytes)][password]. SSID optional (L=0 ->
+          // fixed STA_GATEWAY_SSID); password required (>=8) or the join is refused on consume.
+          downlink->joinWifiSta.timeoutMin = (downlinkSize >= 1) ? downlinkPayload[0] : 0;
+          size_t ssidLen = (downlinkSize >= 2) ? downlinkPayload[1] : 0;
+          size_t avail = (downlinkSize >= 2) ? downlinkSize - 2 : 0;
+          if (ssidLen > avail) {
+            ssidLen = avail;
+          }
+          if (ssidLen >= WIFI_SSID_MAX) {
+            ssidLen = WIFI_SSID_MAX - 1;
+          }
+          memcpy(downlink->joinWifiSta.ssid, downlinkPayload + 2, ssidLen);
+          downlink->joinWifiSta.ssid[ssidLen] = '\0';
+          size_t passOff = 2 + ssidLen;
+          size_t passLen = (downlinkSize > passOff) ? downlinkSize - passOff : 0;
+          if (passLen >= WIFI_STA_PASS_MAX) {
+            passLen = WIFI_STA_PASS_MAX - 1;
+          }
+          memcpy(downlink->joinWifiSta.password, downlinkPayload + passOff, passLen);
+          downlink->joinWifiSta.password[passLen] = '\0';
+          break;
+        }
         case 10: {
           LOGLN("Downlink: EnableOTA");
           downlink->type = DownlinkType::EnableOTA;
@@ -671,6 +698,13 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       rtc.otaConfigRequested = true;
       rtc.otaApTimeoutMin = downlink.enableOta.timeoutMin;
       strlcpy(rtc.otaApPassword, downlink.enableOta.password, sizeof(rtc.otaApPassword));
+      return {};
+    case DownlinkType::JoinWifiSta:
+      state->setMode(ModeConfig);
+      rtc.staConnectRequested = true;
+      rtc.staTimeoutMin = downlink.joinWifiSta.timeoutMin;
+      strlcpy(rtc.staSsid, downlink.joinWifiSta.ssid, sizeof(rtc.staSsid));
+      strlcpy(rtc.staPassword, downlink.joinWifiSta.password, sizeof(rtc.staPassword));
       return {};
     case DownlinkType::SetAlertThresholds:
       config->setAlertThresholds(downlink.alertThresholds.alertV,

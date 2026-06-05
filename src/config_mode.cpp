@@ -25,13 +25,31 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   rtc.otaApPassword[0] = '\0';
   rtc.otaApTimeoutMin = 0;
 
+  // Likewise consume the one-shot JoinWifiSta request (fPort 9): connect to a gateway AP as a
+  // station and serve the web UI there. The gateway SSID can be omitted (fixed default); the
+  // password is the per-activation secret and is required.
+  bool joinWifiSta = rtc.staConnectRequested;
+  char staSsid[WIFI_SSID_MAX];
+  strlcpy(staSsid, rtc.staSsid, sizeof(staSsid));
+  char staPassword[WIFI_STA_PASS_MAX];
+  strlcpy(staPassword, rtc.staPassword, sizeof(staPassword));
+  uint8_t staTimeoutMin = rtc.staTimeoutMin;
+  rtc.staConnectRequested = false;
+  rtc.staSsid[0] = '\0';
+  rtc.staPassword[0] = '\0';
+  rtc.staTimeoutMin = 0;
+  const char* gatewaySsid = (strlen(staSsid) > 0) ? staSsid : WebUi::STA_GATEWAY_SSID;
+
   // Password the AP comes up with: the downlink-carried one if it meets the WPA2 minimum,
   // otherwise the fixed default. Tracked separately so the AP screen shows the live value.
   const char* downlinkApPassword = (strlen(apPassword) >= 8) ? apPassword : WebUi::AP_PASSWORD;
   const char* activeApPassword = WebUi::AP_PASSWORD;
-  // Auto-sleep timer for a remotely-activated AP (0 = rely on the global config-mode timeout).
-  uint64_t apStartTime = 0;
-  bool apTimeoutActive = false;
+  // Auto-sleep timer for a remotely-activated WiFi session, AP or station (0 = rely on the
+  // global config-mode timeout).
+  uint64_t wifiSessionStart = 0;
+  bool wifiTimeoutActive = false;
+  uint8_t wifiTimeoutMin = 0;
+  bool staShownConnected = false;  // tracks the station screen's connected/connecting state
 
   const uint16_t SLEEP_OPTIONS[] = {10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900};
   const uint16_t BURST_OPTIONS[] = {1, 2, 3, 5, 10};
@@ -163,7 +181,16 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const int VISIBLE_ITEMS = 6;
   const uint32_t LONG_PRESS_MS = 500;
 
-  enum MenuState { INFO, BROWSE, SUBMENU, EDIT, VOLT_TEST, LORA_TEST, WIFI_AP_SCREEN };
+  enum MenuState {
+    INFO,
+    BROWSE,
+    SUBMENU,
+    EDIT,
+    VOLT_TEST,
+    LORA_TEST,
+    WIFI_AP_SCREEN,
+    WIFI_STA_SCREEN
+  };
   MenuState menuState = INFO;
   int browseIndex = 0;
   int activeGroup = 0;
@@ -238,6 +265,15 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     display.showWifiAp(ssid, secret ? "********" : activeApPassword);
   };
 
+  auto showWifiStaScreen = [&]() {
+    bool connected = webUi.isStationConnected();
+    char ip[20] = "-";
+    if (connected) {
+      webUi.localIpStr(ip, sizeof(ip));
+    }
+    display.showWifiStation(gatewaySsid, connected ? "Connected" : "Connecting", ip);
+  };
+
   auto handleLongPress = [&]() {
     if (menuState == INFO) {
       browseIndex = 0;
@@ -297,7 +333,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
         menuState = BROWSE;
         display.showMenu(browseIndex);
       }
-    } else if (menuState == WIFI_AP_SCREEN) {
+    } else if (menuState == WIFI_AP_SCREEN || menuState == WIFI_STA_SCREEN) {
       webUi.stop();
       menuState = BROWSE;
       display.showMenu(browseIndex);
@@ -315,16 +351,34 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     }
   };
 
-  // WiFi is off by default; it runs only while the WiFi AP screen is active. An EnableOTA
-  // downlink (openWifiAp) jumps straight to that screen with the AP started.
+  // WiFi is off by default; it runs only while a WiFi screen is active. An EnableOTA downlink
+  // (openWifiAp) jumps straight to the AP screen; a JoinWifiSta downlink (joinWifiSta) connects
+  // to the gateway and jumps to the station screen.
   if (openWifiAp) {
     activeApPassword = downlinkApPassword;
     webUi.start(downlinkApPassword);
-    apStartTime = millis();
-    apTimeoutActive = (apTimeoutMin > 0);
+    wifiSessionStart = millis();
+    wifiTimeoutActive = (apTimeoutMin > 0);
+    wifiTimeoutMin = apTimeoutMin;
     menuState = WIFI_AP_SCREEN;
     browseIndex = BROWSE_WIFI_AP;
     showWifiApScreen();
+  } else if (joinWifiSta) {
+    menuState = WIFI_STA_SCREEN;
+    browseIndex = BROWSE_WIFI_AP;
+    if (strlen(staPassword) >= 8) {
+      // Non-blocking: keep retrying until the gateway comes in range; the session/1-hour
+      // timeout is the only bound. update() brings the server up once connected.
+      webUi.startStation(gatewaySsid, staPassword);
+      wifiSessionStart = millis();
+      wifiTimeoutActive = (staTimeoutMin > 0);
+      wifiTimeoutMin = staTimeoutMin;
+      showWifiStaScreen();
+    } else {
+      // A missing password can't be retried away — refuse and resume monitoring.
+      display.message("NO PASSWORD", 2000);
+      exitConfigMode = true;
+    }
   } else {
     display.showConfig(state);
   }
@@ -334,15 +388,15 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   bool longPressTriggered = false;
 
   while (!exitConfigMode && millis() - configModeStartTime < 60 * 60 * 1000) {
-    // A remotely-activated AP sleeps the device once its requested duration elapses, so it
-    // doesn't idle with WiFi up waiting for a crew that never came.
-    if (apTimeoutActive && webUi.isRunning() &&
-        millis() - apStartTime >= (uint64_t)apTimeoutMin * 60 * 1000) {
+    // A remotely-activated WiFi session (AP or station) sleeps the device once its requested
+    // duration elapses, so it doesn't idle with WiFi up waiting for a crew that never came.
+    if (wifiTimeoutActive && webUi.isRunning() &&
+        millis() - wifiSessionStart >= (uint64_t)wifiTimeoutMin * 60 * 1000) {
       webUi.stop();
       exitConfigMode = true;
       break;
     }
-    // The web UI's "resume monitoring" button stops the AP and returns to normal operation.
+    // The web UI's "resume monitoring" button stops WiFi and returns to normal operation.
     if (webUi.isRunning() && webUi.resumeRequested()) {
       webUi.stop();
       exitConfigMode = true;
@@ -352,6 +406,11 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     // contention with the measurement DMA pool here.
     if (webUi.isRunning()) {
       webUi.update();
+    }
+    // Refresh the station screen when the link comes up, to show Connected + the assigned IP.
+    if (menuState == WIFI_STA_SCREEN && webUi.isStationConnected() != staShownConnected) {
+      staShownConnected = webUi.isStationConnected();
+      showWifiStaScreen();
     }
     while (Serial.available()) {
       char c = Serial.read();
@@ -435,8 +494,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
             display.message("MEASURE");
             measureProgram.begin(config.getMeasureDurationMs());
           }
-        } else if (menuState == WIFI_AP_SCREEN) {
-          // tap ignored — long press exits so a stray tap can't drop the AP mid-OTA
+        } else if (menuState == WIFI_AP_SCREEN || menuState == WIFI_STA_SCREEN) {
+          // tap ignored — long press exits so a stray tap can't drop WiFi mid-update
         } else {
           // EDIT
           uint8_t slots = editItem->optCount + 1;

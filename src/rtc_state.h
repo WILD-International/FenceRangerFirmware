@@ -12,6 +12,11 @@ enum Mode { ModeNormal, ModeConfig };
 // timeout, so the password is at most 31 chars + NUL — well within WPA2's 8..63 range.
 constexpr size_t WIFI_AP_PASS_MAX = 32;
 
+// Buffers for the WiFi-station credentials carried by a JoinWifiSta downlink (fPort 9):
+// SSID up to 32 chars + NUL, WPA2 password up to 63 chars + NUL.
+constexpr size_t WIFI_SSID_MAX = 33;
+constexpr size_t WIFI_STA_PASS_MAX = 64;
+
 // Radio-config trial (commit-on-confirm). A SetRadioConfig downlink stages its
 // candidate settings here (volatile RTC) instead of writing NVS; they are only
 // committed to NVS once a confirmed-uplink ACK proves the link still works both
@@ -67,6 +72,13 @@ struct RtcState {
   // how long the AP should stay up (minutes; 0 = the default 1-hour config-mode timeout).
   char otaApPassword[WIFI_AP_PASS_MAX] = {};
   uint8_t otaApTimeoutMin = 0;
+
+  // Set when a JoinWifiSta downlink (fPort 9) requested station mode; consumed once on the next
+  // wake to connect to the gateway AP and run the web server there.
+  bool staConnectRequested = false;
+  char staSsid[WIFI_SSID_MAX] = {};          // "" = use fixed STA_GATEWAY_SSID
+  char staPassword[WIFI_STA_PASS_MAX] = {};  // per-activation gateway WPA2 password
+  uint8_t staTimeoutMin = 0;                 // 0 = default config-mode timeout
 
   // Radio-config trial-and-rollback
   RadioTrial radioTrial = {};

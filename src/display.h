@@ -31,6 +31,7 @@ class Display {
   void showLoraTest(bool joined, LoraTestState state = LoraTestState::Idle,
                     const SignalInfo* signalInfo = nullptr);
   void showWifiAp(const char* ssid, const char* password);
+  void showWifiStation(const char* ssid, const char* status, const char* ip);
 
  private:
   void displayTitle();

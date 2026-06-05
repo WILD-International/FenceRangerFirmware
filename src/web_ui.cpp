@@ -1,6 +1,8 @@
 
 #include "web_ui.h"
 
+#include <ESPmDNS.h>
+
 #include "helpers.h"
 #include "logging.h"
 #include "ota_html.h"
@@ -14,6 +16,10 @@ void WebUi::apSsid(char* out, size_t len) const {
   snprintf(out, len, "%s", ssid);
 }
 
+void WebUi::localIpStr(char* out, size_t len) const {
+  snprintf(out, len, "%s", WiFi.localIP().toString().c_str());
+}
+
 void WebUi::start(const char* password) {
   if (running) {
     LOGLN("WebUi already active");
@@ -21,13 +27,40 @@ void WebUi::start(const char* password) {
   }
   running = true;
   resumeRequested_ = false;
+  stationMode_ = false;
   char ssid[32];
   apSsid(ssid, sizeof(ssid));
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
 
   server = new WebServer(80);
+  registerRoutes();
+  server->begin();
+}
 
+void WebUi::startStation(const char* ssid, const char* password) {
+  if (running) {
+    LOGLN("WebUi already active");
+    return;
+  }
+  running = true;
+  resumeRequested_ = false;
+  stationMode_ = true;
+  server = nullptr;
+  char host[32];
+  apSsid(host, sizeof(host));  // "FR-<eui>" doubles as the DHCP hostname / mDNS name
+  // setHostname must run BEFORE mode(WIFI_STA): the core applies the stored hostname to the
+  // netif when the station interface starts, and falls back to "esp32s3-<MAC>" if it's unset.
+  WiFi.setHostname(host);
+  WiFi.mode(WIFI_STA);
+  // The stack auto-reconnects on its own: it keeps re-issuing the join while the gateway is out
+  // of range (NO_AP_FOUND) and again whenever an established link drops.
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(ssid, password);
+  LOG("WiFi station: joining %s\n", ssid);
+}
+
+void WebUi::registerRoutes() {
   server->on("/", HTTP_GET, [this]() { server->send(200, "text/html", OTA_HTML); });
 
   server->on("/api/config", HTTP_GET, [this]() {
@@ -265,8 +298,6 @@ void WebUi::start(const char* password) {
           Update.end(true);
         }
       });
-
-  server->begin();
 }
 
 void WebUi::stop() {
@@ -275,16 +306,49 @@ void WebUi::stop() {
     return;
   }
   running = false;
-  server->stop();
-  delete server;
-  server = nullptr;
+  stationMode_ = false;
+  // The server is null if a station join was still pending / disconnected (never served).
+  if (server != nullptr) {
+    server->stop();
+    delete server;
+    server = nullptr;
+  }
+  // Tear down whichever mode was up (the inapplicable calls are harmless no-ops).
+  MDNS.end();
   WiFi.softAPdisconnect(true);
+  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_OFF);
 }
 
 void WebUi::update() {
   if (!running) {
     LOGLN("WebUi not running");
+    return;
+  }
+  if (stationMode_) {
+    // The stack handles (re)joining; we just follow the link with the server + mDNS.
+    bool connected = WiFi.status() == WL_CONNECTED;
+    if (connected && server == nullptr) {
+      // (Re)associated — bring up mDNS + server. The IP may differ after a reconnect.
+      char host[32];
+      apSsid(host, sizeof(host));
+      MDNS.begin(host);
+      MDNS.addService("http", "tcp", 80);
+      server = new WebServer(80);
+      registerRoutes();
+      server->begin();
+      LOG("WiFi station connected, IP %s\n", WiFi.localIP().toString().c_str());
+    } else if (!connected && server != nullptr) {
+      // Link dropped — tear down the server/mDNS; the stack auto-reconnects in the background.
+      LOGLN("WiFi station disconnected, waiting for reconnect");
+      server->stop();
+      delete server;
+      server = nullptr;
+      MDNS.end();
+    }
+    if (server != nullptr) {
+      server->handleClient();
+    }
     return;
   }
   server->handleClient();

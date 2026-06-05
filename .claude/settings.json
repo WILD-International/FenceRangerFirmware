@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "bash /Users/bart/git/wild/FenceRangerFirmware/scripts/clang-format-hook.sh"
+          },
+          {
+            "type": "command",
+            "command": "python3 /Users/bart/git/wild/FenceRangerFirmware/scripts/claude_md_doc_check.py"
           }
         ]
       }

@@ -92,9 +92,9 @@ Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max rea
 
 ### Config mode (`src/config_mode.cpp`)
 
-Entered on button press, when no AppKey is stored, or via the fPort-10 `EnableOTA` downlink. `runConfigMode` (`src/config_mode.cpp`) is a free function that owns the entire config mode event loop; its collaborators are passed explicitly (`comms` is needed for the on-device LoRa Test). The one-shot OTA-activation request that an `EnableOTA` downlink stages in `rtc` — open straight onto the WiFi AP screen, with a per-activation AP password and AP timeout — is read and cleared at the top of the function, so it fires exactly once.
+Config mode is a single free-function event loop (`runConfigMode`, `src/config_mode.cpp`) with its collaborators passed in explicitly. It is entered on button press, when no AppKey is stored, or by a WiFi/OTA downlink — which stages a one-shot request in `rtc` that routes config mode straight to a WiFi screen on the next wake.
 
-The WiFi AP + HTTP server (`WebUi`) is **off by default** — it runs only while the **WiFi AP** menu screen is active (`webUi.start()`/`stop()` on entering/leaving that screen), so most config sessions never bring WiFi up. AT commands over Serial (`src/at_commands.cpp` — a table-driven dispatcher; `AT+HELP` lists every command) are always available. The loop exits when its local `exitConfigMode` flag is set — a short tap at the info screen, `AT+EXIT`, the "Sleep now" action, the Web UI's "resume monitoring" button, the per-activation AP timeout, or the 1-hour timeout. Config is stored in NVS via `Preferences`.
+The WiFi + HTTP server (`WebUi`) is **off by default** — it comes up only while a WiFi screen is active, so most config sessions never bring WiFi up. AT commands over Serial (`src/at_commands.cpp`, a table-driven dispatcher; `AT+HELP` lists them) are always available. The loop exits on a user action or a timeout and returns to the normal sleep cycle. Config is stored in NVS via `Preferences`.
 
 #### OLED menu UX (single-button)
 
@@ -121,7 +121,7 @@ One non-obvious entry worth flagging: **PA Sleep Mode** is the deep-sleep state 
 
 ### Web UI (`src/web_ui.cpp`, `src/ota.html`)
 
-Routes are registered in `WebUi::start()` (`src/web_ui.cpp`): one POST handler per config group, `/update` (OTA), GET `/` (the page), and GET `/api/config` (all parameters as JSON). Read that function for the current route set rather than listing it here.
+`WebUi` (`src/web_ui.cpp`) serves the config/OTA web UI over HTTP; read that file for the current route set. The same server is served two ways: the device can bring up its **own** access point, or **join an existing** AP as a station (e.g. a provisioning gateway) — both reach the identical pages.
 
 `src/ota.html` is the source for the web UI — the pre-build script `scripts/embed_html.py` converts it to `src/ota_html.h` at compile time. Edit `ota.html`, not the generated header. A dev server for the web UI is in `scripts/dev_server.py`.
 

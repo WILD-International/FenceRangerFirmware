@@ -388,6 +388,30 @@ void Display::showWifiAp(const char* ssid, const char* password) {
   display.display();
 }
 
+void Display::showWifiStation(const char* ssid, const char* status, const char* ip) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayHeader("WiFi STA");
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 13);
+  display.print("SSID:");
+  display.setCursor(2, 23);
+  printTruncated(display, ssid, 21);
+  display.setCursor(2, 36);
+  printTruncated(display, status, 21);
+  display.setCursor(2, 46);
+  printTruncated(display, ip, 21);
+  display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 56);
+  display.print("hold=back");
+  display.setTextColor(SSD1306_WHITE);
+  display.display();
+}
+
 void Display::showMenuCancel(const char* name, uint16_t currentValue) {
   if (!enabled) {
     return;

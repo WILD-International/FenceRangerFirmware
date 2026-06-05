@@ -27,6 +27,7 @@ const uint64_t joinEUI = 0x0000000000000000;
 enum class DownlinkType : uint8_t {
   None = 0,
   EnableOTA,
+  JoinWifiSta,
   SetAlertThresholds,
   SetAlertCycles,
   SetSleepConfig,
@@ -51,6 +52,11 @@ struct Downlink {
       uint8_t timeoutMin;               // AP active minutes (0 = default config-mode timeout)
       char password[WIFI_AP_PASS_MAX];  // per-activation AP password ("" = fixed AP_PASSWORD)
     } enableOta;
+    struct {
+      uint8_t timeoutMin;                // session minutes (0 = default config-mode timeout)
+      char ssid[WIFI_SSID_MAX];          // "" = fixed STA_GATEWAY_SSID
+      char password[WIFI_STA_PASS_MAX];  // gateway WPA2 password (required, >=8 chars)
+    } joinWifiSta;
     struct {
       uint16_t alertV;
       uint16_t recoverV;
