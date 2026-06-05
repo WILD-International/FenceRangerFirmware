@@ -116,6 +116,8 @@ void WebUi::registerRoutes() {
     json += config->getMeasureDurationMs();
     json += ",\"fenceCalPercent\":";
     json += config->getFenceCalPercent();
+    json += ",\"carrierRev\":";
+    json += config->getCarrierRev();
     json += ",\"txPower\":";
     json += config->getTxPower();
     json += ",\"dataRate\":";
@@ -233,18 +235,21 @@ void WebUi::registerRoutes() {
   server->on("/measure", HTTP_POST, [this]() {
     String durArg = server->arg("measureDurationMs");
     String calArg = server->arg("fenceCalPercent");
-    if (durArg.length() == 0 || calArg.length() == 0) {
+    String carrierArg = server->arg("carrierRev");
+    if (durArg.length() == 0 || calArg.length() == 0 || carrierArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
     int32_t dur = durArg.toInt();
     int32_t cal = calArg.toInt();
-    if (dur < 100 || dur > 60000 || cal < 1 || cal > 1000) {
+    int32_t carrierRev = carrierArg.toInt();
+    if (dur < 100 || dur > 60000 || cal < 1 || cal > 1000 || carrierRev < 0 || carrierRev > 1) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
     config->setMeasureDurationMs((uint16_t)dur);
     config->setFenceCalPercent((uint16_t)cal);
+    config->setCarrierRev((uint8_t)carrierRev);
     server->send(200, "text/plain", "Saved");
   });
 

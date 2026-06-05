@@ -204,6 +204,15 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setFenceCalPercent(n);
          return true;
        }},
+      {"CARRIERREV", "Carrier board revision (0=v3.0 opamp GPIO2, 1=v3.1 opamp GPIO6)",
+       [&]() -> String { return String(config.getCarrierRev()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 1, n))
+           return false;
+         config.setCarrierRev((uint8_t)n);
+         return true;
+       }},
 
       // Radio config
       {"RXLNA", "RX LNA enabled (0/1)",

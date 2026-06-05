@@ -192,6 +192,11 @@
     <input type="text" id="md" maxlength="5" placeholder="3000">
     <label>Fence Cal (%)</label>
     <input type="text" id="fc" maxlength="3" placeholder="100">
+    <label>Carrier Rev</label>
+    <select id="cr">
+      <option value="0">v3.0</option>
+      <option value="1">v3.1</option>
+    </select>
     <button onclick="saveMeasure()">Save</button>
     <div class="status" id="st-measure"></div>
   </div>
@@ -285,6 +290,7 @@
         document.getElementById('brn').value = d.battRecoveryN;
         document.getElementById('md').value = d.measureDurationMs;
         document.getElementById('fc').value = d.fenceCalPercent;
+        document.getElementById('cr').value = d.carrierRev;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
         document.getElementById('tp').value = d.txPower;
         document.getElementById('dr').value = d.dataRate;
@@ -342,7 +348,8 @@
     function saveMeasure() {
       postConfig('/measure', {
         measureDurationMs: document.getElementById('md').value,
-        fenceCalPercent: document.getElementById('fc').value
+        fenceCalPercent: document.getElementById('fc').value,
+        carrierRev: document.getElementById('cr').value
       }, 'st-measure');
     }
 
