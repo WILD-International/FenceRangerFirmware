@@ -14,6 +14,12 @@ Most of the time the fence is healthy and there is nothing to report, so the dev
 
 Once the voltage climbs back to **Recover V**, the device does not declare success right away: it waits for **Recovery** *consecutive* readings at or above Recover V, and **any** reading below Recover V — including one in the hysteresis band — restarts that count from zero. This filters out false all-clears during fence repair, when the energizer is switched on and off. Throughout this confirmation period the device keeps sending at the faster Alert Hb rate, so the operator is never left in silence while an outage is being resolved. When the count is finally reached, the device sends one explicit all-clear message and returns to the slow idle heartbeat.
 
+### Rapid-drop early warning
+
+The absolute thresholds above only react once the fence has already crossed **Alert V**. As a secondary, earlier signal, the device also watches how much the voltage drops between readings: if a reading is more than **10%** below the previous one it sends a one-off **rapid-drop** alert. The drop is measured purely against the previous reading regardless of how much time elapsed, so a gradual sag isn't hidden when the battery-throttled sleep interval stretches the time between measurements. This catches a fence that is failing (a developing short, a draining energizer, vegetation load) before it is fully down.
+
+This only runs in the otherwise-healthy regime: if the device is already alerting (or the same drop crosses Alert V and triggers the normal burst), the rapid-drop alert stays silent so there is no duplicate. When a rapid-drop alert and a routine heartbeat fall on the same cycle, the drop alert replaces the heartbeat — it already carries the same measurement — so each wake sends at most one uplink. To stop a fence that flaps between two healthy levels from draining the battery, after one rapid-drop alert further ones are suppressed for the next **15 cycles**. The rapid-drop alert is its own message type (LoRaWAN fPort 2) carrying the previous voltage, the current voltage, and the battery voltage. These values are currently hardcoded (not configurable).
+
 **Parameters that control this:**
 - **Alert V / Recover V** — the thresholds that define "problem" and "healthy." The gap between them provides hysteresis so the device doesn't oscillate between states.
 - **Burst Sends** — how many messages are sent in quick succession when an alert first triggers.

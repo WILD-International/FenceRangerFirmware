@@ -101,6 +101,10 @@ class Comms {
   int16_t begin(Display* display);
   int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink,
                           bool confirmed = false, SignalInfo* signalInfo = nullptr);
+  // Rapid relative-drop early warning (fPort 2): reports the previous and current fence
+  // voltage and the seconds between them, plus battery. See detectRapidDrop in alert.h.
+  int16_t sendRapidDropAlert(uint16_t battMv, uint16_t previousVoltage, uint16_t currentVoltage,
+                             Display* display, Downlink* downlink);
   int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);
   Downlink processDownlink(Downlink downlink, Display* display);
   void saveSession();

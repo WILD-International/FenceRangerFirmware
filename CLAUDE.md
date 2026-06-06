@@ -64,6 +64,8 @@ Two branches divert from this normal flow early in `setup()`: a button press / m
 
 All parameters live in NVS and are configurable via the web UI and OLED menu.
 
+A **secondary, independent** early warning lives in the same module: `detectRapidDrop()` flags a reading that fell at least a hardcoded percentage below the previous one (no time normalisation) and sends a distinct fPort-2 message. It's gated to the healthy/Idle regime (so it never duplicates the absolute alert) with a cooldown (in cycles) against a flapping fence; `main.cpp` runs it after `processMeasurement`, and on a coincident cycle the drop **supersedes** the regular measurement (one uplink per wake). Its parameters are hardcoded for now — no config surface yet.
+
 ### Adaptive sleep (`src/state.cpp`)
 
 Two methods on `State` implement battery-based sleep throttling:
@@ -87,7 +89,9 @@ A `SetRadioConfig` downlink (fPort 16) does **not** write NVS directly — that 
 
 Each trial wake (`Comms::runRadioTrialCycle`, driven from `main.cpp` when `rtc.radioTrial.active`) sends one **confirmed** uplink (`sendReceive() > 0` = ACK). A phase passes once it collects its required ACKs (1 for a forced-DR phase, `ADR_PHASE_CONFIRMS` = 3 for the ADR phase); `RADIO_TRIAL_ATTEMPTS` (3) consecutive misses revert it (a success refills that budget). If the candidate **enables ADR**, the trial first probes **DR0** once and then runs several confirmed round-trips **with ADR actually enabled** (one per wake, to respect EU868 duty cycle). The extra ADR confirms guard against a fluke ACK on a marginal link; they don't exercise ADR's own rate loop (that needs far more frames than a trial can run). DR0 is singled out because it was found to need a larger `scanGuard` than the higher data rates (DR2–DR5) — a value that works at those can silently lose DR0 downlinks — and ADR can push the device down to DR0 with no way back (the climb-up commands are downlinks). So we confirm DR0 works under the candidate before committing. `Comms::effectiveRadioConfig()` resolves which settings `begin()`/`lwActivate()` apply: the NVS config normally, or the staged candidate (ADR forced off, DR pinned to the phase) during a trial. After a trial concludes, the device re-sends the fPort 16 radio-config report once (`rtc.trialResultPending`) so the server can tell commit (new settings) from revert (old). Only the LoRaWAN path is trial-gated; OLED/Web/AT radio changes still commit immediately, and entering config mode cancels any active trial.
 
-### Uplink payload (3 bytes)
+### Uplink payloads
+
+**Measurement — fPort 1 (3 bytes)**
 
 | Byte | Content |
 |------|---------|
@@ -95,6 +99,16 @@ Each trial wake (`Comms::runRadioTrialCycle`, driven from `main.cpp` when `rtc.r
 | 1–2 | Fence voltage in volts, big-endian uint16 |
 
 Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max reading to use) stays in `main.cpp`.
+
+**Rapid-drop early warning — fPort 2 (5 bytes)**
+
+| Byte | Content |
+|------|---------|
+| 0 | Battery, same compression as fPort 1 |
+| 1–2 | Previous fence voltage, big-endian uint16 |
+| 3–4 | Current fence voltage, big-endian uint16 |
+
+Encoding lives in `Comms::sendRapidDropAlert()`; the trigger is `detectRapidDrop()` (see the transmission-policy section).
 
 ### Config mode (`src/config_mode.cpp`)
 

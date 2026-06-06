@@ -59,3 +59,31 @@ bool processMeasurement(uint16_t fenceVoltage, const AlertConfig& cfg, AlertStat
 
   return shouldSend;
 }
+
+bool detectRapidDrop(uint16_t currentVoltage, bool healthy, const RapidDropConfig& config,
+                     RapidDropState& state, RapidDropInfo* outInfo) {
+  if (state.cooldownCyclesLeft > 0) {
+    state.cooldownCyclesLeft--;
+  }
+
+  // previousFenceVoltage defaults to 0, so the first-ever call can't satisfy
+  // currentVoltage < previousFenceVoltage and is skipped.
+  bool fire = false;
+  if (healthy && state.cooldownCyclesLeft == 0 && currentVoltage < state.previousFenceVoltage) {
+    double percentDrop =
+        100.0 * (state.previousFenceVoltage - currentVoltage) / state.previousFenceVoltage;
+    if (percentDrop >= config.dropPercent) {
+      fire = true;
+      state.cooldownCyclesLeft = config.cooldownCycles;
+      if (outInfo != nullptr) {
+        *outInfo = {state.previousFenceVoltage, currentVoltage};
+      }
+    }
+  }
+
+  // Always advance the baseline so the next call compares against this reading.
+  state.previousFenceVoltage = currentVoltage;
+
+  LOG("rapidDrop: currentVoltage: %d, healthy: %d, fire: %d\n", currentVoltage, healthy, fire);
+  return fire;
+}

@@ -45,6 +45,9 @@ struct RtcState {
   // Alert state machine
   AlertState alertState = {};
 
+  // Rapid relative-drop early-warning tracker (previous reading + cooldown)
+  RapidDropState rapidDropState = {};
+
   // Battery slow filter
   uint16_t slowBattMv = 0;
 

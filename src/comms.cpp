@@ -424,6 +424,18 @@ int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* displa
   return send(1, payload, sizeof(payload), display, downlink, confirmed, signalInfo);
 }
 
+int16_t Comms::sendRapidDropAlert(uint16_t battMv, uint16_t previousVoltage,
+                                  uint16_t currentVoltage, Display* display, Downlink* downlink) {
+  battMv = constrain(battMv, (uint16_t)1950, (uint16_t)4500);
+  uint8_t payload[5];
+  payload[0] = (battMv - 1950) / 10;
+  payload[1] = (previousVoltage >> 8) & 0xFF;
+  payload[2] = previousVoltage & 0xFF;
+  payload[3] = (currentVoltage >> 8) & 0xFF;
+  payload[4] = currentVoltage & 0xFF;
+  return send(2, payload, sizeof(payload), display, downlink);
+}
+
 int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink,
                     bool confirmed, SignalInfo* signalInfo) {
   digitalWrite(LORA_PA_POWER, HIGH);
