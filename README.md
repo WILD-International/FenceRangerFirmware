@@ -8,13 +8,17 @@ Because it runs on a small solar-charged battery, it needs to balance two compet
 
 ## Alert behavior
 
-The device measures the fence voltage every cycle. Most of the time the fence is healthy and there is nothing to report, so the device only sends a brief heartbeat every so often to confirm it is still alive. When the fence voltage drops below the alert threshold, it immediately sends a burst of messages to make sure the network receives at least one, then switches to a faster heartbeat so the operator stays informed. Once the fence comes back up, the device waits for several consecutive healthy readings before declaring recovery — this prevents false all-clears during fence repair when the energizer is briefly switched on and off.
+The device measures the fence voltage every cycle (using the larger of the two polarity peaks) and classifies it against two thresholds: at or above **Recover V** is *healthy*, below **Alert V** is a *problem*, and the gap between them is a deliberate no-man's-land that counts as *not yet healthy* everywhere. This hysteresis stops the device oscillating when a fence hovers near the line.
+
+Most of the time the fence is healthy and there is nothing to report, so the device only sends a brief heartbeat every **Idle Hb** cycles to confirm it is still alive. When the voltage drops below **Alert V**, the device immediately sends a burst of **Burst Sends** messages — making sure the network receives at least one — then settles into a faster heartbeat every **Alert Hb** cycles so the operator stays informed.
+
+Once the voltage climbs back to **Recover V**, the device does not declare success right away: it waits for **Recovery** *consecutive* readings at or above Recover V, and **any** reading below Recover V — including one in the hysteresis band — restarts that count from zero. This filters out false all-clears during fence repair, when the energizer is switched on and off. Throughout this confirmation period the device keeps sending at the faster Alert Hb rate, so the operator is never left in silence while an outage is being resolved. When the count is finally reached, the device sends one explicit all-clear message and returns to the slow idle heartbeat.
 
 **Parameters that control this:**
 - **Alert V / Recover V** — the thresholds that define "problem" and "healthy." The gap between them provides hysteresis so the device doesn't oscillate between states.
 - **Burst Sends** — how many messages are sent in quick succession when an alert first triggers.
-- **Idle Hb / Alert Hb** — heartbeat frequency in healthy vs. alert state (in cycles). Alert heartbeat is faster to keep the operator updated.
-- **Recovery** — how many consecutive above-threshold cycles are required before returning to idle. Higher values filter out brief spikes during repair.
+- **Idle Hb / Alert Hb** — heartbeat frequency in healthy vs. alert state (in cycles). Alert heartbeat is faster to keep the operator updated, and is also used while recovery is being confirmed.
+- **Recovery** — how many consecutive readings at or above Recover V are required before declaring all-clear; any reading below Recover V restarts the count. Higher values filter out brief spikes during repair.
 
 ---
 

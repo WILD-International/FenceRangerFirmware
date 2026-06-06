@@ -4,50 +4,52 @@
 
 bool processMeasurement(uint16_t fenceVoltage, const AlertConfig& cfg, AlertState& state) {
   bool fenceDown = fenceVoltage < cfg.alertThresholdV;
-  bool fenceUp = fenceVoltage >= cfg.recoverThresholdV;
+  bool fenceHealthy = fenceVoltage >= cfg.recoverThresholdV;
   bool shouldSend = false;
 
-  switch (state.notifyState) {
-    case NotifyStateIdle:
-      if (fenceDown) {
-        state.notifyState = NotifyStateAlerting;
-        state.alertCycles = 0;
+  if (state.notifyState == NotifyStateIdle) {
+    if (fenceDown) {
+      // New outage: switch to the alert cadence and fire the first burst message now.
+      state.notifyState = NotifyStateOutage;
+      state.alertCycles = 0;
+      state.recoveredCycles = 0;
+      shouldSend = true;
+    } else {
+      // Healthy, or in the hysteresis band: just the slow idle heartbeat.
+      shouldSend = (state.idleCycles == 0);
+      if (++state.idleCycles >= cfg.idleHeartbeatCycles) {
         state.idleCycles = 0;
-        shouldSend = true;
-      } else {
-        shouldSend = (state.idleCycles == 0);
-        if (++state.idleCycles >= cfg.idleHeartbeatCycles)
-          state.idleCycles = 0;
       }
-      break;
+    }
+  } else {
+    // Outage spans alerting and recovery-confirmation under one cadence: alertCycles
+    // drives the initial burst, then a heartbeat every [alertHeartbeatCycles] cycles. A
+    // single outage counter (never reset until idle) keeps that cadence continuous even
+    // as the fence bounces between down and healthy.
+    state.alertCycles++;
+    // Burst of [burstSends] messages at the very start of the outage, then a heartbeat
+    // every [alertHeartbeatCycles] cycles measured from the end of that burst (so the
+    // first heartbeat is a full interval after the last burst message, not sooner).
+    bool inBurst = state.alertCycles < cfg.burstSends;
+    bool heartbeatDue =
+        !inBurst && ((state.alertCycles - cfg.burstSends + 1) % cfg.alertHeartbeatCycles) == 0;
+    shouldSend = inBurst || heartbeatDue;
 
-    case NotifyStateAlerting:
-      if (fenceUp) {
-        state.notifyState = NotifyStateRecovering;
-        state.recoveredCycles = 1;
-      } else {
-        state.alertCycles++;
-        bool inBurst = state.alertCycles < cfg.burstSends;
-        bool heartbeatDue = (state.alertCycles % cfg.alertHeartbeatCycles) == 0;
-        shouldSend = inBurst || heartbeatDue;
-      }
-      break;
-
-    case NotifyStateRecovering:
-      if (fenceDown) {
-        // Voltage dipped again — likely a repair in progress. Go back to alerting
-        // without restarting the burst, since the recipients already know about this outage.
-        state.notifyState = NotifyStateAlerting;
+    if (fenceHealthy) {
+      // Count consecutive healthy readings; confirm recovery once we have enough.
+      if (++state.recoveredCycles >= cfg.recoveryConfirmCycles) {
+        // Send one explicit all-clear and return to idle, with the next idle heartbeat
+        // a full [idleHeartbeatCycles] away (idleCycles = 1, as if we just sent at 0).
+        state.notifyState = NotifyStateIdle;
         state.recoveredCycles = 0;
-      } else if (fenceUp) {
-        state.recoveredCycles++;
-        if (state.recoveredCycles >= cfg.recoveryConfirmCycles) {
-          state.notifyState = NotifyStateIdle;
-          state.idleCycles = 0;
-          state.recoveredCycles = 0;
-        }
+        state.idleCycles = 1;
+        shouldSend = true;
       }
-      break;
+    } else {
+      // Below the recover threshold (fence down or in the hysteresis band): any such
+      // reading restarts the recovery count.
+      state.recoveredCycles = 0;
+    }
   }
 
   LOG("fenceVoltage: %d, state: %d, alertCycles: %d, idleCycles: %d, recoveredCycles: %d, "

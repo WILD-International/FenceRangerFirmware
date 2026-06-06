@@ -3,7 +3,10 @@
 
 #include <Arduino.h>
 
-enum NotifyState { NotifyStateIdle, NotifyStateAlerting, NotifyStateRecovering };
+// Two states only: Idle (healthy, slow heartbeat) and Outage (fence problem). Within
+// Outage, recoveredCycles == 0 means actively alerting and > 0 means we are counting
+// consecutive healthy readings toward a confirmed recovery.
+enum NotifyState { NotifyStateIdle, NotifyStateOutage };
 
 struct AlertState {
   NotifyState notifyState = NotifyStateIdle;

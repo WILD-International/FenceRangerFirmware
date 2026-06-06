@@ -50,13 +50,13 @@ Two branches divert from this normal flow early in `setup()`: a button press / m
 
 ### Transmission policy (`src/alert.cpp`)
 
-`processMeasurement()` is a free function (declared in `src/alert.h`) that takes a `fenceVoltage` and an `AlertConfig` struct populated from `Config`. It implements a three-state machine stored in `rtc.alertState` (so it survives deep sleep):
+`processMeasurement()` (declared in `src/alert.h`) is a free function over `(fenceVoltage, AlertConfig, AlertState)` kept in `rtc.alertState` so it survives deep sleep. It is a **two-state** machine — `Idle` (healthy, slow heartbeat) and `Outage` (fence problem) — where Outage covers both active alerting and recovery-confirmation, distinguished only by `recoveredCycles` (0 = alerting, >0 = confirming). **The authoritative, unambiguous ruleset is the "Alert behavior" section of `README.md`** — keep it and the code in sync. Non-obvious invariants worth knowing before touching it:
 
-- **Idle**: healthy fence. Sends on the first cycle after boot/recovery, then heartbeat every `idleHeartbeatCycles` (default 60).
-- **Alerting**: fence voltage below `alertThresholdV`. Sends a burst of `burstSends` (default 3) messages immediately, then heartbeat every `alertHeartbeatCycles` (default 15).
-- **Recovering**: voltage came back up but not yet confirmed. Requires `recoveryConfirmCycles` (default 30) consecutive above-threshold readings before returning to Idle. Filters brief spikes during fence repair. Bouncing back to Alerting during recovery does **not** restart the burst.
+- Two thresholds (alert < recover) give hysteresis; the band between them counts as **not-healthy** everywhere.
+- One outage counter runs the whole Outage state, so the alert-rate heartbeat keeps firing right through recovery (the device is never silent mid-outage), and a dip back below threshold during recovery does **not** restart the burst.
+- Recovery needs *consecutive* readings ≥ recover threshold; any lower reading (band included) restarts the count. On confirm it sends one explicit all-clear and returns to Idle.
 
-The alert and recover thresholds are separate (`alertThresholdV` < `recoverThresholdV`) to provide hysteresis. All parameters are stored in NVS and configurable via the web UI and OLED menu.
+All parameters live in NVS and are configurable via the web UI and OLED menu.
 
 ### Adaptive sleep (`src/state.cpp`)
 
