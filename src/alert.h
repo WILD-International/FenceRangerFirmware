@@ -1,7 +1,7 @@
 #ifndef ALERT_H
 #define ALERT_H
 
-#include <Arduino.h>
+#include <cstdint>
 
 // Two states only: Idle (healthy, slow heartbeat) and Outage (fence problem). Within
 // Outage, recoveredCycles == 0 means actively alerting and > 0 means we are counting

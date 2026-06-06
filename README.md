@@ -144,6 +144,16 @@ To generate compile_commands.json for other IDE support:
 pio run -e heltec_wifi_lora_32_V4 -t compiledb
 ```
 
+### Running the tests
+
+Host-side unit tests run on your machine — no board needed — via PlatformIO's `native` environment:
+
+```
+pio test -e native
+```
+
+These cover the alert state machine (`src/alert.cpp`) under the Unity framework; see `test/test_alert/`. Only hardware-free logic is testable this way — modules that touch the ADC, radio, or NVS would need stubbing or on-target tests (`pio test -e heltec_wifi_lora_32_V4`).
+
 ### Make the language server work with Neovim
 
 The only way I got this to work properly was by downloading the espressif clangd fork. Download the latest from here: https://github.com/espressif/llvm-project/releases. I used esp-21.1.3_20260304.
@@ -196,3 +206,18 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 ```
 
 Besides the language server configuration, it also configures auto-format on save.
+
+The host-side unit tests (`test/`, built with `pio test -e native`) are not part of the firmware `compile_commands.json`, so clangd can't resolve their includes on its own and will flag `alert.h` / `unity.h` as missing. Add a `test/`-scoped fragment to your `.clangd` (YAML) so it can find the `src` and Unity headers:
+
+```yaml
+---
+If:
+  PathMatch: test/.*
+CompileFlags:
+  Add:
+    - -Isrc
+    - -I.pio/libdeps/native/Unity/src
+    - -DDISABLE_LOGGING
+```
+
+The Unity headers only exist after running `pio test -e native` at least once.

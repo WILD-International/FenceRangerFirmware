@@ -26,6 +26,12 @@ Flash and monitor:
 pio run -e heltec_wifi_lora_32_V4 -t upload && pio device monitor -e heltec_wifi_lora_32_V4
 ```
 
+Host-side unit tests (run on the laptop, no board needed):
+```bash
+pio test -e native
+```
+The `native` env (`platformio.ini`) compiles only the pure modules it tests (via `build_src_filter`, with `DISABLE_LOGGING` so no Arduino/Serial is pulled in) and runs them under Unity. Only hardware-free logic is testable this way — `src/alert.cpp` is covered (`test/test_alert/`); modules that touch ADC/radio/NVS need stubbing or on-target tests.
+
 ## Architecture
 
 The device is an ESP32-S3 (Heltec LoRa V4) that measures electric fence voltage, then deep-sleeps between cycles. Every wake is a full reset — `setup()` runs, does work, then calls `gotoSleep()`. There is no `loop()`.
