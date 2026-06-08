@@ -7,6 +7,7 @@
 #include "comms.h"
 #include "esp32-hal-gpio.h"
 #include "measure_program.h"
+#include "version.h"
 
 bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi, Comms& comms) {
   uint64_t configModeStartTime = millis();
@@ -214,7 +215,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     VOLT_TEST,
     LORA_TEST,
     WIFI_AP_SCREEN,
-    WIFI_STA_SCREEN
+    WIFI_STA_SCREEN,
+    UPDATE_DONE
   };
   MenuState menuState = INFO;
   int browseIndex = 0;
@@ -296,7 +298,9 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   };
 
   auto handleLongPress = [&]() {
-    if (menuState == INFO) {
+    if (menuState == UPDATE_DONE) {
+      exitConfigMode = true;
+    } else if (menuState == INFO) {
       browseIndex = 0;
       menuState = BROWSE;
       display.showMenu(browseIndex);
@@ -447,8 +451,20 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       }
     }
     while (Serial.available()) {
-      char c = Serial.read();
-      handleATSerial(c, config, exitConfigMode);
+      switch (handleATSerial(Serial.read(), config)) {
+        case AtAction::Exit:
+          exitConfigMode = true;
+          break;
+        case AtAction::ShowUpdateOk:
+          // Park on the UPDATE OK screen until the operator taps the button or resets.
+          if (menuState != UPDATE_DONE) {
+            menuState = UPDATE_DONE;
+            display.showUpdateDone(GIT_TAG);
+          }
+          break;
+        case AtAction::None:
+          break;
+      }
     }
 
     if (!measureProgram.isFinished()) {
@@ -494,7 +510,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
     } else if (!buttonDown && buttonPressedState) {
       buttonPressedState = false;
       if (!longPressTriggered) {
-        if (menuState == INFO) {
+        if (menuState == INFO || menuState == UPDATE_DONE) {
           exitConfigMode = true;
         } else if (menuState == BROWSE) {
           browseIndex = (browseIndex + 1) % NUM_BROWSE_ITEMS;

@@ -120,6 +120,13 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
 
+  // A wired USB flash leaves the reset reason unclassified (ESP_RST_UNKNOWN) on this S3 board —
+  // distinct from a deep-sleep wake (ESP_RST_DEEPSLEEP), an OTA reboot (ESP_RST_SW), and a battery
+  // power-on (ESP_RST_POWERON). We use it to drop straight into config mode after a flash, so the
+  // provisioning tool can set params over AT and finish with AT+UPDATEOK, without disturbing field
+  // operation.
+  bool wiredFlash = (esp_reset_reason() == ESP_RST_UNKNOWN);
+
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0 || wasButtonPressed()) {
     digitalWrite(LED, HIGH);
     state.setMode(ModeConfig);
@@ -127,7 +134,7 @@ void setup() {
 
   config.load();
 
-  if (!config.hasAppKey()) {
+  if (!config.hasAppKey() || wiredFlash) {
     state.setMode(ModeConfig);
   }
 

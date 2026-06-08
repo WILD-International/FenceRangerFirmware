@@ -63,6 +63,25 @@ void Display::messageWithCode(const char* msg, int code, uint32_t delayMs) {
   }
 }
 
+void Display::showUpdateDone(const char* version) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayTitle();
+  display.setTextSize(2);
+  const char* msg = "UPDATE OK";
+  display.setCursor((SCREEN_WIDTH - (int)strlen(msg) * 12) / 2, 16);
+  display.println(msg);
+  display.setTextSize(1);
+  const char* name = config->getDevName();
+  display.setCursor((SCREEN_WIDTH - (int)strlen(name) * 6) / 2, 38);
+  display.println(name);
+  display.setCursor((SCREEN_WIDTH - (int)strlen(version) * 6) / 2, 50);
+  display.print(version);
+  display.display();
+}
+
 void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) {
   if (!enabled) {
     return;

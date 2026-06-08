@@ -26,7 +26,7 @@ static bool parseIntArg(const String& s, int32_t lo, int32_t hi, int32_t& out) {
   return out >= lo && out <= hi;
 }
 
-static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
+static AtAction dispatch(const String& raw, Config& config) {
   String trimmed = raw;
   trimmed.trim();
 
@@ -293,13 +293,19 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
 
   if (upper == "AT") {
     Serial.println("OK");
-    return;
+    return AtAction::None;
   }
 
   if (upper == "AT+EXIT") {
-    exitConfigMode = true;
     Serial.println("OK");
-    return;
+    return AtAction::Exit;
+  }
+
+  // Signals the provisioning tool is done: show the UPDATE OK screen and park until the operator
+  // presses the button or resets the device. Deliberately does NOT exit config mode.
+  if (upper == "AT+UPDATEOK") {
+    Serial.println("OK");
+    return AtAction::ShowUpdateOk;
   }
 
   if (upper == "AT+HELP") {
@@ -308,6 +314,9 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
     snprintf(buf, sizeof(buf), "%-*s%s\n", kCol, "AT", "Ping");
     Serial.print(buf);
     snprintf(buf, sizeof(buf), "%-*s%s\n", kCol, "AT+EXIT", "Exit config mode");
+    Serial.print(buf);
+    snprintf(buf, sizeof(buf), "%-*s%s\n", kCol, "AT+UPDATEOK",
+             "Show UPDATE OK, wait for button/reset");
     Serial.print(buf);
     snprintf(buf, sizeof(buf), "%-*s%s\n", kCol, "AT+HELP", "Show this help");
     Serial.print(buf);
@@ -323,12 +332,12 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
       }
     }
     Serial.print("OK\n");
-    return;
+    return AtAction::None;
   }
 
   if (!upper.startsWith("AT+")) {
     Serial.println("ERROR: Unknown command");
-    return;
+    return AtAction::None;
   }
 
   // Everything after "AT+": e.g. "DEVNAME?" or "DEVNAME=foo"
@@ -339,7 +348,7 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
 
   if (!isGet && !isSet) {
     Serial.println("ERROR: Unknown command");
-    return;
+    return AtAction::None;
   }
 
   String cmdName;
@@ -355,7 +364,7 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
 
   if (cmdName.length() == 0) {
     Serial.println("ERROR: Unknown command");
-    return;
+    return AtAction::None;
   }
 
   for (size_t i = 0; i < count; i++) {
@@ -373,17 +382,19 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
           Serial.println("ERROR: read-only");
         }
       }
-      return;
+      return AtAction::None;
     }
   }
 
   Serial.println("ERROR: Unknown command");
+  return AtAction::None;
 }
 
-void handleATSerial(char c, Config& config, bool& exitConfigMode) {
+AtAction handleATSerial(char c, Config& config) {
+  AtAction action = AtAction::None;
   if (c == '\n' || c == '\r') {
     if (serialBuffer.length() > 0) {
-      dispatch(serialBuffer, config, exitConfigMode);
+      action = dispatch(serialBuffer, config);
       serialBuffer = "";
     }
   } else {
@@ -393,4 +404,5 @@ void handleATSerial(char c, Config& config, bool& exitConfigMode) {
   if (serialBuffer.length() > 128) {
     serialBuffer = "";
   }
+  return action;
 }
