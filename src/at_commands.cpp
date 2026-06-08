@@ -138,6 +138,24 @@ static void dispatch(const String& raw, Config& config, bool& exitConfigMode) {
          config.setRecoveryConfirmCycles(n);
          return true;
        }},
+      {"DROPPERCENT", "Rapid-drop trigger (%)",
+       [&]() -> String { return String(config.getRapidDropPercent()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 100, n))
+           return false;
+         config.setRapidDropPercent(n);
+         return true;
+       }},
+      {"DROPREARM", "Rapid-drop re-arm (cycles)",
+       [&]() -> String { return String(config.getRapidDropRearmCycles()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 1, 255, n))
+           return false;
+         config.setRapidDropRearmCycles(n);
+         return true;
+       }},
 
       // Sleep config
       {"SLEEPINTERVAL", "Cycle sleep (s)",

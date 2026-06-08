@@ -19,12 +19,6 @@
 #include "version.h"
 #include "web_ui.h"
 
-// Rapid relative-drop early warning. Hardcoded for now — no config surface yet.
-// Fire when a reading is >= 10% below the previous one while healthy; then suppress further
-// alerts for 15 cycles so a fence flapping between two healthy levels can't drain the battery.
-constexpr uint16_t RAPID_DROP_PERCENT = 10;
-constexpr uint16_t RAPID_DROP_COOLDOWN_CYCLES = 15;
-
 // Global objects
 Config config;
 State state(&config);
@@ -222,7 +216,7 @@ void setup() {
   // while still healthy (Idle): if this drop also crossed Alert V, processMeasurement has
   // already entered Outage and sent the normal burst, so this stays silent (no duplicate).
   // Parameters are hardcoded for now (no config surface yet).
-  RapidDropConfig dropConfig = {RAPID_DROP_PERCENT, RAPID_DROP_COOLDOWN_CYCLES};
+  RapidDropConfig dropConfig = {config.getRapidDropPercent(), config.getRapidDropRearmCycles()};
   RapidDropInfo dropInfo;
   bool dropAlert = detectRapidDrop(fenceVoltage, rtc.alertState.notifyState == NotifyStateIdle,
                                    dropConfig, rtc.rapidDropState, &dropInfo);

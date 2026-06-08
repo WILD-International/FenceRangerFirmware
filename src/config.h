@@ -81,6 +81,12 @@ class Config {
   uint8_t getRecoveryConfirmCycles() const {
     return recoveryConfirmCycles;
   }
+  uint8_t getRapidDropPercent() const {
+    return rapidDropPercent;
+  }
+  uint8_t getRapidDropRearmCycles() const {
+    return rapidDropRearmCycles;
+  }
 
   uint16_t getBattFullMv() const {
     return battFullMv;
@@ -153,6 +159,7 @@ class Config {
   void setAlertThresholds(uint16_t alert, uint16_t recover);
   void setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertHeartbeat,
                       uint8_t recoveryConfirm);
+  void setRapidDrop(uint8_t percent, uint8_t rearmCycles);
   void setBattAdaptiveSleep(uint16_t fullMv, uint16_t lowMv, uint8_t sleepMult, uint16_t recoveryN);
 
   // Individual setters (delegate to grouped setters above)
@@ -173,6 +180,12 @@ class Config {
   }
   void setRecoveryConfirmCycles(uint16_t value) {
     setAlertCycles(alertBurstSends, idleHeartbeatCycles, alertHeartbeatCycles, value);
+  }
+  void setRapidDropPercent(uint16_t value) {
+    setRapidDrop((uint8_t)value, rapidDropRearmCycles);
+  }
+  void setRapidDropRearmCycles(uint16_t value) {
+    setRapidDrop(rapidDropPercent, (uint8_t)value);
   }
   void setBattFullMv(uint16_t value) {
     setBattAdaptiveSleep(value, battLowMv, battSleepMult, battRecoveryN);
@@ -205,6 +218,8 @@ class Config {
   uint8_t idleHeartbeatCycles = 60;
   uint8_t alertHeartbeatCycles = 15;
   uint8_t recoveryConfirmCycles = 30;
+  uint8_t rapidDropPercent = 10;
+  uint8_t rapidDropRearmCycles = 15;
   uint16_t battFullMv = 4000;
   uint16_t battLowMv = 3300;
   uint8_t battSleepMult = 30;

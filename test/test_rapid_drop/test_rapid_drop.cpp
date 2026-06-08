@@ -11,8 +11,8 @@
 
 static RapidDropConfig makeConfig() {
   RapidDropConfig config;
-  config.dropPercent = 10;    // fire at >= 10% drop vs the previous reading
-  config.cooldownCycles = 3;  // suppress further alerts for 3 cycles after one fires
+  config.dropPercent = 10;  // fire at >= 10% drop vs the previous reading
+  config.rearmCycles = 3;   // suppress further alerts for 3 cycles after one fires
   return config;
 }
 
@@ -63,17 +63,17 @@ static void test_not_healthy_gates_firing() {
   TEST_ASSERT_TRUE(detectRapidDrop(6000, true, config, state));
 }
 
-// After firing, further alerts are suppressed for cooldownCycles even if the fence keeps
+// After firing, further alerts are suppressed for rearmCycles even if the fence keeps
 // bouncing; once that many cycles pass a new qualifying drop fires again.
-static void test_cooldown_suppresses_then_rearms() {
+static void test_rearm_suppresses_then_fires() {
   RapidDropState state;
-  RapidDropConfig config = makeConfig();  // cooldownCycles = 3
+  RapidDropConfig config = makeConfig();  // rearmCycles = 3
   detectRapidDrop(8000, true, config, state);
-  TEST_ASSERT_TRUE(detectRapidDrop(7000, true, config, state));  // fire, start cooldown
-  detectRapidDrop(8000, true, config, state);                    // bounce up (cooldown ticking)
+  TEST_ASSERT_TRUE(detectRapidDrop(7000, true, config, state));  // fire, start re-arm window
+  detectRapidDrop(8000, true, config, state);                    // bounce up (re-arm ticking)
   TEST_ASSERT_FALSE(
-      detectRapidDrop(7000, true, config, state));               // qualifying drop, within cooldown
-  detectRapidDrop(8000, true, config, state);                    // bounce up (cooldown elapses)
+      detectRapidDrop(7000, true, config, state));               // qualifying drop, still re-arming
+  detectRapidDrop(8000, true, config, state);                    // bounce up (re-arm elapses)
   TEST_ASSERT_TRUE(detectRapidDrop(7000, true, config, state));  // qualifying drop, re-armed
 }
 
@@ -95,7 +95,7 @@ int main(int, char**) {
   RUN_TEST(test_gentle_drop_does_not_fire);
   RUN_TEST(test_rise_does_not_fire);
   RUN_TEST(test_not_healthy_gates_firing);
-  RUN_TEST(test_cooldown_suppresses_then_rearms);
+  RUN_TEST(test_rearm_suppresses_then_fires);
   RUN_TEST(test_info_payload_values);
   return UNITY_END();
 }

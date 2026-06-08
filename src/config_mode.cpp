@@ -61,6 +61,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const uint16_t IDLE_HB_OPTIONS[] = {1, 5, 10, 15, 30, 45, 60, 90, 120};
   const uint16_t ALERT_HB_OPTIONS[] = {1, 5, 10, 15, 20, 30, 45, 60};
   const uint16_t RECOVER_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
+  const uint16_t DROP_PCT_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50};
+  const uint16_t DROP_REARM_OPTIONS[] = {5, 10, 15, 20, 30, 45, 60};
   const uint16_t VOLTAGE_OPTIONS[] = {500,  1000, 1500, 2000, 2500, 3000, 3500, 4000,
                                       4500, 5000, 6000, 7000, 8000, 9000, 10000};
   const uint16_t BATT_FULL_OPTIONS[] = {3800, 3900, 4000, 4100, 4200};
@@ -117,6 +119,13 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       {"Recovery Count", RECOVER_OPTIONS, sizeof(RECOVER_OPTIONS) / sizeof(RECOVER_OPTIONS[0]),
        [&] { return (uint16_t)config.getRecoveryConfirmCycles(); },
        [&](uint16_t v) { config.setRecoveryConfirmCycles(v); }},
+      {"Drop %", DROP_PCT_OPTIONS, sizeof(DROP_PCT_OPTIONS) / sizeof(DROP_PCT_OPTIONS[0]),
+       [&] { return (uint16_t)config.getRapidDropPercent(); },
+       [&](uint16_t v) { config.setRapidDropPercent(v); }},
+      {"Drop Re-arm", DROP_REARM_OPTIONS,
+       sizeof(DROP_REARM_OPTIONS) / sizeof(DROP_REARM_OPTIONS[0]),
+       [&] { return (uint16_t)config.getRapidDropRearmCycles(); },
+       [&](uint16_t v) { config.setRapidDropRearmCycles(v); }},
   };
 
   const MenuItem sleepItems[] = {

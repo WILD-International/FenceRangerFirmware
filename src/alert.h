@@ -30,13 +30,13 @@ bool processMeasurement(uint16_t fenceVoltage, const AlertConfig& cfg, AlertStat
 // it flags a fence that is falling fast while still healthy, before it crosses Alert V — it
 // fires when a reading is at least dropPercent below the previous one.
 struct RapidDropConfig {
-  uint16_t dropPercent;     // fire when the reading is at least this many percent below the last
-  uint16_t cooldownCycles;  // after firing, suppress further alerts for this many cycles
+  uint16_t dropPercent;  // fire when the reading is at least this many percent below the last
+  uint16_t rearmCycles;  // after firing, suppress further alerts for this many cycles
 };
 
 struct RapidDropState {
   uint16_t previousFenceVoltage = 0;  // 0 = no previous reading yet (nothing can drop below it)
-  uint16_t cooldownCyclesLeft = 0;    // cycles remaining before another alert can fire
+  uint16_t rearmCyclesLeft = 0;       // cycles remaining before another alert can fire
 };
 
 // Filled in (and meaningful) only when detectRapidDrop returns true — the values to report.

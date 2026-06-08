@@ -16,9 +16,11 @@ Once the voltage climbs back to **Recover V**, the device does not declare succe
 
 ### Rapid-drop early warning
 
-The absolute thresholds above only react once the fence has already crossed **Alert V**. As a secondary, earlier signal, the device also watches how much the voltage drops between readings: if a reading is more than **10%** below the previous one it sends a one-off **rapid-drop** alert. The drop is measured purely against the previous reading regardless of how much time elapsed, so a gradual sag isn't hidden when the battery-throttled sleep interval stretches the time between measurements. This catches a fence that is failing (a developing short, a draining energizer, vegetation load) before it is fully down.
+The absolute thresholds above only react once the fence has already crossed **Alert V**. As a secondary, earlier signal, the device also watches how much the voltage drops between readings: if a reading is more than **Drop %** (default 10%) below the previous one it sends a one-off **rapid-drop** alert. The drop is measured purely against the previous reading regardless of how much time elapsed, so a gradual sag isn't hidden when the battery-throttled sleep interval stretches the time between measurements. This catches a fence that is failing (a developing short, a draining energizer, vegetation load) before it is fully down.
 
-This only runs in the otherwise-healthy regime: if the device is already alerting (or the same drop crosses Alert V and triggers the normal burst), the rapid-drop alert stays silent so there is no duplicate. When a rapid-drop alert and a routine heartbeat fall on the same cycle, the drop alert replaces the heartbeat — it already carries the same measurement — so each wake sends at most one uplink. To stop a fence that flaps between two healthy levels from draining the battery, after one rapid-drop alert further ones are suppressed for the next **15 cycles**. The rapid-drop alert is its own message type (LoRaWAN fPort 2) carrying the previous voltage, the current voltage, and the battery voltage. These values are currently hardcoded (not configurable).
+This only runs in the otherwise-healthy regime: if the device is already alerting (or the same drop crosses Alert V and triggers the normal burst), the rapid-drop alert stays silent so there is no duplicate. When a rapid-drop alert and a routine heartbeat fall on the same cycle, the drop alert replaces the heartbeat — it already carries the same measurement — so each wake sends at most one uplink. To stop a fence that flaps between two healthy levels from draining the battery, after one rapid-drop alert further ones are suppressed for the next **Drop Re-arm** (default 15) cycles. The rapid-drop alert is its own message type (LoRaWAN fPort 2) carrying the previous voltage, the current voltage, and the battery voltage.
+
+**Parameters:** **Drop %** — the percentage drop from the previous reading that triggers the alert. **Drop Re-arm** — how many cycles to suppress further drop alerts after one fires.
 
 **Parameters that control this:**
 - **Alert V / Recover V** — the thresholds that define "problem" and "healthy." The gap between them provides hysteresis so the device doesn't oscillate between states.
@@ -93,6 +95,8 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Idle Heartbeat | 60 cycles | ✓ | ✓ | fPort 12 | `AT+IDLEHBCYCLES` |
 | | Alert Heartbeat | 15 cycles | ✓ | ✓ | fPort 12 | `AT+ALERTHBCYCLES` |
 | | Recovery Confirm | 30 cycles | ✓ | ✓ | fPort 12 | `AT+RECOVERCYCLES` |
+| | Drop % | 10 % | ✓ | ✓ | fPort 11 | `AT+DROPPERCENT` |
+| | Drop Re-arm | 15 cycles | ✓ | ✓ | fPort 12 | `AT+DROPREARM` |
 | Sleep | Cycle Sleep | 60 s | ✓ | ✓ | fPort 13 | `AT+SLEEPINTERVAL` |
 | | Batt Full mV | 4000 mV | ✓ | ✓ | fPort 14 | `AT+BATTFULLMV` |
 | | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |

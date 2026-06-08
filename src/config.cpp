@@ -49,6 +49,8 @@ void Config::load() {
   idleHeartbeatCycles = prefs.getUChar("idleHbCycles", 60);
   alertHeartbeatCycles = prefs.getUChar("alertHbCycles", 15);
   recoveryConfirmCycles = prefs.getUChar("recoverCycles", 30);
+  rapidDropPercent = prefs.getUChar("dropPct", 10);
+  rapidDropRearmCycles = prefs.getUChar("dropRearm", 15);
   battFullMv = prefs.getUShort("battFullMv", 4000);
   battLowMv = prefs.getUShort("battLowMv", 3300);
   battSleepMult = prefs.getUChar("battSleepMult", 30);
@@ -162,6 +164,15 @@ void Config::setAlertCycles(uint8_t burst, uint8_t idleHeartbeat, uint8_t alertH
   prefs.putUChar("idleHbCycles", idleHeartbeatCycles);
   prefs.putUChar("alertHbCycles", alertHeartbeatCycles);
   prefs.putUChar("recoverCycles", recoveryConfirmCycles);
+  prefs.end();
+}
+
+void Config::setRapidDrop(uint8_t percent, uint8_t rearmCycles) {
+  rapidDropPercent = percent;
+  rapidDropRearmCycles = rearmCycles;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUChar("dropPct", rapidDropPercent);
+  prefs.putUChar("dropRearm", rapidDropRearmCycles);
   prefs.end();
 }
 

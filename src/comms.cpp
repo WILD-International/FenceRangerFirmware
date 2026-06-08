@@ -509,11 +509,12 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertThresholds");
             downlink->type = DownlinkType::QueryAlertThresholds;
-          } else if (downlinkSize == 4) {
+          } else if (downlinkSize == 5) {
             LOGLN("Downlink: SetAlertThresholds");
             downlink->type = DownlinkType::SetAlertThresholds;
             downlink->alertThresholds.alertV = (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->alertThresholds.recoverV = (downlinkPayload[2] << 8) | downlinkPayload[3];
+            downlink->alertThresholds.dropPercent = downlinkPayload[4];
           } else {
             LOG("Downlink: fPort 11 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -522,13 +523,14 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertCycles");
             downlink->type = DownlinkType::QueryAlertCycles;
-          } else if (downlinkSize == 4) {
+          } else if (downlinkSize == 5) {
             LOGLN("Downlink: SetAlertCycles");
             downlink->type = DownlinkType::SetAlertCycles;
             downlink->alertCycles.burstSends = downlinkPayload[0];
             downlink->alertCycles.idleHbCycles = downlinkPayload[1];
             downlink->alertCycles.alertHbCycles = downlinkPayload[2];
             downlink->alertCycles.recoveryCycles = downlinkPayload[3];
+            downlink->alertCycles.rearmCycles = downlinkPayload[4];
           } else {
             LOG("Downlink: fPort 12 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -656,14 +658,16 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = config->getAlertThresholdV() & 0xFF;
       payload[2] = (config->getRecoverThresholdV() >> 8) & 0xFF;
       payload[3] = config->getRecoverThresholdV() & 0xFF;
-      len = 4;
+      payload[4] = config->getRapidDropPercent();
+      len = 5;
       break;
     case 12:
       payload[0] = config->getAlertBurstSends();
       payload[1] = config->getIdleHeartbeatCycles();
       payload[2] = config->getAlertHeartbeatCycles();
       payload[3] = config->getRecoveryConfirmCycles();
-      len = 4;
+      payload[4] = config->getRapidDropRearmCycles();
+      len = 5;
       break;
     case 13:
       payload[0] = (config->getSleepIntervalS() >> 8) & 0xFF;
@@ -721,11 +725,13 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
     case DownlinkType::SetAlertThresholds:
       config->setAlertThresholds(downlink.alertThresholds.alertV,
                                  downlink.alertThresholds.recoverV);
+      config->setRapidDropPercent(downlink.alertThresholds.dropPercent);
       return {};
     case DownlinkType::SetAlertCycles:
       config->setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
                              downlink.alertCycles.alertHbCycles,
                              downlink.alertCycles.recoveryCycles);
+      config->setRapidDropRearmCycles(downlink.alertCycles.rearmCycles);
       return {};
     case DownlinkType::SetSleepConfig:
       config->setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);

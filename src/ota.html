@@ -166,6 +166,10 @@
     <input type="text" id="ahb" maxlength="3" placeholder="15">
     <label>Recovery Confirm (cycles)</label>
     <input type="text" id="rc" maxlength="3" placeholder="30">
+    <label>Drop %</label>
+    <input type="text" id="dp" maxlength="3" placeholder="10">
+    <label>Drop Re-arm (cycles)</label>
+    <input type="text" id="drm" maxlength="3" placeholder="15">
     <button onclick="saveAlert()">Save</button>
     <div class="status" id="st-alert"></div>
   </div>
@@ -283,6 +287,8 @@
         document.getElementById('ihb').value = d.idleHbCycles;
         document.getElementById('ahb').value = d.alertHbCycles;
         document.getElementById('rc').value = d.recoverCycles;
+        document.getElementById('dp').value = d.dropPercent;
+        document.getElementById('drm').value = d.dropRearm;
         document.getElementById('si').value = d.sleepInterval;
         document.getElementById('bfmv').value = d.battFullMv;
         document.getElementById('blmv').value = d.battLowMv;
@@ -331,7 +337,9 @@
         burstSends: document.getElementById('bs').value,
         idleHbCycles: document.getElementById('ihb').value,
         alertHbCycles: document.getElementById('ahb').value,
-        recoverCycles: document.getElementById('rc').value
+        recoverCycles: document.getElementById('rc').value,
+        dropPercent: document.getElementById('dp').value,
+        dropRearm: document.getElementById('drm').value
       }, 'st-alert');
     }
 

@@ -64,7 +64,7 @@ Two branches divert from this normal flow early in `setup()`: a button press / m
 
 All parameters live in NVS and are configurable via the web UI and OLED menu.
 
-A **secondary, independent** early warning lives in the same module: `detectRapidDrop()` flags a reading that fell at least a hardcoded percentage below the previous one (no time normalisation) and sends a distinct fPort-2 message. It's gated to the healthy/Idle regime (so it never duplicates the absolute alert) with a cooldown (in cycles) against a flapping fence; `main.cpp` runs it after `processMeasurement`, and on a coincident cycle the drop **supersedes** the regular measurement (one uplink per wake). Its parameters are hardcoded for now — no config surface yet.
+A **secondary, independent** early warning lives in the same module: `detectRapidDrop()` flags a reading that fell at least **Drop %** below the previous one (no time normalisation) and sends a distinct fPort-2 message. It's gated to the healthy/Idle regime (so it never duplicates the absolute alert) with a **Drop Re-arm** window (in cycles) against a flapping fence; `main.cpp` runs it after `processMeasurement`, and on a coincident cycle the drop **supersedes** the regular measurement (one uplink per wake). Both params live in `Config` and ride the existing Alert surfaces (OLED/Web/AT, and LoRa fPorts 11/12 alongside the thresholds/cycle counts).
 
 ### Adaptive sleep (`src/state.cpp`)
 

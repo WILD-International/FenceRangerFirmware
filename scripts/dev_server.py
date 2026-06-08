@@ -23,6 +23,8 @@ state = {
     "idleHbCycles": 60,
     "alertHbCycles": 15,
     "recoverCycles": 30,
+    "dropPercent": 10,
+    "dropRearm": 15,
     "sleepInterval": 60,
     "battFullMv": 4000,
     "battLowMv": 3300,
@@ -94,6 +96,8 @@ class Handler(BaseHTTPRequestHandler):
             state["idleHbCycles"] = int(data.get("idleHbCycles", [state["idleHbCycles"]])[0])
             state["alertHbCycles"] = int(data.get("alertHbCycles", [state["alertHbCycles"]])[0])
             state["recoverCycles"] = int(data.get("recoverCycles", [state["recoverCycles"]])[0])
+            state["dropPercent"] = int(data.get("dropPercent", [state["dropPercent"]])[0])
+            state["dropRearm"] = int(data.get("dropRearm", [state["dropRearm"]])[0])
             print(f"Alert config updated: {state}")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")

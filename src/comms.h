@@ -60,12 +60,14 @@ struct Downlink {
     struct {
       uint16_t alertV;
       uint16_t recoverV;
+      uint8_t dropPercent;  // rapid-drop trigger %, rides on this downlink
     } alertThresholds;
     struct {
       uint8_t burstSends;
       uint8_t idleHbCycles;
       uint8_t alertHbCycles;
       uint8_t recoveryCycles;
+      uint8_t rearmCycles;  // rapid-drop re-arm cycles, rides on this downlink
     } alertCycles;
     struct {
       uint16_t sleepIntervalS;
