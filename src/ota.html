@@ -145,64 +145,64 @@
     </div>
     <input type="text" id="eui" class="mono" maxlength="16" placeholder="16 hex chars" style="display:none">
     <label>Device Name</label>
-    <input type="text" id="dn" maxlength="31" placeholder="my-fence">
+    <input type="text" id="device-name" maxlength="31" placeholder="my-fence">
     <label>App Key (32 hex chars)</label>
-    <input type="text" id="ak" class="mono" maxlength="32" placeholder="00112233445566778899aabbccddeeff">
+    <input type="text" id="app-key" class="mono" maxlength="32" placeholder="00112233445566778899aabbccddeeff">
     <button onclick="saveDevice()">Save</button>
-    <div class="status" id="st-device"></div>
+    <div class="status" id="status-device"></div>
   </div>
 
   <div class="card">
     <h3>Alert config</h3>
     <label>Alert V</label>
-    <input type="text" id="av" maxlength="5" placeholder="3000">
+    <input type="text" id="alert-v" maxlength="5" placeholder="3000">
     <label>Recover V</label>
-    <input type="text" id="rv" maxlength="5" placeholder="3500">
+    <input type="text" id="recover-v" maxlength="5" placeholder="3500">
     <label>Burst Sends</label>
-    <input type="text" id="bs" maxlength="3" placeholder="3">
+    <input type="text" id="burst-sends" maxlength="3" placeholder="3">
     <label>Idle Heartbeat (cycles)</label>
-    <input type="text" id="ihb" maxlength="3" placeholder="60">
+    <input type="text" id="idle-heartbeat" maxlength="3" placeholder="60">
     <label>Alert Heartbeat (cycles)</label>
-    <input type="text" id="ahb" maxlength="3" placeholder="15">
+    <input type="text" id="alert-heartbeat" maxlength="3" placeholder="15">
     <label>Recovery Confirm (cycles)</label>
-    <input type="text" id="rc" maxlength="3" placeholder="30">
+    <input type="text" id="recovery-confirm" maxlength="3" placeholder="30">
     <label>Drop %</label>
-    <input type="text" id="dp" maxlength="3" placeholder="10">
+    <input type="text" id="drop-percent" maxlength="3" placeholder="10">
     <label>Drop Re-arm (cycles)</label>
-    <input type="text" id="drm" maxlength="3" placeholder="15">
+    <input type="text" id="drop-rearm" maxlength="3" placeholder="15">
     <button onclick="saveAlert()">Save</button>
-    <div class="status" id="st-alert"></div>
+    <div class="status" id="status-alert"></div>
   </div>
 
   <div class="card">
     <h3>Sleep config</h3>
     <label>Cycle Sleep (s)</label>
-    <input type="text" id="si" maxlength="6" placeholder="60">
+    <input type="text" id="sleep-interval" maxlength="6" placeholder="60">
     <label>Batt Full mV</label>
-    <input type="text" id="bfmv" maxlength="5" placeholder="4000">
+    <input type="text" id="batt-full-mv" maxlength="5" placeholder="4000">
     <label>Batt Low mV</label>
-    <input type="text" id="blmv" maxlength="5" placeholder="3300">
+    <input type="text" id="batt-low-mv" maxlength="5" placeholder="3300">
     <label>Sleep Mult</label>
-    <input type="text" id="bsm" maxlength="3" placeholder="30">
+    <input type="text" id="batt-sleep-mult" maxlength="3" placeholder="30">
     <label>Recovery N</label>
-    <input type="text" id="brn" maxlength="5" placeholder="50">
+    <input type="text" id="batt-recovery-n" maxlength="5" placeholder="50">
     <button onclick="saveSleep()">Save</button>
-    <div class="status" id="st-sleep"></div>
+    <div class="status" id="status-sleep"></div>
   </div>
 
   <div class="card">
     <h3>Measure config</h3>
     <label>Measure Duration (ms)</label>
-    <input type="text" id="md" maxlength="5" placeholder="3000">
+    <input type="text" id="measure-duration" maxlength="5" placeholder="3000">
     <label>Fence Cal (%)</label>
-    <input type="text" id="fc" maxlength="3" placeholder="100">
+    <input type="text" id="fence-cal" maxlength="3" placeholder="100">
     <label>Carrier Rev</label>
-    <select id="cr">
+    <select id="carrier-rev">
       <option value="0">v3.0</option>
       <option value="1">v3.1</option>
     </select>
     <button onclick="saveMeasure()">Save</button>
-    <div class="status" id="st-measure"></div>
+    <div class="status" id="status-measure"></div>
   </div>
 
   <div class="card">
@@ -212,33 +212,33 @@
       <input type="checkbox" id="rx-lna">
     </div>
     <label>TX Power (dBm)</label>
-    <input type="text" id="tp" maxlength="2" placeholder="10">
+    <input type="text" id="tx-power" maxlength="2" placeholder="10">
     <label>Data Rate</label>
-    <input type="text" id="dr" maxlength="1" placeholder="3">
+    <input type="text" id="data-rate" maxlength="1" placeholder="3">
     <div class="toggle-row">
       <label>ADR</label>
       <input type="checkbox" id="adr">
     </div>
     <div class="toggle-row">
       <label>Syncword Public</label>
-      <input type="checkbox" id="sync">
+      <input type="checkbox" id="syncword-public">
     </div>
     <label>Scan Guard (ms)</label>
-    <input type="text" id="sg" maxlength="4" placeholder="10">
+    <input type="text" id="scan-guard" maxlength="4" placeholder="10">
     <button onclick="saveRadio()">Save</button>
-    <div class="status" id="st-radio"></div>
+    <div class="status" id="status-radio"></div>
   </div>
 
   <div class="card">
     <h3>Firmware Update</h3>
     <label>Current version</label>
-    <span class="mono" id="ver">-</span>
+    <span class="mono" id="version">-</span>
     <label>Firmware file (.bin)</label>
-    <input type="file" id="fw" accept=".bin">
+    <input type="file" id="firmware-file" accept=".bin">
     <div id="progress-wrap" style="display:none; margin-top:12px; background:#eee; border-radius:4px; overflow:hidden; height:10px">
       <div id="progress-bar" style="height:100%; width:0; background:#007bff; transition:width 0.2s"></div>
     </div>
-    <div class="status" id="st-firmware"></div>
+    <div class="status" id="status-firmware"></div>
     <button onclick="flashFirmware()">Flash firmware</button>
   </div>
 
@@ -248,7 +248,7 @@
       Turn off the access point and return the device to normal monitoring.
     </p>
     <button onclick="resumeMonitoring()" style="background:#dc3545">Disable AP &amp; resume monitoring</button>
-    <div class="status" id="st-resume"></div>
+    <div class="status" id="status-resume"></div>
   </div>
 
   <script>
@@ -278,31 +278,31 @@
           document.getElementById('eui').value = d.eui;
           document.getElementById('eui').style.display = '';
         }
-        document.getElementById('ver').textContent = d.version;
-        document.getElementById('dn').value = d.name;
-        document.getElementById('ak').value = d.appkey;
-        document.getElementById('av').value = d.alertV;
-        document.getElementById('rv').value = d.recoverV;
-        document.getElementById('bs').value = d.burstSends;
-        document.getElementById('ihb').value = d.idleHbCycles;
-        document.getElementById('ahb').value = d.alertHbCycles;
-        document.getElementById('rc').value = d.recoverCycles;
-        document.getElementById('dp').value = d.dropPercent;
-        document.getElementById('drm').value = d.dropRearm;
-        document.getElementById('si').value = d.sleepInterval;
-        document.getElementById('bfmv').value = d.battFullMv;
-        document.getElementById('blmv').value = d.battLowMv;
-        document.getElementById('bsm').value = d.battSleepMult;
-        document.getElementById('brn').value = d.battRecoveryN;
-        document.getElementById('md').value = d.measureDurationMs;
-        document.getElementById('fc').value = d.fenceCalPercent;
-        document.getElementById('cr').value = d.carrierRev;
+        document.getElementById('version').textContent = d.version;
+        document.getElementById('device-name').value = d.name;
+        document.getElementById('app-key').value = d.appkey;
+        document.getElementById('alert-v').value = d.alertV;
+        document.getElementById('recover-v').value = d.recoverV;
+        document.getElementById('burst-sends').value = d.burstSends;
+        document.getElementById('idle-heartbeat').value = d.idleHbCycles;
+        document.getElementById('alert-heartbeat').value = d.alertHbCycles;
+        document.getElementById('recovery-confirm').value = d.recoverCycles;
+        document.getElementById('drop-percent').value = d.dropPercent;
+        document.getElementById('drop-rearm').value = d.dropRearm;
+        document.getElementById('sleep-interval').value = d.sleepInterval;
+        document.getElementById('batt-full-mv').value = d.battFullMv;
+        document.getElementById('batt-low-mv').value = d.battLowMv;
+        document.getElementById('batt-sleep-mult').value = d.battSleepMult;
+        document.getElementById('batt-recovery-n').value = d.battRecoveryN;
+        document.getElementById('measure-duration').value = d.measureDurationMs;
+        document.getElementById('fence-cal').value = d.fenceCalPercent;
+        document.getElementById('carrier-rev').value = d.carrierRev;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
-        document.getElementById('tp').value = d.txPower;
-        document.getElementById('dr').value = d.dataRate;
+        document.getElementById('tx-power').value = d.txPower;
+        document.getElementById('data-rate').value = d.dataRate;
         document.getElementById('adr').checked = d.adrEnabled == 1;
-        document.getElementById('sync').checked = d.syncwordPublic == 1;
-        document.getElementById('sg').value = d.scanGuardMs;
+        document.getElementById('syncword-public').checked = d.syncwordPublic == 1;
+        document.getElementById('scan-guard').value = d.scanGuardMs;
       })
       .finally(hideSpinner);
 
@@ -324,64 +324,64 @@
     function saveDevice() {
       var euiOverride = document.getElementById('eui-override').checked;
       postConfig('/device', {
-        name: document.getElementById('dn').value,
+        name: document.getElementById('device-name').value,
         eui: euiOverride ? document.getElementById('eui').value : '',
-        appkey: document.getElementById('ak').value
-      }, 'st-device');
+        appkey: document.getElementById('app-key').value
+      }, 'status-device');
     }
 
     function saveAlert() {
       postConfig('/alert', {
-        alertV: document.getElementById('av').value,
-        recoverV: document.getElementById('rv').value,
-        burstSends: document.getElementById('bs').value,
-        idleHbCycles: document.getElementById('ihb').value,
-        alertHbCycles: document.getElementById('ahb').value,
-        recoverCycles: document.getElementById('rc').value,
-        dropPercent: document.getElementById('dp').value,
-        dropRearm: document.getElementById('drm').value
-      }, 'st-alert');
+        alertV: document.getElementById('alert-v').value,
+        recoverV: document.getElementById('recover-v').value,
+        burstSends: document.getElementById('burst-sends').value,
+        idleHbCycles: document.getElementById('idle-heartbeat').value,
+        alertHbCycles: document.getElementById('alert-heartbeat').value,
+        recoverCycles: document.getElementById('recovery-confirm').value,
+        dropPercent: document.getElementById('drop-percent').value,
+        dropRearm: document.getElementById('drop-rearm').value
+      }, 'status-alert');
     }
 
     function saveSleep() {
       postConfig('/sleep', {
-        sleepInterval: document.getElementById('si').value,
-        battFullMv: document.getElementById('bfmv').value,
-        battLowMv: document.getElementById('blmv').value,
-        battSleepMult: document.getElementById('bsm').value,
-        battRecoveryN: document.getElementById('brn').value
-      }, 'st-sleep');
+        sleepInterval: document.getElementById('sleep-interval').value,
+        battFullMv: document.getElementById('batt-full-mv').value,
+        battLowMv: document.getElementById('batt-low-mv').value,
+        battSleepMult: document.getElementById('batt-sleep-mult').value,
+        battRecoveryN: document.getElementById('batt-recovery-n').value
+      }, 'status-sleep');
     }
 
     function saveMeasure() {
       postConfig('/measure', {
-        measureDurationMs: document.getElementById('md').value,
-        fenceCalPercent: document.getElementById('fc').value,
-        carrierRev: document.getElementById('cr').value
-      }, 'st-measure');
+        measureDurationMs: document.getElementById('measure-duration').value,
+        fenceCalPercent: document.getElementById('fence-cal').value,
+        carrierRev: document.getElementById('carrier-rev').value
+      }, 'status-measure');
     }
 
     function saveRadio() {
       postConfig('/radio', {
         rxLnaEnabled: document.getElementById('rx-lna').checked ? '1' : '0',
-        txPower: document.getElementById('tp').value,
-        dataRate: document.getElementById('dr').value,
+        txPower: document.getElementById('tx-power').value,
+        dataRate: document.getElementById('data-rate').value,
         adrEnabled: document.getElementById('adr').checked ? '1' : '0',
-        syncwordPublic: document.getElementById('sync').checked ? '1' : '0',
-        scanGuardMs: document.getElementById('sg').value
-      }, 'st-radio');
+        syncwordPublic: document.getElementById('syncword-public').checked ? '1' : '0',
+        scanGuardMs: document.getElementById('scan-guard').value
+      }, 'status-radio');
     }
 
     function resumeMonitoring() {
       if (!confirm('Turn off the access point and resume normal monitoring? This connection will drop.')) { return; }
-      var s = document.getElementById('st-resume');
+      var s = document.getElementById('status-resume');
       s.textContent = 'Resuming... the AP is shutting down.';
       // The AP drops right after this responds, so a network error here is expected and fine.
       fetch('/resume', { method: 'POST' }).catch(function() {});
     }
 
     function flashFirmware() {
-      var file = document.getElementById('fw').files[0];
+      var file = document.getElementById('firmware-file').files[0];
       if (!file) { alert('Select a firmware file first'); return; }
 
       var form = new FormData();
@@ -390,7 +390,7 @@
       var xhr = new XMLHttpRequest();
       var wrap = document.getElementById('progress-wrap');
       var bar = document.getElementById('progress-bar');
-      var st = document.getElementById('st-firmware');
+      var st = document.getElementById('status-firmware');
 
       xhr.upload.addEventListener('progress', function(e) {
         if (e.lengthComputable) {
