@@ -596,6 +596,10 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   }
   delay(50);  // debounce
 
+  // A LoRa test leaves the SX1262 in XOSC standby with the TCXO running (~2.4 mA); cold-sleep it
+  // so the deep sleep that follows config mode isn't dominated by an awake radio.
+  comms.sleep();
+
   Serial.println("EXIT");
   return longSleepRequested;
 }

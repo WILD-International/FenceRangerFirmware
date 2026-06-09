@@ -237,6 +237,9 @@ void setup() {
     }
   }
   if (!comms.hasJoined()) {
+    // begin() above powered the TCXO and left the radio in standby; cold-sleep it so a
+    // wake that can't reach a gateway doesn't deep-sleep with the radio drawing ~2.4 mA.
+    comms.sleep();
     gotoSleep(config, adaptedSleepMs);
   }
 
