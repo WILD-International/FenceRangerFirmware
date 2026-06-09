@@ -113,7 +113,6 @@ void radioDebug(bool isFail, const __FlashStringHelper* message, int state, bool
 
 Comms::Comms(Config* config, State* state)
     : config(config), state(state), radio(new RadioModule()), node(&radio, &Region, subBand) {
-  state->incrementBootCount();
   LOGPRINT(F("Boot number: "));
   LOGLN(state->getBootCount());
 }

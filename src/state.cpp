@@ -1,6 +1,10 @@
 #include "state.h"
 
-State::State(Config* config) : config(config) {}
+State::State(Config* config) : config(config) {
+  // Runs once per boot as a global constructor (before setup()), so getBootCount() reads 1 on the
+  // first boot after a flash/power-on, when RTC_DATA_ATTR is re-zeroed.
+  incrementBootCount();
+}
 
 void State::setMode(Mode mode) {
   rtc.mode = mode;

@@ -110,6 +110,27 @@ static void runStaAcquire() {
   gotoSleep(config, STA_RETRY_MS);
 }
 
+// Listen up to 5 s for the "+++" escape from the bulk flasher. Returns true on three consecutive
+// '+' characters. delay() yields to FreeRTOS so the watchdog stays fed.
+static bool waitForConfigEscape() {
+  const uint32_t windowMs = 5000;
+  uint32_t start = millis();
+  int plusRun = 0;
+  while (millis() - start < windowMs) {
+    while (Serial.available()) {
+      if (Serial.read() == '+') {
+        if (++plusRun >= 3) {
+          return true;
+        }
+      } else {
+        plusRun = 0;
+      }
+    }
+    delay(5);
+  }
+  return false;
+}
+
 void setup() {
   int64_t millis_slept = getTimeSleptMs();
   int64_t now_us = rtcTimeNowUs();
@@ -120,13 +141,6 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
 
-  // A wired USB flash leaves the reset reason unclassified (ESP_RST_UNKNOWN) on this S3 board —
-  // distinct from a deep-sleep wake (ESP_RST_DEEPSLEEP), an OTA reboot (ESP_RST_SW), and a battery
-  // power-on (ESP_RST_POWERON). We use it to drop straight into config mode after a flash, so the
-  // provisioning tool can set params over AT and finish with AT+UPDATEOK, without disturbing field
-  // operation.
-  bool wiredFlash = (esp_reset_reason() == ESP_RST_UNKNOWN);
-
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0 || wasButtonPressed()) {
     digitalWrite(LED, HIGH);
     state.setMode(ModeConfig);
@@ -134,11 +148,20 @@ void setup() {
 
   config.load();
 
-  if (!config.hasAppKey() || wiredFlash) {
+  if (!config.hasAppKey()) {
     state.setMode(ModeConfig);
   }
 
   Serial.begin(115200);
+
+  // First boot after a flash (bootCount == 1, already incremented in the global Comms ctor):
+  // give the bulk flasher a brief window to request config mode without a button. Screen stays
+  // blank; if it sends "+++" within 5 s, enter config mode.
+  if (state.getBootCount() == 1 && state.getMode() != ModeConfig) {
+    if (waitForConfigEscape()) {
+      state.setMode(ModeConfig);
+    }
+  }
 
   // A JoinWifiSta downlink: keep WiFi off and the screen dark while we scan-and-sleep for the
   // updater AP. Skipped when the operator forced config mode (button / missing AppKey).
