@@ -51,6 +51,14 @@ void gpioWakeInit(Config& config) {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
 
+  // Release the OLED/Vext rail and default it off; Display::turnOn() drives it on when needed.
+  gpio_hold_dis(gpio_num_t(DISPLAY_POWER));
+  pinMode(DISPLAY_POWER, OUTPUT);
+  digitalWrite(DISPLAY_POWER, HIGH);  // active-low rail: HIGH = off
+
+  // Release the battery-sense divider enable so MeasureProgram can drive it again.
+  gpio_hold_dis(gpio_num_t(ADC_CTRL_VBAT));
+
   rtc_gpio_hold_dis((gpio_num_t)LORA_PA_POWER);
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
@@ -73,6 +81,17 @@ void gpioSleepLatch(Config& config) {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
   gpio_hold_en(gpio_num_t(LED));
+
+  // Power down the OLED/Vext rail and hold it off through deep sleep. GPIO 36 isn't an RTC pad,
+  // so without an explicit hold it floats while asleep and the display stays on, drawing ~2.4 mA.
+  pinMode(DISPLAY_POWER, OUTPUT);
+  digitalWrite(DISPLAY_POWER, HIGH);  // active-low rail: HIGH = off
+  gpio_hold_en(gpio_num_t(DISPLAY_POWER));
+
+  // Disable the battery-sense divider (its MOSFET draws ~9 µA when on) and hold it off.
+  pinMode(ADC_CTRL_VBAT, OUTPUT);
+  digitalWrite(ADC_CTRL_VBAT, LOW);
+  gpio_hold_en(gpio_num_t(ADC_CTRL_VBAT));
 
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
