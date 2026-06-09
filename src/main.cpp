@@ -110,13 +110,26 @@ static void runStaAcquire() {
   gotoSleep(config, STA_RETRY_MS);
 }
 
-// Listen up to 5 s for the "+++" escape from the bulk flasher. Returns true on three consecutive
-// '+' characters. delay() yields to FreeRTOS so the watchdog stays fed.
+// Listen up to 8 s for a config-mode request: the "+++" escape from the bulk flasher, or a button
+// press from an operator. Shows a live countdown so it's clear the device is alive and will
+// continue on its own. Returns true as soon as either arrives. The ISR button isn't armed yet at
+// this point, so poll the pin directly (active low). delay() yields to FreeRTOS so the watchdog
+// stays fed.
 static bool waitForConfigEscape() {
-  const uint32_t windowMs = 5000;
+  const uint32_t windowMs = 8000;
+  display.turnOn();
   uint32_t start = millis();
   int plusRun = 0;
+  int lastShown = -1;
   while (millis() - start < windowMs) {
+    int remaining = (int)((windowMs - (millis() - start) + 999) / 1000);
+    if (remaining != lastShown) {
+      lastShown = remaining;
+      display.showBootCountdown(remaining);
+    }
+    if (digitalRead(USER_BUTTON) == 0) {
+      return true;
+    }
     while (Serial.available()) {
       if (Serial.read() == '+') {
         if (++plusRun >= 3) {

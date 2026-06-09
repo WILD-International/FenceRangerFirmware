@@ -82,6 +82,27 @@ void Display::showUpdateDone(const char* version) {
   display.display();
 }
 
+void Display::showBootCountdown(int seconds) {
+  if (!enabled) {
+    return;
+  }
+  display.clearDisplay();
+  displayTitle();
+  display.setTextSize(2);
+  const char* msg = "BOOT";
+  display.setCursor((SCREEN_WIDTH - (int)strlen(msg) * 12) / 2, 16);
+  display.println(msg);
+  display.setTextSize(1);
+  const char* hint = "press for config";
+  display.setCursor((SCREEN_WIDTH - (int)strlen(hint) * 6) / 2, 38);
+  display.println(hint);
+  char buf[24];
+  snprintf(buf, sizeof(buf), "%d", seconds);
+  display.setCursor((SCREEN_WIDTH - (int)strlen(buf) * 6) / 2, 50);
+  display.print(buf);
+  display.display();
+}
+
 void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) {
   if (!enabled) {
     return;
