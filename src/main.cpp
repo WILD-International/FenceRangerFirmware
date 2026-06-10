@@ -106,7 +106,7 @@ static void runStaAcquire() {
     gotoSleep(config, longSleep ? config.getSleepIntervalMs() : 100);
   }
 
-  // Not in range yet — sleep and retry. gotoSleep arms EXT0, so a button press still interrupts.
+  // Not in range yet — sleep and retry. gotoSleep arms EXT1, so a button press still interrupts.
   gotoSleep(config, STA_RETRY_MS);
 }
 
@@ -154,7 +154,7 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
 
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0 || wasButtonPressed()) {
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1 || wasButtonPressed()) {
     digitalWrite(LED, HIGH);
     state.setMode(ModeConfig);
   }

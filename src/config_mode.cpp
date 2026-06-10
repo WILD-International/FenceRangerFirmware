@@ -589,7 +589,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
 
   // Wait for the button to be released before returning. Otherwise a long-press
   // exit (e.g. "Sleep now") leaves GPIO0 held LOW when the following deep sleep
-  // arms the EXT0 button wake, which fires immediately and bounces straight back
+  // arms the EXT1 button wake, which fires immediately and bounces straight back
   // into config mode.
   while (digitalRead(USER_BUTTON) == 0) {
     delay(10);

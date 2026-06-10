@@ -147,7 +147,9 @@ void gotoSleep(Config& config, uint32_t ms, bool setSleepTime) {
 
   gpioSleepLatch(config);
 
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, LOW);
+  // EXT1 instead of EXT0: EXT0 keeps the RTC-peripherals power domain on for the whole
+  // sleep, EXT1 does not. The button pin has an external pull-up on the Heltec module.
+  esp_sleep_enable_ext1_wakeup(1ULL << GPIO_NUM_0, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_deep_sleep_start();
 
   // if this appears in the serial debug, we didn't go to sleep!
