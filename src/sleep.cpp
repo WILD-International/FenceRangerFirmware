@@ -110,6 +110,13 @@ void gpioSleepLatch(Config& config) {
   pinMode(HELTEC_LORA_MISO, ANALOG);
   pinMode(HELTEC_LORA_MOSI, ANALOG);
 
+  // Float the OLED pins. After a config session Wire.end() leaves the internal I2C pull-ups
+  // enabled on SDA/SCL and the driver leaves RST driven high; with the Vext rail off, all three
+  // leak into the unpowered display (~50-70 uA per pulled-up pin through the ~45 kOhm pulls).
+  pinMode(OLED_SDA, ANALOG);
+  pinMode(OLED_SCL, ANALOG);
+  pinMode(OLED_RST, ANALOG);
+
   // The carrier-board opamp-enable pin floats during deep sleep on both revs. On v3.1 the opamp
   // moved off GPIO 2, so the PA pin is distinct and returns to its low+hold sleep state; on v3.0
   // the opamp pin *is* GPIO 2, so the float governs it and the PA pin needs no separate latch.
