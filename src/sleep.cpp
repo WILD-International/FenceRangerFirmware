@@ -1,5 +1,6 @@
 #include "sleep.h"
 
+#include <SPI.h>
 #include <driver/rtc_io.h>
 #include <esp_private/esp_clk.h>  // for esp_clk_slowclk_cal_get()
 #include <soc/rtc.h>
@@ -45,8 +46,6 @@ static void wakePaPin(gpio_num_t pin) {
 void gpioWakeInit(Config& config) {
   gpio_deep_sleep_hold_dis();
 
-  rtc_gpio_hold_dis(gpio_num_t(RADIO_NSS));
-
   gpio_hold_dis(gpio_num_t(LED));
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
@@ -60,6 +59,7 @@ void gpioWakeInit(Config& config) {
   gpio_hold_dis(gpio_num_t(ADC_CTRL_VBAT));
 
   rtc_gpio_hold_dis((gpio_num_t)LORA_PA_POWER);
+  rtc_gpio_deinit((gpio_num_t)LORA_PA_POWER);
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
 
@@ -96,10 +96,19 @@ void gpioSleepLatch(Config& config) {
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
   rtc_gpio_hold_en((gpio_num_t)LORA_PA_POWER);
+  rtc_gpio_isolate((gpio_num_t)LORA_PA_POWER);
 
-  pinMode(RADIO_NSS, OUTPUT);
-  digitalWrite(RADIO_NSS, HIGH);
-  rtc_gpio_hold_en(gpio_num_t(RADIO_NSS));
+  // Quiesce the radio SPI bus as the Heltec factory example does: end the SPI peripheral and
+  // float every radio-side pin. gpio_deep_sleep_hold_en() below holds *all* digital pads, so any
+  // pin left driven would keep sourcing current into the sleeping SX1262 / unpowered PA.
+  SPI.end();
+  pinMode(HELTEC_DIO1, ANALOG);
+  pinMode(HELTEC_LORA_NSS, ANALOG);
+  pinMode(HELTEC_LORA_RST, ANALOG);
+  pinMode(HELTEC_LORA_BUSY, ANALOG);
+  pinMode(HELTEC_LORA_SCK, ANALOG);
+  pinMode(HELTEC_LORA_MISO, ANALOG);
+  pinMode(HELTEC_LORA_MOSI, ANALOG);
 
   // The carrier-board opamp-enable pin floats during deep sleep on both revs. On v3.1 the opamp
   // moved off GPIO 2, so the PA pin is distinct and returns to its low+hold sleep state; on v3.0
