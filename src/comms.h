@@ -67,7 +67,6 @@ struct Downlink {
       uint8_t idleHbCycles;
       uint8_t alertHbCycles;
       uint8_t recoveryCycles;
-      uint8_t rearmCycles;  // rapid-drop re-arm cycles, rides on this downlink
     } alertCycles;
     struct {
       uint16_t sleepIntervalS;
@@ -103,8 +102,8 @@ class Comms {
   int16_t begin(Display* display);
   int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink,
                           bool confirmed = false, SignalInfo* signalInfo = nullptr);
-  // Rapid relative-drop early warning (fPort 2): reports the previous and current fence
-  // voltage and the seconds between them, plus battery. See detectRapidDrop in alert.h.
+  // Drop-triggered outage opening (fPort 2): reports the previous and current fence
+  // voltage, plus battery. See the rapid-drop path of processMeasurement in alert.h.
   int16_t sendRapidDropAlert(uint16_t battMv, uint16_t previousVoltage, uint16_t currentVoltage,
                              Display* display, Downlink* downlink);
   int16_t sendConfigReport(uint8_t fport, Display* display, Downlink* downlink);

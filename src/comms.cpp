@@ -522,14 +522,13 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertCycles");
             downlink->type = DownlinkType::QueryAlertCycles;
-          } else if (downlinkSize == 5) {
+          } else if (downlinkSize == 4) {
             LOGLN("Downlink: SetAlertCycles");
             downlink->type = DownlinkType::SetAlertCycles;
             downlink->alertCycles.burstSends = downlinkPayload[0];
             downlink->alertCycles.idleHbCycles = downlinkPayload[1];
             downlink->alertCycles.alertHbCycles = downlinkPayload[2];
             downlink->alertCycles.recoveryCycles = downlinkPayload[3];
-            downlink->alertCycles.rearmCycles = downlinkPayload[4];
           } else {
             LOG("Downlink: fPort 12 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -665,8 +664,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = config->getIdleHeartbeatCycles();
       payload[2] = config->getAlertHeartbeatCycles();
       payload[3] = config->getRecoveryConfirmCycles();
-      payload[4] = config->getRapidDropRearmCycles();
-      len = 5;
+      len = 4;
       break;
     case 13:
       payload[0] = (config->getSleepIntervalS() >> 8) & 0xFF;
@@ -730,7 +728,6 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setAlertCycles(downlink.alertCycles.burstSends, downlink.alertCycles.idleHbCycles,
                              downlink.alertCycles.alertHbCycles,
                              downlink.alertCycles.recoveryCycles);
-      config->setRapidDropRearmCycles(downlink.alertCycles.rearmCycles);
       return {};
     case DownlinkType::SetSleepConfig:
       config->setSleepIntervalS(downlink.sleepConfig.sleepIntervalS);

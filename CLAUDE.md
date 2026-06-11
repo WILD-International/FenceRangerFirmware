@@ -64,7 +64,7 @@ Two branches divert from this normal flow early in `setup()`: a button press / m
 
 All parameters live in NVS and are configurable via the web UI and OLED menu.
 
-A **secondary, independent** early warning lives in the same module: `detectRapidDrop()` flags a reading that fell at least **Drop %** below the previous one (no time normalisation) and sends a distinct fPort-2 message. It's gated to the healthy/Idle regime (so it never duplicates the absolute alert) with a **Drop Re-arm** window (in cycles) against a flapping fence; `main.cpp` runs it after `processMeasurement`, and on a coincident cycle the drop **supersedes** the regular measurement (one uplink per wake). Both params live in `Config` and ride the existing Alert surfaces (OLED/Web/AT, and LoRa fPorts 11/12 alongside the thresholds/cycle counts).
+A rapid relative drop is the **second way into Outage**: a reading at least **Drop %** below the previous one (no time normalisation) while still above the alert threshold opens the same Outage state, with the opening uplink sent on fPort 2 instead of as a plain measurement — everything after (burst, alert heartbeat, recovery, all-clear) is shared. Detection runs only from Idle and a coincident threshold crossing takes precedence, so one event never produces both message types. There is deliberately no re-arm window: the recovery-confirmation period is the only damping against a flapping fence.
 
 ### Adaptive sleep (`src/state.cpp`)
 
@@ -108,7 +108,7 @@ Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max rea
 | 1–2 | Previous fence voltage, big-endian uint16 |
 | 3–4 | Current fence voltage, big-endian uint16 |
 
-Encoding lives in `Comms::sendRapidDropAlert()`; the trigger is `detectRapidDrop()` (see the transmission-policy section).
+Encoding lives in `Comms::sendRapidDropAlert()`; the trigger is the rapid-drop path of `processMeasurement()` (see the transmission-policy section).
 
 ### Config mode (`src/config_mode.cpp`)
 

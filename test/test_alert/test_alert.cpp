@@ -28,11 +28,15 @@ static AlertConfig makeCfg() {
   c.idleHeartbeatCycles = 6;
   c.alertHeartbeatCycles = 3;
   c.recoveryConfirmCycles = 3;
+  // Neutralize the rapid-drop entry path so these tests exercise the absolute
+  // thresholds alone (e.g. HEALTHY -> BAND is a 40% drop that must not open an
+  // outage here); the rapid-drop rules have their own suite (test_rapid_drop).
+  c.dropPercent = 100;
   return c;
 }
 
 static bool step(AlertState& s, const AlertConfig& c, uint16_t v) {
-  return processMeasurement(v, c, s);
+  return processMeasurement(v, c, s).send;
 }
 
 // Feed each input reading through the state machine and assert the send decision matches

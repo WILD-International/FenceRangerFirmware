@@ -168,8 +168,6 @@
     <input type="text" id="recovery-confirm" maxlength="3" placeholder="30">
     <label>Drop %</label>
     <input type="text" id="drop-percent" maxlength="3" placeholder="10">
-    <label>Drop Re-arm (cycles)</label>
-    <input type="text" id="drop-rearm" maxlength="3" placeholder="15">
     <button onclick="saveAlert()">Save</button>
     <div class="status" id="status-alert"></div>
   </div>
@@ -288,7 +286,6 @@
         document.getElementById('alert-heartbeat').value = d.alertHbCycles;
         document.getElementById('recovery-confirm').value = d.recoverCycles;
         document.getElementById('drop-percent').value = d.dropPercent;
-        document.getElementById('drop-rearm').value = d.dropRearm;
         document.getElementById('sleep-interval').value = d.sleepInterval;
         document.getElementById('batt-full-mv').value = d.battFullMv;
         document.getElementById('batt-low-mv').value = d.battLowMv;
@@ -338,8 +335,7 @@
         idleHbCycles: document.getElementById('idle-heartbeat').value,
         alertHbCycles: document.getElementById('alert-heartbeat').value,
         recoverCycles: document.getElementById('recovery-confirm').value,
-        dropPercent: document.getElementById('drop-percent').value,
-        dropRearm: document.getElementById('drop-rearm').value
+        dropPercent: document.getElementById('drop-percent').value
       }, 'status-alert');
     }
 

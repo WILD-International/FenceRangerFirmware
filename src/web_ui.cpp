@@ -104,8 +104,6 @@ void WebUi::registerRoutes() {
     json += config->getRecoveryConfirmCycles();
     json += ",\"dropPercent\":";
     json += config->getRapidDropPercent();
-    json += ",\"dropRearm\":";
-    json += config->getRapidDropRearmCycles();
     json += ",\"battFullMv\":";
     json += config->getBattFullMv();
     json += ",\"battLowMv\":";
@@ -206,20 +204,18 @@ void WebUi::registerRoutes() {
       return;
     }
     String dropPercentArg = server->arg("dropPercent");
-    String dropRearmArg = server->arg("dropRearm");
-    if (dropPercentArg.length() == 0 || dropRearmArg.length() == 0) {
-      server->send(400, "text/plain", "Drop fields required");
+    if (dropPercentArg.length() == 0) {
+      server->send(400, "text/plain", "Drop % required");
       return;
     }
     int32_t dropPercent = dropPercentArg.toInt();
-    int32_t dropRearm = dropRearmArg.toInt();
-    if (dropPercent < 1 || dropPercent > 100 || dropRearm < 1 || dropRearm > 255) {
-      server->send(400, "text/plain", "Drop % must be 1-100, re-arm 1-255");
+    if (dropPercent < 1 || dropPercent > 100) {
+      server->send(400, "text/plain", "Drop % must be 1-100");
       return;
     }
     config->setAlertThresholds(alertV, recoverV);
     config->setAlertCycles(burst, idleHb, alertHb, recoverCycles);
-    config->setRapidDrop(dropPercent, dropRearm);
+    config->setRapidDropPercent(dropPercent);
     server->send(200, "text/plain", "Saved");
   });
 

@@ -29,13 +29,13 @@ WebUi webUi(&config);
 // Programs
 MeasureProgram measureProgram;
 
-// Sends one uplink for this wake and processes any downlink chain. A rapid-drop alert, when one
-// fired this cycle, supersedes the regular measurement — it already carries battery + current
-// voltage — so a wake never sends both, letting either message share this one begin()/downlink
-// path.
+// Sends one uplink for this wake and processes any downlink chain. A drop-triggered outage
+// opens with the rapid-drop payload instead of a plain measurement — it already carries
+// battery + current voltage plus the pre-drop reading — so either message type shares this
+// one begin()/downlink path.
 static void runComms(Comms& comms, State& state, Config& config, Display& display,
                      const Measurement& measurement, bool dropAlert,
-                     const RapidDropInfo& dropInfo) {
+                     uint16_t previousFenceVoltage) {
   if (comms.begin(&display) != RADIOLIB_ERR_NONE) {
     display.message("RADIO ERR", 2000);
     return;
@@ -44,8 +44,9 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
   Downlink downlink;
   if (dropAlert) {
     display.message("DROP ALERT");
-    comms.sendRapidDropAlert(measurement.battMaxMv, dropInfo.previousVoltage,
-                             dropInfo.currentVoltage, &display, &downlink);
+    comms.sendRapidDropAlert(measurement.battMaxMv, previousFenceVoltage,
+                             max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
+                             &downlink);
   } else {
     display.message("SEND DATA");
     int16_t sendState = comms.sendMeasurement(
@@ -255,20 +256,13 @@ void setup() {
       .idleHeartbeatCycles = config.getIdleHeartbeatCycles(),
       .alertHeartbeatCycles = config.getAlertHeartbeatCycles(),
       .recoveryConfirmCycles = config.getRecoveryConfirmCycles(),
+      .dropPercent = config.getRapidDropPercent(),
   };
-  bool shouldSend = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
+  AlertDecision decision = processMeasurement(fenceVoltage, alertCfg, rtc.alertState);
 
-  // Secondary rapid relative-drop early warning. Evaluated after the FSM so it only fires
-  // while still healthy (Idle): if this drop also crossed Alert V, processMeasurement has
-  // already entered Outage and sent the normal burst, so this stays silent (no duplicate).
-  // Parameters are hardcoded for now (no config surface yet).
-  RapidDropConfig dropConfig = {config.getRapidDropPercent(), config.getRapidDropRearmCycles()};
-  RapidDropInfo dropInfo;
-  bool dropAlert = detectRapidDrop(fenceVoltage, rtc.alertState.notifyState == NotifyStateIdle,
-                                   dropConfig, rtc.rapidDropState, &dropInfo);
-
-  if (shouldSend || dropAlert) {
-    runComms(comms, state, config, display, measurement, dropAlert, dropInfo);
+  if (decision.send) {
+    runComms(comms, state, config, display, measurement, decision.dropAlert,
+             decision.previousFenceVoltage);
   }
   // After a radio trial concludes, report the now-active radio config once (fPort 16)
   // so the server can tell commit (new settings) from revert (old settings).
