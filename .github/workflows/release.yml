@@ -16,6 +16,7 @@ jobs:
         with:
           # Full history + tags so the GIT_TAG build flag (git describe) is correct
           fetch-depth: 0
+          submodules: true
 
       - uses: actions/setup-python@v5
         with:
