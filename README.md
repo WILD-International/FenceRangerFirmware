@@ -112,8 +112,9 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Scan Guard | 10 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
 
-**Carrier Rev** selects the carrier-board revision (0 = v3.0, opamp on GPIO 2; 1 = v3.1, opamp on
-GPIO 6) so one firmware image runs on every revision. It is intentionally **never** settable over
+**Carrier Rev** selects the carrier-board revision (0 = v3.0 modded, opamp powered directly from
+GPIO 2, active-HIGH; 1 = v3.1, opamp gated by a MOSFET on GPIO 6, active-LOW) so one firmware
+image runs on every revision. See `src/carrier_board.h` for the per-revision details. It is intentionally **never** settable over
 LoRa — it is a physical-hardware attribute and a wrong remote value would silently break
 measurements.
 

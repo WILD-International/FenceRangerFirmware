@@ -33,14 +33,6 @@ int64_t getTimeSleptMs() {
   return (rtcTimeNowUs() - rtc.sleepEnterUs) / 1000;
 }
 
-// Release any hold/isolation and return the pad to a defined output-low state on wake.
-static void wakePaPin(gpio_num_t pin) {
-  rtc_gpio_hold_dis(pin);
-  rtc_gpio_deinit(pin);
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, LOW);
-}
-
 // On wake: release the GPIO holds that kept pin states stable during deep sleep,
 // then set each pin to its initial state for this cycle.
 void gpioWakeInit(Config& config) {
@@ -63,11 +55,16 @@ void gpioWakeInit(Config& config) {
   pinMode(LORA_PA_POWER, OUTPUT);
   digitalWrite(LORA_PA_POWER, LOW);
 
+  // Release the PA pin's hold and return it to a defined output-low state. On v3.0 this is also
+  // the opamp pin (held low during sleep), so MeasureProgram can drive it again.
   gpio_num_t paPin = paControlPin();
-  wakePaPin(paPin);
+  rtc_gpio_hold_dis(paPin);
+  rtc_gpio_deinit(paPin);
+  pinMode(paPin, OUTPUT);
+  digitalWrite(paPin, LOW);
 
-  // Release the carrier-board opamp pin (floated during sleep) when it's a distinct GPIO (v3.1),
-  // so MeasureProgram can drive it. On v3.0 it's GPIO 2 and wakePaPin above already covers it.
+  // Release the carrier-board opamp pin (floated during sleep on v3.1) when it's a distinct
+  // GPIO, so MeasureProgram can drive it.
   gpio_num_t opampPin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
   if (opampPin != paPin) {
     rtc_gpio_hold_dis(opampPin);
@@ -117,14 +114,20 @@ void gpioSleepLatch(Config& config) {
   pinMode(OLED_SCL, ANALOG);
   pinMode(OLED_RST, ANALOG);
 
-  // The carrier-board opamp-enable pin floats during deep sleep on both revs. On v3.1 the opamp
-  // moved off GPIO 2, so the PA pin is distinct and returns to its low+hold sleep state; on v3.0
-  // the opamp pin *is* GPIO 2, so the float governs it and the PA pin needs no separate latch.
+  // Carrier-board opamp-enable pin sleep state. On v3.0 (modded) the opamp pin *is* GPIO 2 and
+  // feeds the opamp power input directly (active-HIGH), so drive it LOW + hold — that keeps both
+  // the opamp supply and the PA firmly off, and no separate PA latch is needed. On v3.1 the opamp
+  // moved off GPIO 2 (active-LOW via a MOSFET): float the opamp pin and give the now-distinct PA
+  // pin its low+hold sleep state.
   gpio_num_t paPin = paControlPin();
   gpio_num_t opampPin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
-  rtc_gpio_hold_dis(opampPin);
-  rtc_gpio_isolate(opampPin);
-  if (opampPin != paPin) {
+  if (opampPin == paPin) {
+    pinMode(opampPin, OUTPUT);
+    digitalWrite(opampPin, LOW);
+    rtc_gpio_hold_en(opampPin);
+  } else {
+    rtc_gpio_hold_dis(opampPin);
+    rtc_gpio_isolate(opampPin);
     pinMode(paPin, OUTPUT);
     digitalWrite(paPin, LOW);
     rtc_gpio_hold_en(paPin);

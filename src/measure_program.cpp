@@ -24,7 +24,9 @@ Measurement MeasureProgram::run(Config& config) {
 
 void MeasureProgram::begin(Config& config) {
   measureDurationMs = config.getMeasureDurationMs();
-  opampEnablePin = carrierBoardConfig(config.getCarrierRev()).opampEnablePin;
+  CarrierBoardConfig carrier = carrierBoardConfig(config.getCarrierRev());
+  opampEnablePin = carrier.opampEnablePin;
+  opampActiveHigh = carrier.opampActiveHigh;
   LOGLN("MeasureProgram::begin()");
   finished = false;
 
@@ -39,7 +41,7 @@ void MeasureProgram::begin(Config& config) {
   pinMode(ADC_CTRL_VBAT, OUTPUT);
   digitalWrite(ADC_CTRL_VBAT, HIGH);  // Enable mosfet for battery voltage measurement
   pinMode(opampEnablePin, OUTPUT);
-  digitalWrite(opampEnablePin, LOW);  // power on the opamp (active LOW)
+  digitalWrite(opampEnablePin, opampActiveHigh ? HIGH : LOW);  // power on the opamp
   delay(1);
 
   adc_continuous_init();
@@ -115,7 +117,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
 
 void MeasureProgram::teardown() {
   finished = true;
-  digitalWrite(opampEnablePin, HIGH);  // power off the opamp
+  digitalWrite(opampEnablePin, opampActiveHigh ? LOW : HIGH);  // power off the opamp
   digitalWrite(ADC_CTRL_VBAT, LOW);
   ESP_ERROR_CHECK(adc_digi_stop());
   ESP_ERROR_CHECK(adc_digi_deinitialize());

@@ -137,7 +137,7 @@ The menu is **data-driven** — do not hardcode the item list from this doc. The
 
 The full parameter reference — every parameter, its default, and which surfaces (OLED / Web UI / AT / LoRaWAN fPort) reach it — is the table in `README.md`; that is the single source of truth, not this file. All four surfaces funnel through the `Config` setters (`src/config.{h,cpp}`), which persist to NVS via `Preferences`.
 
-One non-obvious entry worth flagging: **Carrier Rev** lets a single firmware image run on every carrier board. The only thing it varies today is the opamp-enable pin (mapping in `src/carrier_board.h`): on v3.0 that pin is GPIO 2 — *shared with the mis-routed PA pin* — and on v3.1 it moves to GPIO 6. Both the measurement path and the deep-sleep latch (`src/sleep.cpp`, which reads the global `config`) must agree on which pin it is, and both revs float it during sleep. It is deliberately not reachable over LoRa.
+One non-obvious entry worth flagging: **Carrier Rev** lets a single firmware image run on every carrier board. The only thing it varies today is the opamp-enable pin — which GPIO it is *and its polarity*, since the v3.0 board mod wired the pin straight to the opamp power input (the per-rev mapping and the why live in `src/carrier_board.h`). On v3.0 the pin is *shared with the mis-routed PA pin*, so powering the opamp also enables the PA during a measurement (accepted). Both the measurement path and the deep-sleep latch (`src/sleep.cpp`, which reads the global `config`) must agree on the pin and its sleep state. It is deliberately not reachable over LoRa.
 
 ### Web UI (`src/web_ui.cpp`, `src/ota.html`)
 

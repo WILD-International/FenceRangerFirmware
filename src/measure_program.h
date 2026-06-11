@@ -48,7 +48,8 @@ class MeasureProgram {
   const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
                                                 ADC_CHANNEL_FENCE_POS};
   gpio_num_t opampEnablePin =
-      GPIO_NUM_2;  // resolved from carrier rev in begin(); see carrier_board.h
+      GPIO_NUM_2;               // resolved from carrier rev in begin(); see carrier_board.h
+  bool opampActiveHigh = true;  // resolved from carrier rev in begin()
   uint8_t dma_buf[CONV_FRAME_SIZE];
 
   uint32_t min_val[NUM_CHANNELS] = {4095, 4095, 4095};
