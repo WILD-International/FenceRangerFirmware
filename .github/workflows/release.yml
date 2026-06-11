@@ -1,0 +1,47 @@
+name: Release build
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history + tags so the GIT_TAG build flag (git describe) is correct
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Run host-side unit tests
+        run: pio test -e native
+
+      - name: Build firmware
+        run: pio run -e heltec_wifi_lora_32_V4
+
+      - name: Rename firmware binary
+        run: |
+          cp .pio/build/heltec_wifi_lora_32_V4/firmware.bin \
+             "FenceRanger-${{ github.ref_name }}-heltec_wifi_lora_32_V4.bin"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: FenceRanger-${{ github.ref_name }}-heltec_wifi_lora_32_V4.bin
+          generate_release_notes: true
