@@ -203,14 +203,14 @@ class Config {
   bool devNameSet = false;
   char devName[DEVNAME_MAX];
   uint32_t sleepIntervalS = 60;
-  uint16_t alertThresholdV = 3000;
-  uint16_t recoverThresholdV = 3500;
+  uint16_t alertThresholdV = 2000;
+  uint16_t recoverThresholdV = 2500;
   uint8_t alertBurstSends = 3;
   uint8_t idleHeartbeatCycles = 60;
   uint8_t alertHeartbeatCycles = 15;
   uint8_t recoveryConfirmCycles = 30;
   uint8_t rapidDropPercent = 10;
-  uint16_t battFullMv = 4000;
+  uint16_t battFullMv = 3800;
   uint16_t battLowMv = 3300;
   uint8_t battSleepMult = 30;
   uint16_t battRecoveryN = 50;
@@ -222,7 +222,7 @@ class Config {
   uint8_t carrierRev = 0;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
   bool adrEnabled = true;
   bool syncwordPublic = true;
-  uint16_t scanGuardMs = 10;
+  uint16_t scanGuardMs = 100;
   int32_t display_timeout_ms = 5 * 60 * 1000;
 };
 

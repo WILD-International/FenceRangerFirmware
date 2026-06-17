@@ -43,14 +43,14 @@ void Config::load() {
     devNameSet = false;
   }
   sleepIntervalS = prefs.getUInt("sleepInterval", 60);
-  alertThresholdV = prefs.getUShort("alertV", 3000);
-  recoverThresholdV = prefs.getUShort("recoverV", 3500);
+  alertThresholdV = prefs.getUShort("alertV", 2000);
+  recoverThresholdV = prefs.getUShort("recoverV", 2500);
   alertBurstSends = prefs.getUChar("burstSends", 3);
   idleHeartbeatCycles = prefs.getUChar("idleHbCycles", 60);
   alertHeartbeatCycles = prefs.getUChar("alertHbCycles", 15);
   recoveryConfirmCycles = prefs.getUChar("recoverCycles", 30);
   rapidDropPercent = prefs.getUChar("dropPct", 10);
-  battFullMv = prefs.getUShort("battFullMv", 4000);
+  battFullMv = prefs.getUShort("battFullMv", 3800);
   battLowMv = prefs.getUShort("battLowMv", 3300);
   battSleepMult = prefs.getUChar("battSleepMult", 30);
   battRecoveryN = prefs.getUShort("battRecoveryN", 50);
@@ -62,7 +62,7 @@ void Config::load() {
   carrierRev = prefs.getUChar("carrierRev", 0);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
-  scanGuardMs = prefs.getUShort("scanGuard", 10);
+  scanGuardMs = prefs.getUShort("scanGuard", 100);
   prefs.end();
 }
 

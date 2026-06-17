@@ -89,15 +89,15 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | Credentials | Device name | "no name" | — | ✓ | fPort 21 | `AT+DEVNAME` |
 | | App Key | — | — | ✓ | — | `AT+APPKEY` |
 | | Device EUI | (chip) | — | ✓ | — | `AT+DEVEUI` |
-| Alert | Alert V | 3000 V | ✓ | ✓ | fPort 11 | `AT+ALERTV` |
-| | Recover V | 3500 V | ✓ | ✓ | fPort 11 | `AT+RECOVERV` |
+| Alert | Alert V | 2000 V | ✓ | ✓ | fPort 11 | `AT+ALERTV` |
+| | Recover V | 2500 V | ✓ | ✓ | fPort 11 | `AT+RECOVERV` |
 | | Burst Sends | 3 | ✓ | ✓ | fPort 12 | `AT+BURSTSENDS` |
 | | Idle Heartbeat | 60 cycles | ✓ | ✓ | fPort 12 | `AT+IDLEHBCYCLES` |
 | | Alert Heartbeat | 15 cycles | ✓ | ✓ | fPort 12 | `AT+ALERTHBCYCLES` |
 | | Recovery Confirm | 30 cycles | ✓ | ✓ | fPort 12 | `AT+RECOVERCYCLES` |
 | | Drop % | 10 % | ✓ | ✓ | fPort 11 | `AT+DROPPERCENT` |
 | Sleep | Cycle Sleep | 60 s | ✓ | ✓ | fPort 13 | `AT+SLEEPINTERVAL` |
-| | Batt Full mV | 4000 mV | ✓ | ✓ | fPort 14 | `AT+BATTFULLMV` |
+| | Batt Full mV | 3800 mV | ✓ | ✓ | fPort 14 | `AT+BATTFULLMV` |
 | | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |
 | | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
@@ -109,7 +109,7 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Data Rate | 3 | ✓ | ✓ | fPort 16 | `AT+DR` |
 | | ADR | enabled | ✓ | ✓ | fPort 16 | `AT+ADR` |
 | | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
-| | Scan Guard | 10 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
+| | Scan Guard | 100 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
 
 **Carrier Rev** selects the carrier-board revision (0 = v3.0 modded, opamp powered directly from
