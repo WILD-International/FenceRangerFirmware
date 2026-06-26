@@ -62,6 +62,12 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
       return;
     }
 
+    // Skip the first half of the window: the opening fence pulse(s) draw inrush current that
+    // inflates the peak, and since we report the max it would stick for the whole window. Keep
+    // draining the ADC (so the DMA pool doesn't overflow) but don't fold these samples into
+    // min/max until past the warmup.
+    bool warm = (millis() - start) >= (measureDurationMs / 2);
+
     for (int i = 0; i < out_len; i += sizeof(adc_digi_output_data_t)) {
       adc_digi_output_data_t* s = (adc_digi_output_data_t*)&dma_buf[i];
       uint32_t ch = s->type2.channel;
@@ -81,6 +87,9 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
       if (idx < 0)
         continue;
 
+      if (!warm)
+        continue;
+
       if (val < min_val[idx])
         min_val[idx] = val;
       if (val > max_val[idx])
@@ -94,12 +103,14 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
     if (error_count > 0) {
       LOG("Errors: %d\n", error_count);
     }
+    // Samples are only counted after the warmup, so the rate is over the recorded half-window.
+    uint32_t samplingMs = measureDurationMs - (measureDurationMs / 2);
     for (int i = 0; i < NUM_CHANNELS; i++) {
       uint32_t min_mv = esp_adc_cal_raw_to_voltage(min_val[i], &adc_chars);
       uint32_t max_mv = esp_adc_cal_raw_to_voltage(max_val[i], &adc_chars);
 
       LOG("CH%d: %d samples (~%d Hz), Min: %d, Max: %d\n", channels[i], sample_count[i],
-          sample_count[i] * 1000 / measureDurationMs, min_mv, max_mv);
+          sample_count[i] * 1000 / samplingMs, min_mv, max_mv);
 
       if (channels[i] == ADC_CHANNEL_VBAT) {
         measurement.battMinMv = (min_mv * 490 / 100);
