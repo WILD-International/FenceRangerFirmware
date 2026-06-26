@@ -45,13 +45,11 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
   if (dropAlert) {
     display.message("DROP ALERT");
     comms.sendRapidDropAlert(measurement.battMaxMv, previousFenceVoltage,
-                             max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
-                             &downlink);
+                             measurement.fenceVoltage(), &display, &downlink);
   } else {
     display.message("SEND DATA");
-    int16_t sendState = comms.sendMeasurement(
-        measurement.battMaxMv, max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display,
-        &downlink);
+    int16_t sendState = comms.sendMeasurement(measurement.battMaxMv, measurement.fenceVoltage(),
+                                              &display, &downlink);
     if (sendState < 0) {
       return;
     }
@@ -223,8 +221,7 @@ void setup() {
   // phase's forced DR, not a normal send. runRadioTrialCycle commits or reverts the
   // candidate based on whether an ACK arrives; either way we just sleep afterwards.
   if (rtc.radioTrial.active) {
-    comms.runRadioTrialCycle(measurement.battMaxMv,
-                             max(measurement.fenceNegMaxV, measurement.fencePosMaxV), &display);
+    comms.runRadioTrialCycle(measurement.battMaxMv, measurement.fenceVoltage(), &display);
     comms.sleep();
     gotoSleep(config, adaptedSleepMs);
   }
@@ -248,7 +245,7 @@ void setup() {
     gotoSleep(config, 100);
   }
 
-  uint16_t fenceVoltage = max(measurement.fencePosMaxV, measurement.fenceNegMaxV);
+  uint16_t fenceVoltage = measurement.fenceVoltage();
   AlertConfig alertCfg = {
       .alertThresholdV = config.getAlertThresholdV(),
       .recoverThresholdV = config.getRecoverThresholdV(),

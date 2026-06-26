@@ -469,7 +469,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           display.showVoltageTest(liveMeasurement);
           measureProgram.begin(config);
         } else if (menuState == LORA_TEST) {
-          uint16_t fenceVoltage = max(liveMeasurement.fencePosMaxV, liveMeasurement.fenceNegMaxV);
+          uint16_t fenceVoltage = liveMeasurement.fenceVoltage();
           Downlink downlink = {};
           SignalInfo signalInfo = {};
           display.message("SEND DATA");
