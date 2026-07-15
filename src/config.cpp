@@ -59,7 +59,7 @@ void Config::load() {
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
   txPower = (int8_t)prefs.getChar("txPower", 10);
   dataRate = prefs.getUChar("dataRate", 3);
-  carrierRev = prefs.getUChar("carrierRev", 0);
+  carrierRev = prefs.getUChar("carrierRev", 1);
   adrEnabled = prefs.getBool("adrEnabled", true);
   syncwordPublic = prefs.getBool("syncwordPublic", true);
   scanGuardMs = prefs.getUShort("scanGuard", 100);

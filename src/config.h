@@ -219,7 +219,7 @@ class Config {
   uint16_t fenceCalPercent = 100;
   int8_t txPower = 10;
   uint8_t dataRate = 3;
-  uint8_t carrierRev = 0;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
+  uint8_t carrierRev = 1;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
   bool adrEnabled = true;
   bool syncwordPublic = true;
   uint16_t scanGuardMs = 100;
