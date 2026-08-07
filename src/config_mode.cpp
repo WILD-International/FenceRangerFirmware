@@ -473,8 +473,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
           Downlink downlink = {};
           SignalInfo signalInfo = {};
           display.message("SEND DATA");
-          int16_t sendResult = comms.sendMeasurement(liveMeasurement.battMaxMv, fenceVoltage,
-                                                     &display, &downlink, true, &signalInfo);
+          int16_t sendResult =
+              comms.sendMeasurement(liveMeasurement, &display, &downlink, true, &signalInfo);
           if (sendResult > 0) {
             lastSignalInfo = signalInfo;
             loraTestState = LoraTestState::Received;

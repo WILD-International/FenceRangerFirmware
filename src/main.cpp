@@ -48,8 +48,7 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
                              measurement.fenceVoltage(), &display, &downlink);
   } else {
     display.message("SEND DATA");
-    int16_t sendState = comms.sendMeasurement(measurement.battMaxMv, measurement.fenceVoltage(),
-                                              &display, &downlink);
+    int16_t sendState = comms.sendMeasurement(measurement, &display, &downlink);
     if (sendState < 0) {
       return;
     }
@@ -221,7 +220,7 @@ void setup() {
   // phase's forced DR, not a normal send. runRadioTrialCycle commits or reverts the
   // candidate based on whether an ACK arrives; either way we just sleep afterwards.
   if (rtc.radioTrial.active) {
-    comms.runRadioTrialCycle(measurement.battMaxMv, measurement.fenceVoltage(), &display);
+    comms.runRadioTrialCycle(measurement, &display);
     comms.sleep();
     gotoSleep(config, adaptedSleepMs);
   }

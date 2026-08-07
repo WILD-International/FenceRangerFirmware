@@ -9,6 +9,7 @@
 #include "board.h"
 #include "config.h"
 #include "display.h"
+#include "measure_program.h"
 #include "rtc_state.h"
 #include "signal_info.h"
 
@@ -100,7 +101,7 @@ class Comms {
   Comms(Config* config, State* state);
 
   int16_t begin(Display* display);
-  int16_t sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display, Downlink* downlink,
+  int16_t sendMeasurement(const Measurement& measurement, Display* display, Downlink* downlink,
                           bool confirmed = false, SignalInfo* signalInfo = nullptr);
   // Drop-triggered outage opening (fPort 2): reports the previous and current fence
   // voltage, plus battery. See the rapid-drop path of processMeasurement in alert.h.
@@ -115,7 +116,7 @@ class Comms {
 
   // Run one wake of an active radio-config trial: a confirmed-uplink probe at the
   // phase's forced DR, then advance / commit / revert based on whether an ACK arrived.
-  void runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* display);
+  void runRadioTrialCycle(const Measurement& measurement, Display* display);
 
  private:
   bool lwActivate(Display* display);

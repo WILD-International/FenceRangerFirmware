@@ -343,7 +343,7 @@ void Comms::revertRadioTrial() {
   LOGLN("Radio trial reverted (candidate discarded; NVS config unchanged)");
 }
 
-void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* display) {
+void Comms::runRadioTrialCycle(const Measurement& measurement, Display* display) {
   if (begin(display) != RADIOLIB_ERR_NONE || !hasJoined()) {
     // The radio failing to init / not being joined while a config trial is pending
     // should never happen — the trial only exists because a downlink got through.
@@ -364,7 +364,7 @@ void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* displa
   display->message("RADIO TEST");
 
   Downlink downlink;
-  int16_t result = sendMeasurement(battMv, fenceV, display, &downlink, /*confirmed=*/true);
+  int16_t result = sendMeasurement(measurement, display, &downlink, /*confirmed=*/true);
   bool ackReceived = (result > 0);
 
   if (ackReceived) {
@@ -413,13 +413,13 @@ void Comms::runRadioTrialCycle(uint16_t battMv, uint16_t fenceV, Display* displa
   }
 }
 
-int16_t Comms::sendMeasurement(uint16_t battMv, uint16_t fenceV, Display* display,
-                               Downlink* downlink, bool confirmed, SignalInfo* signalInfo) {
-  battMv = constrain(battMv, (uint16_t)1950, (uint16_t)4500);
+int16_t Comms::sendMeasurement(const Measurement& measurement, Display* display, Downlink* downlink,
+                               bool confirmed, SignalInfo* signalInfo) {
+  uint16_t battMv = constrain(measurement.battMaxMv, (uint16_t)1950, (uint16_t)4500);
   uint8_t payload[3];
   payload[0] = (battMv - 1950) / 10;
-  payload[1] = (fenceV >> 8) & 0xFF;
-  payload[2] = fenceV & 0xFF;
+  payload[1] = (measurement.fencePosMaxV >> 8) & 0xFF;
+  payload[2] = measurement.fencePosMaxV & 0xFF;
   return send(1, payload, sizeof(payload), display, downlink, confirmed, signalInfo);
 }
 
