@@ -114,6 +114,11 @@ class Config {
   }
   void setFenceCalPercent(uint16_t percent);
 
+  bool getSendFenceNeg() const {
+    return sendFenceNeg;
+  }
+  void setSendFenceNeg(bool enabled);
+
   int8_t getTxPower() const {
     return txPower;
   }
@@ -217,6 +222,7 @@ class Config {
   bool rxLnaEnabled = true;
   uint16_t measureDurationMs = 3000;
   uint16_t fenceCalPercent = 100;
+  bool sendFenceNeg = false;
   int8_t txPower = 10;
   uint8_t dataRate = 3;
   uint8_t carrierRev = 1;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)

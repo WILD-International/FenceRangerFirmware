@@ -212,6 +212,15 @@ static AtAction dispatch(const String& raw, Config& config) {
          config.setFenceCalPercent(n);
          return true;
        }},
+      {"SENDFENCENEG", "Send fence- reading on fPort 3 (0/1)",
+       [&]() -> String { return String(config.getSendFenceNeg() ? 1 : 0); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 1, n))
+           return false;
+         config.setSendFenceNeg(n != 0);
+         return true;
+       }},
       {"CARRIERREV", "Carrier board revision (0=v3.0 opamp GPIO2, 1=v3.1 opamp GPIO6)",
        [&]() -> String { return String(config.getCarrierRev()); },
        [&](const String& v) -> bool {

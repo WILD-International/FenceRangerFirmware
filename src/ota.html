@@ -194,6 +194,10 @@
     <input type="text" id="measure-duration" maxlength="5" placeholder="3000">
     <label>Fence Cal (%)</label>
     <input type="text" id="fence-cal" maxlength="3" placeholder="100">
+    <div class="toggle-row">
+      <label>Send Fence- (fPort 3)</label>
+      <input type="checkbox" id="send-fence-neg">
+    </div>
     <label>Carrier Rev</label>
     <select id="carrier-rev">
       <option value="0">v3.0</option>
@@ -293,6 +297,7 @@
         document.getElementById('batt-recovery-n').value = d.battRecoveryN;
         document.getElementById('measure-duration').value = d.measureDurationMs;
         document.getElementById('fence-cal').value = d.fenceCalPercent;
+        document.getElementById('send-fence-neg').checked = d.sendFenceNeg == 1;
         document.getElementById('carrier-rev').value = d.carrierRev;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
         document.getElementById('tx-power').value = d.txPower;
@@ -353,6 +358,7 @@
       postConfig('/measure', {
         measureDurationMs: document.getElementById('measure-duration').value,
         fenceCalPercent: document.getElementById('fence-cal').value,
+        sendFenceNeg: document.getElementById('send-fence-neg').checked ? '1' : '0',
         carrierRev: document.getElementById('carrier-rev').value
       }, 'status-measure');
     }

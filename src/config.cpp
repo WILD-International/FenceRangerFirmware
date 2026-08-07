@@ -57,6 +57,7 @@ void Config::load() {
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
   measureDurationMs = prefs.getUShort("measureMs", 3000);
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
+  sendFenceNeg = prefs.getBool("sendFenceNeg", false);
   txPower = (int8_t)prefs.getChar("txPower", 10);
   dataRate = prefs.getUChar("dataRate", 3);
   carrierRev = prefs.getUChar("carrierRev", 1);
@@ -77,6 +78,13 @@ void Config::setMeasureDurationMs(uint16_t ms) {
   measureDurationMs = ms;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUShort("measureMs", measureDurationMs);
+  prefs.end();
+}
+
+void Config::setSendFenceNeg(bool enabled) {
+  sendFenceNeg = enabled;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putBool("sendFenceNeg", sendFenceNeg);
   prefs.end();
 }
 

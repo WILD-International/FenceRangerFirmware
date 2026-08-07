@@ -81,6 +81,7 @@ struct Downlink {
     struct {
       uint16_t measureDurationMs;
       uint16_t fenceCalPercent;
+      uint8_t sendFenceNeg;
     } measureConfig;
     struct {
       uint8_t rxLnaEnabled;

@@ -103,6 +103,7 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
 | Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 15 | `AT+MEASUREDURATION` |
 | | Fence Cal % | 100 | ✓ | ✓ | fPort 15 | `AT+FENCECAL` |
+| | Send Fence- | disabled | ✓ | ✓ | fPort 15 | `AT+SENDFENCENEG` |
 | | Carrier Rev | 1 (v3.1) | ✓ | ✓ | — | `AT+CARRIERREV` |
 | Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
 | | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
@@ -111,12 +112,6 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
 | | Scan Guard | 100 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
-
-**Carrier Rev** selects the carrier-board revision (0 = v3.0 modded, opamp powered directly from
-GPIO 2, active-HIGH; 1 = v3.1, opamp gated by a MOSFET on GPIO 6, active-LOW) so one firmware
-image runs on every revision. See `src/carrier_board.h` for the per-revision details. It is intentionally **never** settable over
-LoRa — it is a physical-hardware attribute and a wrong remote value would silently break
-measurements.
 
 ---
 

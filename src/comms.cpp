@@ -416,11 +416,16 @@ void Comms::runRadioTrialCycle(const Measurement& measurement, Display* display)
 int16_t Comms::sendMeasurement(const Measurement& measurement, Display* display, Downlink* downlink,
                                bool confirmed, SignalInfo* signalInfo) {
   uint16_t battMv = constrain(measurement.battMaxMv, (uint16_t)1950, (uint16_t)4500);
-  uint8_t payload[3];
+  uint8_t payload[5];
   payload[0] = (battMv - 1950) / 10;
   payload[1] = (measurement.fencePosMaxV >> 8) & 0xFF;
   payload[2] = measurement.fencePosMaxV & 0xFF;
-  return send(1, payload, sizeof(payload), display, downlink, confirmed, signalInfo);
+  if (!config->getSendFenceNeg()) {
+    return send(1, payload, 3, display, downlink, confirmed, signalInfo);
+  }
+  payload[3] = (measurement.fenceNegMaxV >> 8) & 0xFF;
+  payload[4] = measurement.fenceNegMaxV & 0xFF;
+  return send(3, payload, 5, display, downlink, confirmed, signalInfo);
 }
 
 int16_t Comms::sendRapidDropAlert(uint16_t battMv, uint16_t previousVoltage,
@@ -564,13 +569,16 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfig");
             downlink->type = DownlinkType::QueryMeasureConfig;
-          } else if (downlinkSize == 4) {
+          } else if (downlinkSize == 4 || downlinkSize == 5) {
             LOGLN("Downlink: SetMeasureConfig");
             downlink->type = DownlinkType::SetMeasureConfig;
             downlink->measureConfig.measureDurationMs =
                 (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->measureConfig.fenceCalPercent =
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
+            // 4-byte form predates sendFenceNeg; echo the stored value so it survives.
+            downlink->measureConfig.sendFenceNeg =
+                (downlinkSize == 5) ? downlinkPayload[4] : (config->getSendFenceNeg() ? 1 : 0);
           } else {
             LOG("Downlink: fPort 15 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -684,7 +692,8 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = config->getMeasureDurationMs() & 0xFF;
       payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
       payload[3] = config->getFenceCalPercent() & 0xFF;
-      len = 4;
+      payload[4] = config->getSendFenceNeg() ? 1 : 0;
+      len = 5;
       break;
     case 16:
       payload[0] = config->getRxLnaEnabled() ? 1 : 0;
@@ -742,6 +751,7 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
     case DownlinkType::SetMeasureConfig:
       config->setMeasureDurationMs(downlink.measureConfig.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
+      config->setSendFenceNeg(downlink.measureConfig.sendFenceNeg != 0);
       return {};
     case DownlinkType::SetRadioConfig:
       // Don't persist remote radio changes directly — stage a trial that auto-reverts

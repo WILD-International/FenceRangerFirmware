@@ -118,6 +118,8 @@ void WebUi::registerRoutes() {
     json += config->getMeasureDurationMs();
     json += ",\"fenceCalPercent\":";
     json += config->getFenceCalPercent();
+    json += ",\"sendFenceNeg\":";
+    json += (int)config->getSendFenceNeg();
     json += ",\"carrierRev\":";
     json += config->getCarrierRev();
     json += ",\"txPower\":";
@@ -262,6 +264,7 @@ void WebUi::registerRoutes() {
     }
     config->setMeasureDurationMs((uint16_t)dur);
     config->setFenceCalPercent((uint16_t)cal);
+    config->setSendFenceNeg(server->arg("sendFenceNeg") == "1");
     config->setCarrierRev((uint8_t)carrierRev);
     server->send(200, "text/plain", "Saved");
   });

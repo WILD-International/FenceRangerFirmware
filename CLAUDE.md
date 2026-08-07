@@ -98,7 +98,9 @@ Each trial wake (`Comms::runRadioTrialCycle`, driven from `main.cpp` when `rtc.r
 | 0 | Battery voltage compressed: `(mv - 1950) / 10`, covering 1950–4500 mV in 10 mV steps |
 | 1–2 | Fence voltage in volts, big-endian uint16 |
 
-Encoding lives in `Comms::sendMeasurement()`. Value selection (which min/max reading to use) stays in `main.cpp`.
+The **Send Fence-** option moves the measurement to fPort 3, which also carries the negative-polarity reading. It switches the **port** rather than lengthening fPort 1: devices are already deployed whose decoders treat fPort 1 as a fixed 3-byte layout, so that layout is frozen. The alert path reads fence+ only either way — fence- is diagnostic.
+
+Encoding for both ports lives in `Comms::sendMeasurement()`. Value selection (which min/max reading to use) stays in `main.cpp`.
 
 **Rapid-drop early warning — fPort 2 (5 bytes)**
 
