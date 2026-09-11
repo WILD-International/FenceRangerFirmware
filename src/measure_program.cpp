@@ -134,8 +134,6 @@ bool MeasureProgram::isFinished() const {
   return finished;
 }
 
-static esp_adc_cal_characteristics_t adc_chars;
-
 void MeasureProgram::adc_cal_init() {
   esp_adc_cal_value_t cal_type =
       esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12,

@@ -465,8 +465,6 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
   LoRaWANEvent_t uplinkDetails;
   LoRaWANEvent_t downlinkDetails;
 
-  uint32_t fCntUp = node.getFCntUp();
-
   int16_t radiolib_state = node.sendReceive(data, len, fport, downlinkPayload, &downlinkSize,
                                             confirmed, &uplinkDetails, &downlinkDetails);
   digitalWrite(LORA_PA_POWER, LOW);
