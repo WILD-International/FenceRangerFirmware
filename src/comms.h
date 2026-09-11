@@ -34,6 +34,7 @@ enum class DownlinkType : uint8_t {
   SetSleepConfig,
   SetSleepAdjRange,
   SetMeasureConfig,
+  SetMeasureConfigV2,
   SetRadioConfig,
   SetDevName,
   QueryAlertThresholds,
@@ -41,6 +42,7 @@ enum class DownlinkType : uint8_t {
   QuerySleepConfig,
   QuerySleepAdjRange,
   QueryMeasureConfig,
+  QueryMeasureConfigV2,
   QueryRadioConfig,
   QueryDevName,
   QueryVersion,
@@ -83,6 +85,11 @@ struct Downlink {
       uint16_t fenceCalPercent;
       uint8_t sendFenceNeg;
     } measureConfig;
+    struct {
+      uint16_t measureDurationMs;
+      uint16_t fenceCalPercent;
+      uint8_t fenceChannels;
+    } measureConfigV2;
     struct {
       uint8_t rxLnaEnabled;
       int8_t txPower;

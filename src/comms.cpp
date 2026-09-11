@@ -85,6 +85,8 @@ static uint8_t responseFPort(DownlinkType t) {
       return 14;
     case DownlinkType::QueryMeasureConfig:
       return 15;
+    case DownlinkType::QueryMeasureConfigV2:
+      return 17;
     case DownlinkType::QueryRadioConfig:
       return 16;
     case DownlinkType::QueryDevName:
@@ -575,6 +577,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             LOG("Downlink: fPort 14 ignored (unexpected size %d)\n", downlinkSize);
           }
           break;
+        // Deprecated: superseded by fPort 17, kept with its 1.2.0 meaning.
         case 15:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfig");
@@ -608,6 +611,24 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->radioConfig.scanGuardMs = (downlinkPayload[5] << 8) | downlinkPayload[6];
           } else {
             LOG("Downlink: fPort 16 ignored (unexpected size %d)\n", downlinkSize);
+          }
+          break;
+        case 17:
+          if (downlinkSize == 0) {
+            LOGLN("Downlink: QueryMeasureConfigV2");
+            downlink->type = DownlinkType::QueryMeasureConfigV2;
+          } else if (downlinkSize == 5 &&
+                     downlinkPayload[4] <= (uint8_t)FenceChannels::NegPrimary) {
+            LOGLN("Downlink: SetMeasureConfigV2");
+            downlink->type = DownlinkType::SetMeasureConfigV2;
+            downlink->measureConfigV2.measureDurationMs =
+                (downlinkPayload[0] << 8) | downlinkPayload[1];
+            downlink->measureConfigV2.fenceCalPercent =
+                (downlinkPayload[2] << 8) | downlinkPayload[3];
+            downlink->measureConfigV2.fenceChannels = downlinkPayload[4];
+          } else {
+            LOG("Downlink: fPort 17 ignored (unexpected size %d or fence channels)\n",
+                downlinkSize);
           }
           break;
         case 20:
@@ -697,6 +718,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = (uint8_t)((config->getBattLowMv() - 1950) / 10);
       len = 2;
       break;
+    // Deprecated: superseded by fPort 17, kept with its 1.2.0 meaning.
     case 15:
       payload[0] = (config->getMeasureDurationMs() >> 8) & 0xFF;
       payload[1] = config->getMeasureDurationMs() & 0xFF;
@@ -714,6 +736,14 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[5] = (config->getScanGuardMs() >> 8) & 0xFF;
       payload[6] = config->getScanGuardMs() & 0xFF;
       len = 7;
+      break;
+    case 17:
+      payload[0] = (config->getMeasureDurationMs() >> 8) & 0xFF;
+      payload[1] = config->getMeasureDurationMs() & 0xFF;
+      payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
+      payload[3] = config->getFenceCalPercent() & 0xFF;
+      payload[4] = (uint8_t)config->getFenceChannels();
+      len = 5;
       break;
     default:
       return RADIOLIB_ERR_NONE;
@@ -762,6 +792,11 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setMeasureDurationMs(downlink.measureConfig.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
       config->setSendFenceNeg(downlink.measureConfig.sendFenceNeg != 0);
+      return {};
+    case DownlinkType::SetMeasureConfigV2:
+      config->setMeasureDurationMs(downlink.measureConfigV2.measureDurationMs);
+      config->setFenceCalPercent(downlink.measureConfigV2.fenceCalPercent);
+      config->setFenceChannels((FenceChannels)downlink.measureConfigV2.fenceChannels);
       return {};
     case DownlinkType::SetRadioConfig:
       // Don't persist remote radio changes directly — stage a trial that auto-reverts

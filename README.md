@@ -101,9 +101,10 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Batt Low mV | 3300 mV | ✓ | ✓ | fPort 14 | `AT+BATTLOWMV` |
 | | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
-| Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 15 | `AT+MEASUREDURATION` |
-| | Fence Cal % | 100 | ✓ | ✓ | fPort 15 | `AT+FENCECAL` |
-| | Send Fence- | disabled | ✓ | ✓ | fPort 15 | `AT+SENDFENCENEG` |
+| Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+MEASUREDURATION` |
+| | Fence Cal % | 100 | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+FENCECAL` |
+| | Send Fence- (deprecated) | disabled | ✓ | ✓ | fPort 15 (deprecated) | `AT+SENDFENCENEG` |
+| | Fence Channels | Pos only | — | — | fPort 17 | — |
 | | Carrier Rev | 1 (v3.1) | ✓ | ✓ | — | `AT+CARRIERREV` |
 | Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
 | | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
