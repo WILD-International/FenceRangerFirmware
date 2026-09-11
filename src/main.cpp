@@ -45,7 +45,8 @@ static void runComms(Comms& comms, State& state, Config& config, Display& displa
   if (dropAlert) {
     display.message("DROP ALERT");
     comms.sendRapidDropAlert(measurement.battMaxMv, previousFenceVoltage,
-                             measurement.fenceVoltage(), &display, &downlink);
+                             measurement.fenceVoltage(config.getFenceNegPrimary()), &display,
+                             &downlink);
   } else {
     display.message("SEND DATA");
     int16_t sendState = comms.sendMeasurement(measurement, &display, &downlink);
@@ -244,7 +245,13 @@ void setup() {
     gotoSleep(config, 100);
   }
 
-  uint16_t fenceVoltage = measurement.fenceVoltage();
+  bool fenceNegPrimary = config.getFenceNegPrimary();
+  // Switching the primary channel must not register as a rapid drop.
+  if (rtc.dropBaselineFenceNeg != fenceNegPrimary) {
+    rtc.alertState.previousFenceVoltage = 0;
+    rtc.dropBaselineFenceNeg = fenceNegPrimary;
+  }
+  uint16_t fenceVoltage = measurement.fenceVoltage(fenceNegPrimary);
   AlertConfig alertCfg = {
       .alertThresholdV = config.getAlertThresholdV(),
       .recoverThresholdV = config.getRecoverThresholdV(),

@@ -10,6 +10,8 @@
 #define APPKEY_LEN 16
 #define DEVNAME_MAX 32
 
+enum class FenceChannels : uint8_t { PosOnly = 0, PosPrimary = 1, NegPrimary = 2 };
+
 class Config {
  public:
   Config();
@@ -114,8 +116,17 @@ class Config {
   }
   void setFenceCalPercent(uint16_t percent);
 
+  FenceChannels getFenceChannels() const {
+    return fenceChannels;
+  }
+  bool getFenceNegPrimary() const {
+    return fenceChannels == FenceChannels::NegPrimary;
+  }
+  void setFenceChannels(FenceChannels channels);
+
+  // Deprecated Send Fence- view (fPort 15, AT+SENDFENCENEG), keeping its 1.2.0 meaning.
   bool getSendFenceNeg() const {
-    return sendFenceNeg;
+    return fenceChannels != FenceChannels::PosOnly;
   }
   void setSendFenceNeg(bool enabled);
 
@@ -222,7 +233,7 @@ class Config {
   bool rxLnaEnabled = true;
   uint16_t measureDurationMs = 3000;
   uint16_t fenceCalPercent = 100;
-  bool sendFenceNeg = false;
+  FenceChannels fenceChannels = FenceChannels::PosOnly;
   int8_t txPower = 10;
   uint8_t dataRate = 3;
   uint8_t carrierRev = 1;  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)

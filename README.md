@@ -8,7 +8,7 @@ Because it runs on a small solar-charged battery, it needs to balance two compet
 
 ## Alert behavior
 
-The device measures the fence voltage every cycle (from the positive-polarity peak) and classifies it against two thresholds: at or above **Recover V** is *healthy*, below **Alert V** is a *problem*, and the gap between them is a deliberate no-man's-land that counts as *not yet healthy* everywhere. This hysteresis stops the device oscillating when a fence hovers near the line.
+The device measures the fence voltage every cycle (from the positive-polarity peak, or the negative one when Fence− is set as primary) and classifies it against two thresholds: at or above **Recover V** is *healthy*, below **Alert V** is a *problem*, and the gap between them is a deliberate no-man's-land that counts as *not yet healthy* everywhere. This hysteresis stops the device oscillating when a fence hovers near the line.
 
 Most of the time the fence is healthy and there is nothing to report, so the device only sends a brief heartbeat every **Idle Hb** cycles to confirm it is still alive. When the voltage drops below **Alert V**, the device immediately sends a burst of **Burst Sends** messages — making sure the network receives at least one — then settles into a faster heartbeat every **Alert Hb** cycles so the operator stays informed.
 

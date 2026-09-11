@@ -24,11 +24,12 @@ struct Measurement {
   uint16_t fencePosMaxV = 0;
   uint32_t adcErrorCount = 0;
 
-  // Reported fence voltage. The FenceNeg channel only reads a real voltage when the fence is
-  // wired in reverse polarity — an unlikely mistake — but it picks up noise/offset that, when
-  // combined via max(), inflates the reading while the fence is off. So the reported voltage
-  // comes from FencePos alone; FenceNeg is kept only for the diagnostic display.
-  uint16_t fenceVoltage() const {
+  // Voltage the alerting runs on. Never max() of both channels: Fence− picks up noise/offset
+  // that inflates the reading while the fence is off.
+  uint16_t fenceVoltage(bool fenceNegPrimary) const {
+    if (fenceNegPrimary) {
+      return fenceNegMaxV;
+    }
     return fencePosMaxV;
   }
 };

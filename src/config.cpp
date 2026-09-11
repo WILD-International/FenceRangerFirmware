@@ -1,5 +1,10 @@
 #include "config.h"
 
+// Shared with firmware 1.2.0, which stores Send Fence- here as a bool (0/1) and reads anything
+// other than 1 as off. Holding fenceChannels in the same key lets a 1.2.0 write overwrite a
+// NegPrimary setting instead of leaving it to resurface after an upgrade.
+static const char* const FENCE_CHANNELS_KEY = "sendFenceNeg";
+
 Config::Config() {
   loadDevEUI();
 }
@@ -57,7 +62,10 @@ void Config::load() {
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
   measureDurationMs = prefs.getUShort("measureMs", 3000);
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
-  sendFenceNeg = prefs.getBool("sendFenceNeg", false);
+  uint8_t storedFenceChannels = prefs.getUChar(FENCE_CHANNELS_KEY, 0);
+  fenceChannels = (storedFenceChannels <= (uint8_t)FenceChannels::NegPrimary)
+                      ? (FenceChannels)storedFenceChannels
+                      : FenceChannels::PosOnly;
   txPower = (int8_t)prefs.getChar("txPower", 10);
   dataRate = prefs.getUChar("dataRate", 3);
   carrierRev = prefs.getUChar("carrierRev", 1);
@@ -81,11 +89,19 @@ void Config::setMeasureDurationMs(uint16_t ms) {
   prefs.end();
 }
 
-void Config::setSendFenceNeg(bool enabled) {
-  sendFenceNeg = enabled;
+void Config::setFenceChannels(FenceChannels channels) {
+  fenceChannels = channels;
   prefs.begin(PREFS_NAMESPACE, false);
-  prefs.putBool("sendFenceNeg", sendFenceNeg);
+  prefs.putUChar(FENCE_CHANNELS_KEY, (uint8_t)fenceChannels);
   prefs.end();
+}
+
+void Config::setSendFenceNeg(bool enabled) {
+  if (!enabled) {
+    setFenceChannels(FenceChannels::PosOnly);
+  } else if (fenceChannels == FenceChannels::PosOnly) {
+    setFenceChannels(FenceChannels::PosPrimary);
+  }
 }
 
 void Config::setRxLnaEnabled(bool enabled) {
