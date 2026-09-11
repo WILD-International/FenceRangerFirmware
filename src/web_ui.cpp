@@ -118,8 +118,8 @@ void WebUi::registerRoutes() {
     json += config->getMeasureDurationMs();
     json += ",\"fenceCalPercent\":";
     json += config->getFenceCalPercent();
-    json += ",\"sendFenceNeg\":";
-    json += (int)config->getSendFenceNeg();
+    json += ",\"fenceChannels\":";
+    json += (int)config->getFenceChannels();
     json += ",\"carrierRev\":";
     json += config->getCarrierRev();
     json += ",\"txPower\":";
@@ -250,21 +250,25 @@ void WebUi::registerRoutes() {
   server->on("/measure", HTTP_POST, [this]() {
     String durArg = server->arg("measureDurationMs");
     String calArg = server->arg("fenceCalPercent");
+    String fenceChannelsArg = server->arg("fenceChannels");
     String carrierArg = server->arg("carrierRev");
-    if (durArg.length() == 0 || calArg.length() == 0 || carrierArg.length() == 0) {
+    if (durArg.length() == 0 || calArg.length() == 0 || fenceChannelsArg.length() == 0 ||
+        carrierArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
     int32_t dur = durArg.toInt();
     int32_t cal = calArg.toInt();
+    int32_t fenceChannels = fenceChannelsArg.toInt();
     int32_t carrierRev = carrierArg.toInt();
-    if (dur < 100 || dur > 60000 || cal < 1 || cal > 1000 || carrierRev < 0 || carrierRev > 1) {
+    if (dur < 100 || dur > 60000 || cal < 1 || cal > 1000 || fenceChannels < 0 ||
+        fenceChannels > (int32_t)FenceChannels::NegPrimary || carrierRev < 0 || carrierRev > 1) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
     config->setMeasureDurationMs((uint16_t)dur);
     config->setFenceCalPercent((uint16_t)cal);
-    config->setSendFenceNeg(server->arg("sendFenceNeg") == "1");
+    config->setFenceChannels((FenceChannels)fenceChannels);
     config->setCarrierRev((uint8_t)carrierRev);
     server->send(200, "text/plain", "Saved");
   });

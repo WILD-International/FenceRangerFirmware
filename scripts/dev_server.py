@@ -31,7 +31,7 @@ state = {
     "battRecoveryN": 50,
     "measureDurationMs": 3000,
     "fenceCalPercent": 100,
-    "sendFenceNeg": 0,
+    "fenceChannels": 0,
     "carrierRev": 0,
     "rxLnaEnabled": 1,
     "txPower": 10,
@@ -122,7 +122,7 @@ class Handler(BaseHTTPRequestHandler):
             data = parse_qs(body.decode())
             state["measureDurationMs"] = int(data.get("measureDurationMs", [state["measureDurationMs"]])[0])
             state["fenceCalPercent"] = int(data.get("fenceCalPercent", [state["fenceCalPercent"]])[0])
-            state["sendFenceNeg"] = int(data.get("sendFenceNeg", [state["sendFenceNeg"]])[0])
+            state["fenceChannels"] = int(data.get("fenceChannels", [state["fenceChannels"]])[0])
             state["carrierRev"] = int(data.get("carrierRev", [state["carrierRev"]])[0])
             print(f"Measure config updated: {state}")
             self.send_response(200)

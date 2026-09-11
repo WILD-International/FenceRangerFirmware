@@ -76,7 +76,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
   const uint16_t DATA_RATE_OPTIONS[] = {0, 1, 2, 3, 4, 5};
   const char* const DATA_RATE_LABELS[] = {"DR0", "DR1", "DR2", "DR3", "DR4", "DR5"};
-  const uint16_t SEND_FENCE_NEG_OPTIONS[] = {0, 1};
+  const uint16_t FENCE_CHANNELS_OPTIONS[] = {0, 1, 2};
+  const char* const FENCE_CHANNELS_LABELS[] = {"Pos", "Pos+N", "Neg+P"};
   const uint16_t CARRIER_REV_OPTIONS[] = {0, 1};  // 0=v3.0 (opamp GPIO2) 1=v3.1 (opamp GPIO6)
   const char* const CARRIER_REV_LABELS[] = {"v3.0", "v3.1"};
   const uint16_t ADR_OPTIONS[] = {0, 1};
@@ -160,10 +161,11 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
       {"Fence Cal %", FENCE_CAL_OPTIONS, sizeof(FENCE_CAL_OPTIONS) / sizeof(FENCE_CAL_OPTIONS[0]),
        [&] { return config.getFenceCalPercent(); },
        [&](uint16_t percent) { config.setFenceCalPercent(percent); }},
-      {"Send Fence-", SEND_FENCE_NEG_OPTIONS,
-       sizeof(SEND_FENCE_NEG_OPTIONS) / sizeof(SEND_FENCE_NEG_OPTIONS[0]),
-       [&] { return (uint16_t)config.getSendFenceNeg(); },
-       [&](uint16_t value) { config.setSendFenceNeg(value != 0); }, ITEM_TOGGLE},
+      {"Channels", FENCE_CHANNELS_OPTIONS,
+       sizeof(FENCE_CHANNELS_OPTIONS) / sizeof(FENCE_CHANNELS_OPTIONS[0]),
+       [&] { return (uint16_t)config.getFenceChannels(); },
+       [&](uint16_t value) { config.setFenceChannels((FenceChannels)value); }, ITEM_NORMAL,
+       FENCE_CHANNELS_LABELS},
       {"Carrier Rev", CARRIER_REV_OPTIONS,
        sizeof(CARRIER_REV_OPTIONS) / sizeof(CARRIER_REV_OPTIONS[0]),
        [&] { return (uint16_t)config.getCarrierRev(); },

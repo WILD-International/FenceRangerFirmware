@@ -212,7 +212,17 @@ static AtAction dispatch(const String& raw, Config& config) {
          config.setFenceCalPercent(n);
          return true;
        }},
-      {"SENDFENCENEG", "Send fence- reading on fPort 3 (0/1)",
+      {"FENCECHANNELS", "Fence channels (0=pos only, 1=pos primary + neg, 2=neg primary + pos)",
+       [&]() -> String { return String((uint8_t)config.getFenceChannels()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, (int32_t)FenceChannels::NegPrimary, n)) {
+           return false;
+         }
+         config.setFenceChannels((FenceChannels)n);
+         return true;
+       }},
+      {"SENDFENCENEG", "Deprecated, use FENCECHANNELS: send fence- reading (0/1)",
        [&]() -> String { return String(config.getSendFenceNeg() ? 1 : 0); },
        [&](const String& v) -> bool {
          int32_t n;
