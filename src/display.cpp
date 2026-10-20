@@ -361,16 +361,19 @@ void Display::showVoltageTest(const Measurement& measurement) {
   displayHeader("Volt Test");
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
+  // Max and min per fence channel; at most 20 chars per row (21 fit at text size 1).
   display.setCursor(2, 11);
-  display.printf("Fence+ %5u V%s", measurement.fencePosMaxV,
-                 config->getFenceNegPrimary() ? "" : " *");
-  display.setCursor(2, 22);
-  display.printf("Fence- %5u V%s", measurement.fenceNegMaxV,
-                 config->getFenceNegPrimary() ? " *" : "");
-  display.setCursor(2, 33);
+  display.print("         max  min");
+  display.setCursor(2, 20);
+  display.printf("Fence+ %5u %4u V%s", measurement.fencePosMaxV, measurement.fencePosMinV,
+                 config->getFenceNegPrimary() ? "" : "*");
+  display.setCursor(2, 29);
+  display.printf("Fence- %5u %4u V%s", measurement.fenceNegMaxV, measurement.fenceNegMinV,
+                 config->getFenceNegPrimary() ? "*" : "");
+  display.setCursor(2, 38);
   display.printf("Batt   %5u mV", measurement.battMaxMv);
   if (measurement.adcErrorCount > 0) {
-    display.setCursor(2, 44);
+    display.setCursor(2, 47);
     display.printf("Errors %5u", measurement.adcErrorCount);
   }
   display.fillRect(0, 55, SCREEN_WIDTH, 9, SSD1306_WHITE);
