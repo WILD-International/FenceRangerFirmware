@@ -111,6 +111,12 @@ class Config {
   }
   void setMeasureDurationMs(uint16_t ms);
 
+  // Samples discarded after the opamp powers on, before the Measure Duration window starts.
+  uint16_t getSettleMs() const {
+    return settleMs;
+  }
+  void setSettleMs(uint16_t ms);
+
   uint16_t getFenceCalPercent() const {
     return fenceCalPercent;
   }
@@ -232,6 +238,7 @@ class Config {
   uint16_t battRecoveryN = 50;
   bool rxLnaEnabled = true;
   uint16_t measureDurationMs = 3000;
+  uint16_t settleMs = 120;
   uint16_t fenceCalPercent = 100;
   FenceChannels fenceChannels = FenceChannels::PosOnly;
   int8_t txPower = 10;

@@ -192,6 +192,8 @@
     <h3>Measure config</h3>
     <label>Measure Duration (ms)</label>
     <input type="text" id="measure-duration" maxlength="5" placeholder="3000">
+    <label>Settle Time (ms)</label>
+    <input type="text" id="settle-ms" maxlength="5" placeholder="120">
     <label>Fence Cal (%)</label>
     <input type="text" id="fence-cal" maxlength="3" placeholder="100">
     <label>Fence Channels</label>
@@ -298,6 +300,7 @@
         document.getElementById('batt-sleep-mult').value = d.battSleepMult;
         document.getElementById('batt-recovery-n').value = d.battRecoveryN;
         document.getElementById('measure-duration').value = d.measureDurationMs;
+        document.getElementById('settle-ms').value = d.settleMs;
         document.getElementById('fence-cal').value = d.fenceCalPercent;
         document.getElementById('fence-channels').value = d.fenceChannels;
         document.getElementById('carrier-rev').value = d.carrierRev;
@@ -359,6 +362,7 @@
     function saveMeasure() {
       postConfig('/measure', {
         measureDurationMs: document.getElementById('measure-duration').value,
+        settleMs: document.getElementById('settle-ms').value,
         fenceCalPercent: document.getElementById('fence-cal').value,
         fenceChannels: document.getElementById('fence-channels').value,
         carrierRev: document.getElementById('carrier-rev').value

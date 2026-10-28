@@ -71,6 +71,7 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
   const uint16_t RECOVERY_N_OPTIONS[] = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
   const uint16_t RX_LNA_OPTIONS[] = {0, 1};
   const uint16_t MEASURE_DURATION_OPTIONS[] = {1200, 2200, 3000, 6000, 12000};
+  const uint16_t SETTLE_OPTIONS[] = {0, 10, 30, 60, 120, 250, 500, 1000};
   const uint16_t FENCE_CAL_OPTIONS[] = {86,  88,  90,  92,  94,  96,  98, 100,
                                         102, 104, 106, 108, 110, 112, 114};
   const uint16_t TX_POWER_OPTIONS[] = {0, 2, 5, 8, 10, 12, 14, 17, 20, 22};
@@ -158,6 +159,8 @@ bool runConfigMode(Config& config, State& state, Display& display, WebUi& webUi,
        sizeof(MEASURE_DURATION_OPTIONS) / sizeof(MEASURE_DURATION_OPTIONS[0]),
        [&] { return config.getMeasureDurationMs(); },
        [&](uint16_t ms) { config.setMeasureDurationMs(ms); }},
+      {"Settle ms", SETTLE_OPTIONS, sizeof(SETTLE_OPTIONS) / sizeof(SETTLE_OPTIONS[0]),
+       [&] { return config.getSettleMs(); }, [&](uint16_t ms) { config.setSettleMs(ms); }},
       {"Fence Cal %", FENCE_CAL_OPTIONS, sizeof(FENCE_CAL_OPTIONS) / sizeof(FENCE_CAL_OPTIONS[0]),
        [&] { return config.getFenceCalPercent(); },
        [&](uint16_t percent) { config.setFenceCalPercent(percent); }},

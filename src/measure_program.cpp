@@ -24,6 +24,7 @@ Measurement MeasureProgram::run(Config& config) {
 
 void MeasureProgram::begin(Config& config) {
   measureDurationMs = config.getMeasureDurationMs();
+  settleMs = config.getSettleMs();
   CarrierBoardConfig carrier = carrierBoardConfig(config.getCarrierRev());
   opampEnablePin = carrier.opampEnablePin;
   opampActiveHigh = carrier.opampActiveHigh;
@@ -44,6 +45,10 @@ void MeasureProgram::begin(Config& config) {
   digitalWrite(opampEnablePin, opampActiveHigh ? HIGH : LOW);  // power on the opamp
   delay(1);
 
+  // Start-up can charge the peak-hold caps (seen up to ~2 kV on Fence-). Counted in conversions,
+  // not time, so it holds however slowly update() drains the DMA pool.
+  settleSamplesLeft = settleMs * SAMPLE_FREQ_HZ / 1000;
+
   adc_continuous_init();
   ESP_ERROR_CHECK(adc_digi_start());
   start = millis();
@@ -54,7 +59,7 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
     return;
   }
 
-  if (millis() - start < measureDurationMs) {
+  if (millis() - start < settleMs + measureDurationMs) {
     uint32_t out_len = 0;
     esp_err_t ret = adc_digi_read_bytes(dma_buf, CONV_FRAME_SIZE, &out_len, 100);
     if (ret != ESP_OK) {
@@ -63,6 +68,10 @@ void MeasureProgram::update(Config& config, Measurement& measurement) {
     }
 
     for (int i = 0; i < out_len; i += sizeof(adc_digi_output_data_t)) {
+      if (settleSamplesLeft > 0) {
+        settleSamplesLeft--;
+        continue;
+      }
       adc_digi_output_data_t* s = (adc_digi_output_data_t*)&dma_buf[i];
       uint32_t ch = s->type2.channel;
       uint32_t val = s->type2.data;

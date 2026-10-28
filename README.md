@@ -102,6 +102,7 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Sleep Mult | 30 | ✓ | ✓ | fPort 13 | `AT+BATTSLEEPMULT` |
 | | Recovery N | 50 | ✓ | ✓ | fPort 13 | `AT+BATTRECOVERYN` |
 | Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+MEASUREDURATION` |
+| | Settle Time | 120 ms | ✓ | ✓ | fPort 17 | `AT+SETTLEMS` |
 | | Fence Cal % | 100 | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+FENCECAL` |
 | | Send Fence- (deprecated) | disabled | — | — | fPort 15 (deprecated) | `AT+SENDFENCENEG` |
 | | Fence Channels | Pos only | ✓ | ✓ | fPort 17 | `AT+FENCECHANNELS` |

@@ -61,6 +61,7 @@ void Config::load() {
   battRecoveryN = prefs.getUShort("battRecoveryN", 50);
   rxLnaEnabled = prefs.getBool("rxLnaEnabled", true);
   measureDurationMs = prefs.getUShort("measureMs", 3000);
+  settleMs = prefs.getUShort("settleMs", 120);
   fenceCalPercent = prefs.getUShort("fenceCalPct", 100);
   uint8_t storedFenceChannels = prefs.getUChar(FENCE_CHANNELS_KEY, 0);
   fenceChannels = (storedFenceChannels <= (uint8_t)FenceChannels::NegPrimary)
@@ -86,6 +87,13 @@ void Config::setMeasureDurationMs(uint16_t ms) {
   measureDurationMs = ms;
   prefs.begin(PREFS_NAMESPACE, false);
   prefs.putUShort("measureMs", measureDurationMs);
+  prefs.end();
+}
+
+void Config::setSettleMs(uint16_t ms) {
+  settleMs = ms;
+  prefs.begin(PREFS_NAMESPACE, false);
+  prefs.putUShort("settleMs", settleMs);
   prefs.end();
 }
 
