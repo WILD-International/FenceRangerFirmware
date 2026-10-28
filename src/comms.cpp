@@ -615,7 +615,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfigV2");
             downlink->type = DownlinkType::QueryMeasureConfigV2;
-          } else if (downlinkSize == 5 &&
+          } else if ((downlinkSize == 5 || downlinkSize == 7) &&
                      downlinkPayload[4] <= (uint8_t)FenceChannels::NegPrimary) {
             LOGLN("Downlink: SetMeasureConfigV2");
             downlink->type = DownlinkType::SetMeasureConfigV2;
@@ -624,6 +624,9 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->measureConfigV2.fenceCalPercent =
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
             downlink->measureConfigV2.fenceChannels = downlinkPayload[4];
+            downlink->measureConfigV2.hasSettleMs = downlinkSize == 7;
+            downlink->measureConfigV2.settleMs =
+                downlinkSize == 7 ? (downlinkPayload[5] << 8) | downlinkPayload[6] : 0;
           } else {
             LOG("Downlink: fPort 17 ignored (unexpected size %d or fence channels)\n",
                 downlinkSize);
@@ -741,7 +744,9 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
       payload[3] = config->getFenceCalPercent() & 0xFF;
       payload[4] = (uint8_t)config->getFenceChannels();
-      len = 5;
+      payload[5] = (config->getSettleMs() >> 8) & 0xFF;
+      payload[6] = config->getSettleMs() & 0xFF;
+      len = 7;
       break;
     default:
       return RADIOLIB_ERR_NONE;
@@ -795,6 +800,9 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
       config->setMeasureDurationMs(downlink.measureConfigV2.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfigV2.fenceCalPercent);
       config->setFenceChannels((FenceChannels)downlink.measureConfigV2.fenceChannels);
+      if (downlink.measureConfigV2.hasSettleMs) {
+        config->setSettleMs(downlink.measureConfigV2.settleMs);
+      }
       return {};
     case DownlinkType::SetRadioConfig:
       // Don't persist remote radio changes directly — stage a trial that auto-reverts

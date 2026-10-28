@@ -89,6 +89,8 @@ struct Downlink {
       uint16_t measureDurationMs;
       uint16_t fenceCalPercent;
       uint8_t fenceChannels;
+      bool hasSettleMs;  // false for the 5-byte layout from 1.3.0: leave Settle ms as is
+      uint16_t settleMs;
     } measureConfigV2;
     struct {
       uint8_t rxLnaEnabled;

@@ -203,6 +203,15 @@ static AtAction dispatch(const String& raw, Config& config) {
          config.setMeasureDurationMs(n);
          return true;
        }},
+      {"SETTLEMS", "Settle time before measuring (ms)",
+       [&]() -> String { return String(config.getSettleMs()); },
+       [&](const String& v) -> bool {
+         int32_t n;
+         if (!parseIntArg(v, 0, 10000, n))
+           return false;
+         config.setSettleMs(n);
+         return true;
+       }},
       {"FENCECAL", "Fence calibration (%)",
        [&]() -> String { return String(config.getFenceCalPercent()); },
        [&](const String& v) -> bool {

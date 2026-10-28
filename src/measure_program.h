@@ -52,7 +52,9 @@ class MeasureProgram {
 
   uint32_t start = 0;
   uint32_t measureDurationMs = 3000;  // overwritten by begin(); default never used
+  uint32_t settleMs = 120;            // overwritten by begin(); default never used
   bool finished = true;
+  uint32_t settleSamplesLeft = 0;  // conversions still to discard, all channels together
   esp_adc_cal_characteristics_t adc_chars;
   const adc_channel_t channels[NUM_CHANNELS] = {ADC_CHANNEL_VBAT, ADC_CHANNEL_FENCE_NEG,
                                                 ADC_CHANNEL_FENCE_POS};
