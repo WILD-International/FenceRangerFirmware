@@ -251,6 +251,11 @@ void setup() {
     rtc.alertState.previousFenceVoltage = 0;
     rtc.dropBaselineFenceNeg = fenceNegPrimary;
   }
+  // Nor must changing Fence Cal %.
+  if (rtc.dropBaselineCalPercent != config.getFenceCalPercent()) {
+    rtc.alertState.previousFenceVoltage = 0;
+    rtc.dropBaselineCalPercent = config.getFenceCalPercent();
+  }
   uint16_t fenceVoltage = measurement.fenceVoltage(fenceNegPrimary);
   AlertConfig alertCfg = {
       .alertThresholdV = config.getAlertThresholdV(),

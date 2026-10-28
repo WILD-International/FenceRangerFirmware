@@ -44,7 +44,8 @@ struct RtcState {
 
   // Alert state machine
   AlertState alertState = {};
-  bool dropBaselineFenceNeg = false;  // channel alertState.previousFenceVoltage was read from
+  bool dropBaselineFenceNeg = false;    // channel alertState.previousFenceVoltage was read from
+  uint16_t dropBaselineCalPercent = 0;  // Fence Cal % it was read with
 
   // Battery slow filter
   uint16_t slowBattMv = 0;
