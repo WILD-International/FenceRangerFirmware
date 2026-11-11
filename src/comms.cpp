@@ -449,9 +449,9 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
   digitalWrite(LORA_PA_POWER, HIGH);
   delay(1);
 
-  // Sized to hold the largest downlink we parse — a JoinWifiSta payload (fPort 9) carrying an
-  // SSID plus a WPA2 password can exceed 32 bytes.
-  uint8_t downlinkPayload[128];
+  // sendReceive() copies the downlink without knowing this buffer's size, so it must hold the
+  // largest downlink RadioLib can deliver, not just the largest one we parse.
+  uint8_t downlinkPayload[RADIOLIB_LORAWAN_MAX_DOWNLINK_SIZE];
   size_t downlinkSize;
 
   LoRaWANEvent_t uplinkDetails;
@@ -471,6 +471,10 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
     }
     LOGLN("Received a message from server");
     if (downlink != nullptr) {
+      // Config set payloads are append-only: a set needs at least the fields of the first
+      // layout, a field added later is applied only when it is fully present, and bytes past the
+      // fields this firmware knows are ignored. So the server can always send the newest layout
+      // to any device, and the config report shows what the device applied.
       switch (downlinkDetails.fPort) {
         case 9: {
           LOGLN("Downlink: JoinWifiSta");
@@ -515,21 +519,21 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertThresholds");
             downlink->type = DownlinkType::QueryAlertThresholds;
-          } else if (downlinkSize == 5) {
+          } else if (downlinkSize >= 5) {
             LOGLN("Downlink: SetAlertThresholds");
             downlink->type = DownlinkType::SetAlertThresholds;
             downlink->alertThresholds.alertV = (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->alertThresholds.recoverV = (downlinkPayload[2] << 8) | downlinkPayload[3];
             downlink->alertThresholds.dropPercent = downlinkPayload[4];
           } else {
-            LOG("Downlink: fPort 11 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 11 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 12:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryAlertCycles");
             downlink->type = DownlinkType::QueryAlertCycles;
-          } else if (downlinkSize == 4) {
+          } else if (downlinkSize >= 4) {
             LOGLN("Downlink: SetAlertCycles");
             downlink->type = DownlinkType::SetAlertCycles;
             downlink->alertCycles.burstSends = downlinkPayload[0];
@@ -537,34 +541,34 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->alertCycles.alertHbCycles = downlinkPayload[2];
             downlink->alertCycles.recoveryCycles = downlinkPayload[3];
           } else {
-            LOG("Downlink: fPort 12 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 12 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 13:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QuerySleepConfig");
             downlink->type = DownlinkType::QuerySleepConfig;
-          } else if (downlinkSize == 5) {
+          } else if (downlinkSize >= 5) {
             LOGLN("Downlink: SetSleepConfig");
             downlink->type = DownlinkType::SetSleepConfig;
             downlink->sleepConfig.sleepIntervalS = (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->sleepConfig.sleepMult = downlinkPayload[2];
             downlink->sleepConfig.recoveryN = (downlinkPayload[3] << 8) | downlinkPayload[4];
           } else {
-            LOG("Downlink: fPort 13 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 13 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 14:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QuerySleepAdjRange");
             downlink->type = DownlinkType::QuerySleepAdjRange;
-          } else if (downlinkSize == 2) {
+          } else if (downlinkSize >= 2) {
             LOGLN("Downlink: SetSleepAdjRange");
             downlink->type = DownlinkType::SetSleepAdjRange;
             downlink->sleepAdjRange.battFullMv = downlinkPayload[0] * 10 + 1950;
             downlink->sleepAdjRange.battLowMv = downlinkPayload[1] * 10 + 1950;
           } else {
-            LOG("Downlink: fPort 14 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 14 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         // Deprecated: superseded by fPort 17, kept with its 1.2.0 meaning.
@@ -572,7 +576,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfig");
             downlink->type = DownlinkType::QueryMeasureConfig;
-          } else if (downlinkSize == 4 || downlinkSize == 5) {
+          } else if (downlinkSize >= 4) {
             LOGLN("Downlink: SetMeasureConfig");
             downlink->type = DownlinkType::SetMeasureConfig;
             downlink->measureConfig.measureDurationMs =
@@ -581,14 +585,14 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
             // Byte 4 (Send Fence-) is ignored: both channels are always sent.
           } else {
-            LOG("Downlink: fPort 15 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 15 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 16:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryRadioConfig");
             downlink->type = DownlinkType::QueryRadioConfig;
-          } else if (downlinkSize == 7) {
+          } else if (downlinkSize >= 7) {
             LOGLN("Downlink: SetRadioConfig");
             downlink->type = DownlinkType::SetRadioConfig;
             downlink->radioConfig.rxLnaEnabled = downlinkPayload[0];
@@ -598,14 +602,14 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
             downlink->radioConfig.syncwordPublic = downlinkPayload[4];
             downlink->radioConfig.scanGuardMs = (downlinkPayload[5] << 8) | downlinkPayload[6];
           } else {
-            LOG("Downlink: fPort 16 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 16 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 17:
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfigV2");
             downlink->type = DownlinkType::QueryMeasureConfigV2;
-          } else if (downlinkSize == 5 || downlinkSize == 7) {
+          } else if (downlinkSize >= 5) {
             // Byte 4 (Fence Channels) is ignored: the higher channel is always used.
             LOGLN("Downlink: SetMeasureConfigV2");
             downlink->type = DownlinkType::SetMeasureConfigV2;
@@ -613,11 +617,11 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
                 (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->measureConfigV2.fenceCalPercent =
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
-            downlink->measureConfigV2.hasSettleMs = downlinkSize == 7;
+            downlink->measureConfigV2.hasSettleMs = downlinkSize >= 7;
             downlink->measureConfigV2.settleMs =
-                downlinkSize == 7 ? (downlinkPayload[5] << 8) | downlinkPayload[6] : 0;
+                downlinkSize >= 7 ? (downlinkPayload[5] << 8) | downlinkPayload[6] : 0;
           } else {
-            LOG("Downlink: fPort 17 ignored (unexpected size %d)\n", downlinkSize);
+            LOG("Downlink: fPort 17 ignored (too short: %d)\n", downlinkSize);
           }
           break;
         case 20:

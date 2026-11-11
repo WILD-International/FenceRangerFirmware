@@ -49,7 +49,7 @@ Parameters can be configured via four interfaces:
 
 - **OLED menu** — single-button interface on the device (long-press on the info screen to enter the menu). Besides the config groups, the menu has two on-device bench tests — **Voltage Test** (live fence and battery readings) and **LoRa Test** (sends a confirmed uplink and shows join status plus signal quality — RSSI/SNR) — and a **WiFi AP** screen that turns the access point on
 - **Web UI** — the WiFi AP is off by default in config mode; open the **WiFi AP** menu screen to switch it on (the AP runs only while that screen is shown), then connect to the device's AP and open `http://192.168.4.1`
-- **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort
+- **LoRaWAN** — send a downlink from your network server; non-empty payload sets the values, empty payload queries current values and the device responds on the same fPort. From 2.0.0 a set may be longer than this firmware expects: bytes for fields it doesn't know yet are ignored, and the report shows what it applied. Firmware before 2.0.0 ignores a set whose length doesn't match exactly.
 - **AT commands** — serial interface over USB in config mode (115200 baud, `AT+HELP` for a command list)
 
 Config mode is entered by pressing the boot button on startup, or via a LoRaWAN downlink on fPort 10. The fPort-10 path opens directly on the WiFi AP screen with the access point already on, so a remotely-triggered session is ready for a web update.

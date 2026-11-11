@@ -79,9 +79,9 @@ Two methods on `State` implement battery-based sleep throttling:
 
 Uses RadioLib with OTAA on Region `EU868` / `subBand` 0 (`src/comms.h`). The session is persisted in `RTC_DATA_ATTR` (`rtc.lwSession`) and nonces in NVS (`Preferences`). Join is attempted with backoff: every 5th boot for the first 30 boots, then every 10th boot. Normal uplinks are unconfirmed (no ACK).
 
-Downlinks are dispatched by fPort in `Comms::send()` — for a config fPort, an empty payload is a query (the device replies on the same fPort via `sendConfigReport()`) and a non-empty payload sets values. fPort 10 triggers OTA/config mode. For the authoritative port map and payload layouts, read the `switch` in `src/comms.cpp` and `responseFPort()`; `kMaxDownlinkChain` (`src/comms.h`) bounds how many queued downlinks one wake processes.
+Downlinks are dispatched by fPort in `Comms::send()` — for a config fPort, an empty payload is a query (the device replies on the same fPort via `sendConfigReport()`) and a non-empty payload sets values. Set layouts are **append-only**, so the server can always send the newest layout without knowing a device's firmware version: a set applies once it has the original fields, a later-added field applies only when fully present, and unknown trailing bytes are ignored. Never reorder or remove a field; retire one by ignoring its value (as fPort 15/17 do with the old fence-channel byte). The config report's length shows which fields a device knows. Firmware before 2.0.0 matched lengths exactly and drops a longer set entirely. fPort 10 triggers OTA/config mode. For the authoritative port map and payload layouts, read the `switch` in `src/comms.cpp` and `responseFPort()`; `kMaxDownlinkChain` (`src/comms.h`) bounds how many queued downlinks one wake processes.
 
-The public send API is `comms.sendMeasurement(battMv, fenceV, display, downlink)` — it encodes the 3-byte payload internally and calls the private `send()`. The raw `send()` method is private.
+Uplinks go through the public `Comms::sendMeasurement()` and `Comms::sendRapidDropAlert()`, which encode their payloads; the raw `send()` is private.
 
 #### Radio-config trial-and-rollback (commit-on-confirm)
 
