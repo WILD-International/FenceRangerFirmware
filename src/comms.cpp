@@ -34,6 +34,9 @@ static Module::RfSwitchMode_t rfswitch_table[] = {
 // this budget, so only a sustained run of misses fails the phase).
 static constexpr uint8_t RADIO_TRIAL_ATTEMPTS = 3;
 
+// Fence Channels byte in the fPort 17 report: 3 = both channels sent, the higher one used.
+static constexpr uint8_t FENCE_CHANNELS_ALWAYS_MAX = 3;
+
 // Successful confirmed round-trips the ADR phase must collect before it passes. More
 // than one guards against a fluke ACK on a marginal link (it does not exercise ADR's
 // own rate loop — that needs far more frames than a trial can run).
@@ -415,41 +418,30 @@ void Comms::runRadioTrialCycle(const Measurement& measurement, Display* display)
   }
 }
 
+// fPort 4: [batt][Fence+ u16][Fence− u16]. Decoders take the higher channel as the fence voltage.
 int16_t Comms::sendMeasurement(const Measurement& measurement, Display* display, Downlink* downlink,
                                bool confirmed, SignalInfo* signalInfo) {
   uint16_t battMv = constrain(measurement.battMaxMv, (uint16_t)1950, (uint16_t)4500);
-  uint8_t payload[6];
+  uint8_t payload[5];
   payload[0] = (battMv - 1950) / 10;
   payload[1] = (measurement.fencePosMaxV >> 8) & 0xFF;
   payload[2] = measurement.fencePosMaxV & 0xFF;
-  FenceChannels fenceChannels = config->getFenceChannels();
-  if (fenceChannels == FenceChannels::PosOnly) {
-    return send(1, payload, 3, display, downlink, confirmed, signalInfo);
-  }
   payload[3] = (measurement.fenceNegMaxV >> 8) & 0xFF;
   payload[4] = measurement.fenceNegMaxV & 0xFF;
-  if (fenceChannels == FenceChannels::PosPrimary) {
-    return send(3, payload, 5, display, downlink, confirmed, signalInfo);
-  }
-  payload[5] = 1;  // fenceNegPrimary
-  return send(3, payload, 6, display, downlink, confirmed, signalInfo);
+  return send(4, payload, sizeof(payload), display, downlink, confirmed, signalInfo);
 }
 
+// fPort 2: [batt][previous u16][current u16], both the alert voltage (the higher channel).
 int16_t Comms::sendRapidDropAlert(uint16_t battMv, uint16_t previousVoltage,
                                   uint16_t currentVoltage, Display* display, Downlink* downlink) {
   battMv = constrain(battMv, (uint16_t)1950, (uint16_t)4500);
-  uint8_t payload[6];
+  uint8_t payload[5];
   payload[0] = (battMv - 1950) / 10;
   payload[1] = (previousVoltage >> 8) & 0xFF;
   payload[2] = previousVoltage & 0xFF;
   payload[3] = (currentVoltage >> 8) & 0xFF;
   payload[4] = currentVoltage & 0xFF;
-  size_t length = 5;
-  if (config->getFenceNegPrimary()) {
-    payload[5] = 1;  // fenceNegPrimary
-    length = 6;
-  }
-  return send(2, payload, length, display, downlink);
+  return send(2, payload, sizeof(payload), display, downlink);
 }
 
 int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, Downlink* downlink,
@@ -587,9 +579,7 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
                 (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->measureConfig.fenceCalPercent =
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
-            // 4-byte form predates sendFenceNeg; echo the stored value so it survives.
-            downlink->measureConfig.sendFenceNeg =
-                (downlinkSize == 5) ? downlinkPayload[4] : (config->getSendFenceNeg() ? 1 : 0);
+            // Byte 4 (Send Fence-) is ignored: both channels are always sent.
           } else {
             LOG("Downlink: fPort 15 ignored (unexpected size %d)\n", downlinkSize);
           }
@@ -615,21 +605,19 @@ int16_t Comms::send(uint8_t fport, uint8_t* data, size_t len, Display* display, 
           if (downlinkSize == 0) {
             LOGLN("Downlink: QueryMeasureConfigV2");
             downlink->type = DownlinkType::QueryMeasureConfigV2;
-          } else if ((downlinkSize == 5 || downlinkSize == 7) &&
-                     downlinkPayload[4] <= (uint8_t)FenceChannels::NegPrimary) {
+          } else if (downlinkSize == 5 || downlinkSize == 7) {
+            // Byte 4 (Fence Channels) is ignored: the higher channel is always used.
             LOGLN("Downlink: SetMeasureConfigV2");
             downlink->type = DownlinkType::SetMeasureConfigV2;
             downlink->measureConfigV2.measureDurationMs =
                 (downlinkPayload[0] << 8) | downlinkPayload[1];
             downlink->measureConfigV2.fenceCalPercent =
                 (downlinkPayload[2] << 8) | downlinkPayload[3];
-            downlink->measureConfigV2.fenceChannels = downlinkPayload[4];
             downlink->measureConfigV2.hasSettleMs = downlinkSize == 7;
             downlink->measureConfigV2.settleMs =
                 downlinkSize == 7 ? (downlinkPayload[5] << 8) | downlinkPayload[6] : 0;
           } else {
-            LOG("Downlink: fPort 17 ignored (unexpected size %d or fence channels)\n",
-                downlinkSize);
+            LOG("Downlink: fPort 17 ignored (unexpected size %d)\n", downlinkSize);
           }
           break;
         case 20:
@@ -725,7 +713,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = config->getMeasureDurationMs() & 0xFF;
       payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
       payload[3] = config->getFenceCalPercent() & 0xFF;
-      payload[4] = config->getSendFenceNeg() ? 1 : 0;
+      payload[4] = 1;  // Send Fence-: both channels are always sent
       len = 5;
       break;
     case 16:
@@ -743,7 +731,7 @@ int16_t Comms::sendConfigReport(uint8_t fport, Display* display, Downlink* downl
       payload[1] = config->getMeasureDurationMs() & 0xFF;
       payload[2] = (config->getFenceCalPercent() >> 8) & 0xFF;
       payload[3] = config->getFenceCalPercent() & 0xFF;
-      payload[4] = (uint8_t)config->getFenceChannels();
+      payload[4] = FENCE_CHANNELS_ALWAYS_MAX;
       payload[5] = (config->getSettleMs() >> 8) & 0xFF;
       payload[6] = config->getSettleMs() & 0xFF;
       len = 7;
@@ -794,12 +782,10 @@ Downlink Comms::processDownlink(Downlink downlink, Display* display) {
     case DownlinkType::SetMeasureConfig:
       config->setMeasureDurationMs(downlink.measureConfig.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfig.fenceCalPercent);
-      config->setSendFenceNeg(downlink.measureConfig.sendFenceNeg != 0);
       return {};
     case DownlinkType::SetMeasureConfigV2:
       config->setMeasureDurationMs(downlink.measureConfigV2.measureDurationMs);
       config->setFenceCalPercent(downlink.measureConfigV2.fenceCalPercent);
-      config->setFenceChannels((FenceChannels)downlink.measureConfigV2.fenceChannels);
       if (downlink.measureConfigV2.hasSettleMs) {
         config->setSettleMs(downlink.measureConfigV2.settleMs);
       }

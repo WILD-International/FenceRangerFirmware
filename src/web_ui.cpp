@@ -120,8 +120,6 @@ void WebUi::registerRoutes() {
     json += config->getSettleMs();
     json += ",\"fenceCalPercent\":";
     json += config->getFenceCalPercent();
-    json += ",\"fenceChannels\":";
-    json += (int)config->getFenceChannels();
     json += ",\"carrierRev\":";
     json += config->getCarrierRev();
     json += ",\"txPower\":";
@@ -253,28 +251,24 @@ void WebUi::registerRoutes() {
     String durArg = server->arg("measureDurationMs");
     String settleArg = server->arg("settleMs");
     String calArg = server->arg("fenceCalPercent");
-    String fenceChannelsArg = server->arg("fenceChannels");
     String carrierArg = server->arg("carrierRev");
     if (durArg.length() == 0 || settleArg.length() == 0 || calArg.length() == 0 ||
-        fenceChannelsArg.length() == 0 || carrierArg.length() == 0) {
+        carrierArg.length() == 0) {
       server->send(400, "text/plain", "All fields required");
       return;
     }
     int32_t dur = durArg.toInt();
     int32_t settle = settleArg.toInt();
     int32_t cal = calArg.toInt();
-    int32_t fenceChannels = fenceChannelsArg.toInt();
     int32_t carrierRev = carrierArg.toInt();
     if (dur < 100 || dur > 60000 || settle < 0 || settle > 10000 || cal < 1 || cal > 1000 ||
-        fenceChannels < 0 || fenceChannels > (int32_t)FenceChannels::NegPrimary || carrierRev < 0 ||
-        carrierRev > 1) {
+        carrierRev < 0 || carrierRev > 1) {
       server->send(400, "text/plain", "Invalid values");
       return;
     }
     config->setMeasureDurationMs((uint16_t)dur);
     config->setSettleMs((uint16_t)settle);
     config->setFenceCalPercent((uint16_t)cal);
-    config->setFenceChannels((FenceChannels)fenceChannels);
     config->setCarrierRev((uint8_t)carrierRev);
     server->send(200, "text/plain", "Saved");
   });

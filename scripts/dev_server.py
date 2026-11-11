@@ -32,7 +32,6 @@ state = {
     "measureDurationMs": 3000,
     "settleMs": 120,
     "fenceCalPercent": 100,
-    "fenceChannels": 0,
     "carrierRev": 0,
     "rxLnaEnabled": 1,
     "txPower": 10,
@@ -124,7 +123,6 @@ class Handler(BaseHTTPRequestHandler):
             state["measureDurationMs"] = int(data.get("measureDurationMs", [state["measureDurationMs"]])[0])
             state["settleMs"] = int(data.get("settleMs", [state["settleMs"]])[0])
             state["fenceCalPercent"] = int(data.get("fenceCalPercent", [state["fenceCalPercent"]])[0])
-            state["fenceChannels"] = int(data.get("fenceChannels", [state["fenceChannels"]])[0])
             state["carrierRev"] = int(data.get("carrierRev", [state["carrierRev"]])[0])
             print(f"Measure config updated: {state}")
             self.send_response(200)

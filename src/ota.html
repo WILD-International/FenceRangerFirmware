@@ -196,12 +196,6 @@
     <input type="text" id="settle-ms" maxlength="5" placeholder="120">
     <label>Fence Cal (%)</label>
     <input type="text" id="fence-cal" maxlength="3" placeholder="100">
-    <label>Fence Channels</label>
-    <select id="fence-channels">
-      <option value="0">Fence+ only</option>
-      <option value="1">Fence+ primary, also send Fence-</option>
-      <option value="2">Fence- primary, also send Fence+</option>
-    </select>
     <label>Carrier Rev</label>
     <select id="carrier-rev">
       <option value="0">v3.0</option>
@@ -302,7 +296,6 @@
         document.getElementById('measure-duration').value = d.measureDurationMs;
         document.getElementById('settle-ms').value = d.settleMs;
         document.getElementById('fence-cal').value = d.fenceCalPercent;
-        document.getElementById('fence-channels').value = d.fenceChannels;
         document.getElementById('carrier-rev').value = d.carrierRev;
         document.getElementById('rx-lna').checked = d.rxLnaEnabled == 1;
         document.getElementById('tx-power').value = d.txPower;
@@ -364,7 +357,6 @@
         measureDurationMs: document.getElementById('measure-duration').value,
         settleMs: document.getElementById('settle-ms').value,
         fenceCalPercent: document.getElementById('fence-cal').value,
-        fenceChannels: document.getElementById('fence-channels').value,
         carrierRev: document.getElementById('carrier-rev').value
       }, 'status-measure');
     }

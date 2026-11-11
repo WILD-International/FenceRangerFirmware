@@ -24,13 +24,14 @@ struct Measurement {
   uint16_t fencePosMaxV = 0;
   uint32_t adcErrorCount = 0;
 
-  // Voltage the alerting runs on. Never max() of both channels: Fence− picks up noise/offset
-  // that inflates the reading while the fence is off.
-  uint16_t fenceVoltage(bool fenceNegPrimary) const {
-    if (fenceNegPrimary) {
-      return fenceNegMaxV;
-    }
-    return fencePosMaxV;
+  // Voltage the alerting runs on: the higher channel, so a fence wired or energized with
+  // reversed polarity still reads correctly. The other input only sees the post-pulse
+  // overshoot, which stays below the live one.
+  uint16_t fenceVoltage() const {
+    return fenceNegMaxV > fencePosMaxV ? fenceNegMaxV : fencePosMaxV;
+  }
+  bool fenceNegHigher() const {
+    return fenceNegMaxV > fencePosMaxV;
   }
 };
 

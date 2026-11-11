@@ -8,7 +8,7 @@ Because it runs on a small solar-charged battery, it needs to balance two compet
 
 ## Alert behavior
 
-The device measures the fence voltage every cycle (from the positive-polarity peak, or the negative one when Fence− is set as primary) and classifies it against two thresholds: at or above **Recover V** is *healthy*, below **Alert V** is a *problem*, and the gap between them is a deliberate no-man's-land that counts as *not yet healthy* everywhere. This hysteresis stops the device oscillating when a fence hovers near the line.
+The device measures the fence voltage every cycle (the higher of the positive- and negative-polarity peaks, so a fence wired or energized with reversed polarity still reads correctly; see the note below the parameter table) and classifies it against two thresholds: at or above **Recover V** is *healthy*, below **Alert V** is a *problem*, and the gap between them is a deliberate no-man's-land that counts as *not yet healthy* everywhere. This hysteresis stops the device oscillating when a fence hovers near the line.
 
 Most of the time the fence is healthy and there is nothing to report, so the device only sends a brief heartbeat every **Idle Hb** cycles to confirm it is still alive. When the voltage drops below **Alert V**, the device immediately sends a burst of **Burst Sends** messages — making sure the network receives at least one — then settles into a faster heartbeat every **Alert Hb** cycles so the operator stays informed.
 
@@ -104,8 +104,6 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | Measure | Measure Duration | 3000 ms | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+MEASUREDURATION` |
 | | Settle Time | 120 ms | ✓ | ✓ | fPort 17 | `AT+SETTLEMS` |
 | | Fence Cal % | 100 | ✓ | ✓ | fPort 17, fPort 15 (deprecated) | `AT+FENCECAL` |
-| | Send Fence- (deprecated) | disabled | — | — | fPort 15 (deprecated) | `AT+SENDFENCENEG` |
-| | Fence Channels | Pos only | ✓ | ✓ | fPort 17 | `AT+FENCECHANNELS` |
 | | Carrier Rev | 1 (v3.1) | ✓ | ✓ | — | `AT+CARRIERREV` |
 | Radio | RX LNA | enabled | ✓ | ✓ | fPort 16 | `AT+RXLNA` |
 | | TX Power | 10 dBm | ✓ | ✓ | fPort 16 | `AT+TXPOWER` |
@@ -114,6 +112,8 @@ For example, to join the default updater AP with password `passw0rd`: `[10][0]['
 | | Syncword Public | enabled | ✓ | ✓ | fPort 16 | `AT+SYNCWORD` |
 | | Scan Guard | 100 ms | ✓ | ✓ | fPort 16 | `AT+SCANGUARD` |
 | Info | Firmware version | — | (info screen) | (shown) | fPort 20 (query) | `AT+VERSION?` |
+
+**Fence channels.** Since 2.0.0 the device always reports both fence inputs (fPort 4) and alerts on whichever is higher each cycle. The input that isn't live only picks up the overshoot after each pulse, which stays below the live one, and since 1.4.0 an unconnected input reads 0. So the reading stays correct when an energizer comes back with reversed polarity. This replaces the 1.x **Send Fence-** and **Fence Channels** settings (`AT+SENDFENCENEG`, `AT+FENCECHANNELS`, OLED, web UI). Their slots in fPort 15 and 17 are kept so existing downlinks still apply: the value is ignored on a set and reported as `1` (fPort 15) and `3` (fPort 17). A fence with two live wires now alerts on the higher wire only.
 
 ---
 

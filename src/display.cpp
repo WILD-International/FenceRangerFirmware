@@ -112,11 +112,10 @@ void Display::showMeasurement(const Measurement& measurement, uint32_t delayMs) 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(2, 11);
-  display.printf("Fence+ %5u V%s", measurement.fencePosMaxV,
-                 config->getFenceNegPrimary() ? "" : " *");
+  bool negHigher = measurement.fenceNegHigher();
+  display.printf("Fence+ %5u V%s", measurement.fencePosMaxV, negHigher ? "" : " *");
   display.setCursor(2, 22);
-  display.printf("Fence- %5u V%s", measurement.fenceNegMaxV,
-                 config->getFenceNegPrimary() ? " *" : "");
+  display.printf("Fence- %5u V%s", measurement.fenceNegMaxV, negHigher ? " *" : "");
   display.setCursor(2, 33);
   display.printf("Batt   %5u mV", measurement.battMaxMv);
   if (measurement.adcErrorCount > 0) {
@@ -365,11 +364,12 @@ void Display::showVoltageTest(const Measurement& measurement) {
   display.setCursor(2, 11);
   display.print("         max  min");
   display.setCursor(2, 20);
+  bool negHigher = measurement.fenceNegHigher();
   display.printf("Fence+ %5u %4u V%s", measurement.fencePosMaxV, measurement.fencePosMinV,
-                 config->getFenceNegPrimary() ? "" : "*");
+                 negHigher ? "" : "*");
   display.setCursor(2, 29);
   display.printf("Fence- %5u %4u V%s", measurement.fenceNegMaxV, measurement.fenceNegMinV,
-                 config->getFenceNegPrimary() ? "*" : "");
+                 negHigher ? "*" : "");
   display.setCursor(2, 38);
   display.printf("Batt   %5u mV", measurement.battMaxMv);
   if (measurement.adcErrorCount > 0) {

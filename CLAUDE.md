@@ -91,24 +91,27 @@ Each trial wake (`Comms::runRadioTrialCycle`, driven from `main.cpp` when `rtc.r
 
 ### Uplink payloads
 
-**Measurement — fPort 1 (3 bytes)**
+**Measurement — fPort 4 (5 bytes, firmware 2.0.0+)**
 
 | Byte | Content |
 |------|---------|
 | 0 | Battery voltage compressed: `(mv - 1950) / 10`, covering 1950–4500 mV in 10 mV steps |
-| 1–2 | Fence voltage in volts, big-endian uint16 |
+| 1–2 | Fence+ voltage in volts, big-endian uint16 |
+| 3–4 | Fence− voltage in volts, big-endian uint16 |
 
-When **Fence Channels** includes Fence−, the measurement moves to fPort 3, which also carries the negative-polarity reading. It switches the **port** rather than lengthening fPort 1: devices are already deployed whose decoders treat fPort 1 as a fixed 3-byte layout, so that layout is frozen. The alert path runs on the primary channel; a trailing flag byte on fPort 2 and 3 marks Fence− as primary, and is omitted otherwise so those frames stay identical to firmware 1.2.0.
+The device alerts on max(Fence+, Fence−) (`Measurement::fenceVoltage()`), and decoders take the same max as the fence voltage. Firmware 1.x sent fPort 1 (`[batt][Fence+]`) or, when its now-removed **Fence Channels** setting included Fence−, fPort 3 (`[batt][Fence+][Fence−]` plus a trailing `1` when Fence− was primary). 2.0.0 deliberately uses a **new port** rather than reusing those: decoders keep reading 1.x frames as before, and the port alone says which rule applies, so the platform never needs to know a device's firmware version. Don't send fPort 1 or 3 from new firmware.
 
-Encoding for both ports lives in `Comms::sendMeasurement()`. Value selection (which min/max reading to use) stays in `main.cpp`.
+Encoding lives in `Comms::sendMeasurement()`.
 
 **Rapid-drop early warning — fPort 2**
 
 | Byte | Content |
 |------|---------|
-| 0 | Battery, same compression as fPort 1 |
+| 0 | Battery, same compression as fPort 4 |
 | 1–2 | Previous fence voltage, big-endian uint16 |
 | 3–4 | Current fence voltage, big-endian uint16 |
+
+Both voltages are the alert voltage, max(Fence+, Fence−) since 2.0.0. Firmware 1.3.0–1.4.0 appended a byte `1` when Fence− was primary; 2.0.0 never does.
 
 Encoding lives in `Comms::sendRapidDropAlert()`; the trigger is the rapid-drop path of `processMeasurement()` (see the transmission-policy section).
 
